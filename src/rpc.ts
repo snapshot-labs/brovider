@@ -1,12 +1,10 @@
 import express from 'express';
-import networks from '@snapshot-labs/snapshot.js/src/networks.json';
 import proxy from 'express-http-proxy';
+import networks from '@snapshot-labs/snapshot.js/src/networks.json';
 
 const router = express.Router();
 
-/*
- * Used to set the Authorization header for the proxy request
- */
+// Set authorization header for the proxy request
 function setAdditionalHeaders(proxyReqOpts, srcReq) {
   if (srcReq.nodeData.authHeader)
     proxyReqOpts.headers['Authorization'] = srcReq.nodeData.authHeader;
@@ -35,7 +33,7 @@ function setNode(req, res, next) {
 }
 
 router.use(
-  '/s/:network',
+  '/:network',
   setNode,
   proxy(req => req.nodeData.url, {
     memoizeHost: false,
