@@ -1,0 +1,47 @@
+diff --git a/node_modules/express-http-proxy/app/steps/sendProxyRequest.js b/node_modules/express-http-proxy/app/steps/sendProxyRequest.js
+index 6764ecf..c54502b 100644
+--- a/node_modules/express-http-proxy/app/steps/sendProxyRequest.js
++++ b/node_modules/express-http-proxy/app/steps/sendProxyRequest.js
+@@ -1,7 +1,14 @@
+ 'use strict';
+-
++const events = require('events');
++var crypto = require('crypto');
+ var chunkLength = require('../../lib/chunkLength');
+ 
++const eventEmitter = new events.EventEmitter();
++eventEmitter.setMaxListeners(1000); // https://stackoverflow.com/a/26176922
++function sha256(str) {
++  return crypto.createHash('sha256').update(str).digest('hex');
++}
++
+ function sendProxyRequest(Container) {
+   var req = Container.user.req;
+   var bodyContent = Container.proxy.bodyContent;
+@@ -9,11 +16,24 @@ function sendProxyRequest(Container) {
+   var options = Container.options;
+ 
+   return new Promise(function(resolve, reject) {
++    var key = sha256(JSON.stringify({
++      host: reqOpt.host,
++      port: reqOpt.port,
++      path: reqOpt.path,
++      bodyContent
++    }));
++    if (options.stream) {
++      eventEmitter.once(key, function(rsp) {
++        Container.proxy.res = rsp;
++        return resolve(Container);
++      });
++    }
++    var listenerCount = eventEmitter.listenerCount(key);
++    if(listenerCount > 1) { return };
+     var protocol = Container.proxy.requestModule;
+     var proxyReq = Container.proxy.req = protocol.request(reqOpt, function(rsp) {
+       if (options.stream) {
+-        Container.proxy.res = rsp;
+-        return resolve(Container);
++        return eventEmitter.emit(key, rsp);
+       }
+ 
+       var chunks = [];
