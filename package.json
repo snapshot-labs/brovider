@@ -10,7 +10,7 @@
     "postinstall": "patch-package"
   },
   "dependencies": {
-    "@snapshot-labs/snapshot.js": "^0.3.97",
+    "@snapshot-labs/snapshot.js": "^0.3.98",
     "body-parser": "^1.20.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.1",
