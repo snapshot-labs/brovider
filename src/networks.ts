@@ -1,18 +1,19 @@
 import snapshot from '@snapshot-labs/snapshot.js';
 import networks from '@snapshot-labs/snapshot.js/src/networks.json';
-import axios from 'axios';
+import { customFetch } from './utils';
 
 export let updatedNetworks: any = networks;
 
 // Get the list of networks from github and then wait for 10 minutes and then request the again.
 const loadNetworks = () => {
-  axios
-    .get('https://raw.githubusercontent.com/snapshot-labs/snapshot.js/master/src/networks.json', {
-      timeout: 6e4
-    })
-    .then(function (response) {
+  customFetch(
+    'https://raw.githubusercontent.com/snapshot-labs/snapshot.js/master/src/networks.json'
+  )
+    .then(res => res.json())
+    .then(function (response: any = {}) {
+      // make sure response is not empty
+      if (response['1']?.key === '1') updatedNetworks = response;
       console.log('[loadNetworks] Networks updated from github');
-      updatedNetworks = response.data;
     })
     .catch(function (error) {
       console.log(`[loadNetworks] ${error}`);
