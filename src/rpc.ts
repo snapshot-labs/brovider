@@ -1,6 +1,6 @@
 import express from 'express';
 import proxy from 'express-http-proxy';
-import networks from '@snapshot-labs/snapshot.js/src/networks.json';
+import { updatedNetworks } from './networks';
 
 const router = express.Router();
 
@@ -18,7 +18,7 @@ function getPathFromURL(url) {
 
 function setNode(req, res, next) {
   const { network } = req.params;
-  const node = networks[network].rpc[0];
+  const node = updatedNetworks[network].rpc[0];
   const nodeURL = typeof node === 'object' ? node.url : node;
   req.nodeData = {
     url: nodeURL,
