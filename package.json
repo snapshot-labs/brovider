@@ -6,8 +6,7 @@
     "lint": "eslint . --ext .ts --fix",
     "build": "tsc",
     "dev": "nodemon src/index.ts",
-    "start": "node dist/src/index.js",
-    "postinstall": "patch-package"
+    "start": "node dist/src/index.js"
   },
   "dependencies": {
     "@snapshot-labs/snapshot.js": "^0.4.7",
