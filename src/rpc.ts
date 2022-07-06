@@ -18,7 +18,11 @@ function getPathFromURL(url) {
 
 function setNode(req, res, next) {
   const { network } = req.params;
-  const node = networks[network].rpc[0];
+  const node = networks[network]?.rpc[0];
+  if (!node) {
+    res.status(404).send('Network not found');
+    return;
+  }
   const nodeURL = typeof node === 'object' ? node.url : node;
   req.nodeData = {
     url: nodeURL,
@@ -36,6 +40,7 @@ router.use(
   '/:network',
   setNode,
   proxy(req => req.nodeData.url, {
+    timeout: 30000,
     memoizeHost: false,
     proxyReqOptDecorator: setAdditionalHeaders,
     proxyReqPathResolver: req => req.nodeData.path
