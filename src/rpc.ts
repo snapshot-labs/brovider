@@ -19,10 +19,7 @@ function getPathFromURL(url) {
 function setNode(req, res, next) {
   const { network } = req.params;
   const node = networks[network]?.rpc[0];
-  if (!node) {
-    res.status(404).send('Network not found');
-    return;
-  }
+  if (!node) return res.status(404).send('Network not found');
   const nodeURL = typeof node === 'object' ? node.url : node;
   req.nodeData = {
     url: nodeURL,
