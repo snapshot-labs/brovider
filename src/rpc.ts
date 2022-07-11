@@ -1,5 +1,6 @@
 import express from 'express';
 import proxy from 'express-http-proxy';
+import { JsonRpcProvider } from '@ethersproject/providers';
 import rpcs from './rpcs.json';
 
 const router = express.Router();
@@ -32,6 +33,17 @@ function setNode(req, res, next) {
   };
   next();
 }
+
+router.get('/:network', async (req, res) => {
+  try {
+    const network = req.params.network;
+    const provider = new JsonRpcProvider(rpcs[network][0]);
+    const blockNumber = await provider.getBlockNumber();
+    return res.json({ network, blockNumber });
+  } catch (e) {
+    return res.json({ error: e });
+  }
+});
 
 router.use(
   '/:network',
