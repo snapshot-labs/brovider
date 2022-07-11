@@ -10,7 +10,7 @@ index 6764ecf..c54502b 100644
  var chunkLength = require('../../lib/chunkLength');
  
 +const eventEmitter = new events.EventEmitter();
-+eventEmitter.setMaxListeners(1000); // https://stackoverflow.com/a/26176922
++eventEmitter.setMaxListeners(5000); // https://stackoverflow.com/a/26176922
 +function sha256(str) {
 +  return crypto.createHash('sha256').update(str).digest('hex');
 +}
