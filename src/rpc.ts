@@ -1,6 +1,6 @@
 import express from 'express';
 import proxy from 'express-http-proxy';
-import rpc from './networkRPC.json';
+import rpcs from './rpcs.json';
 
 const router = express.Router();
 
@@ -18,7 +18,7 @@ function getPathFromURL(url) {
 
 function setNode(req, res, next) {
   const { network } = req.params;
-  const node = rpc[network] ? rpc[network][0] : null;
+  const node = rpcs[network] ? rpcs[network][0] : null;
   if (!node) return res.status(404).send('Network not found');
   const nodeURL = typeof node === 'object' ? node.url : node;
   req.nodeData = {
