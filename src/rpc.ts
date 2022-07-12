@@ -4,6 +4,7 @@ import { JsonRpcProvider } from '@ethersproject/providers';
 import rpcs from './rpcs.json';
 
 const router = express.Router();
+const monitor = {};
 
 // Set authorization header for the proxy request
 function setAdditionalHeaders(proxyReqOpts, srcReq) {
@@ -34,16 +35,28 @@ function setNode(req, res, next) {
   next();
 }
 
-router.get('/:network', async (req, res) => {
-  try {
-    const network = req.params.network;
-    const provider = new JsonRpcProvider(rpcs[network][0]);
-    const blockNumber = await provider.getBlockNumber();
-    return res.json({ network, blockNumber });
-  } catch (e) {
-    return res.json({ error: e });
-  }
+router.get('/monitor', async (req, res) => {
+  return res.json(monitor);
 });
+
+async function getBlockNumber(rpc) {
+  try {
+    const provider = new JsonRpcProvider(rpc);
+    return await provider.getBlockNumber();
+  } catch (e) {
+    return 0;
+  }
+}
+
+async function isFullArchive(rpc) {
+  try {
+    const provider = new JsonRpcProvider(rpc);
+    await provider.getBalance('0xeF8305E140ac520225DAf050e2f71d5fBcC543e7', 1);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
 router.use(
   '/:network',
@@ -55,5 +68,26 @@ router.use(
     proxyReqPathResolver: req => req.nodeData.path
   })
 );
+
+async function check() {
+  for (const network of Object.entries(rpcs)) {
+    for (let i = 0; i < network[1].length; i++) {
+      console.log('Check network', network[0], 'index', i);
+      const rpc = network[1][i];
+      const p = await Promise.all([getBlockNumber(rpc), isFullArchive(rpc)]);
+      const result = {
+        rpc,
+        block_num: p[0],
+        is_archive: p[1],
+        ts: Math.round(Date.now() / 1e3)
+      };
+      if (!monitor[network[0]]) monitor[network[0]] = [];
+      monitor[network[0]][i] = result;
+    }
+  }
+  return check();
+}
+
+check();
 
 export default router;
