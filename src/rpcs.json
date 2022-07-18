@@ -255,9 +255,8 @@
     "https://arb-mainnet.g.alchemy.com/v2/JDvtNGwnHhTltIwfnxQocKwKkCTKA1DL"
   ],
   "42220": [
-    "https://celo.snapshot.org",
-    "https://forno.celo.org",
-    "https://celo-mainnet--rpc.datahub.figment.io/apikey/e892a66dc36e4d2d98a5d6406d609796/"
+    "https://celo-mainnet--rpc.datahub.figment.io/apikey/948a479c65c96ea90c218419b479fcb1/",
+    "https://forno.celo.org"
   ],
   "42262": [
     "https://emerald.oasis.dev"
