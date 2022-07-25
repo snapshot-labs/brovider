@@ -4,7 +4,12 @@ import { JsonRpcProvider } from '@ethersproject/providers';
 import rpcs from './rpcs.json';
 
 const router = express.Router();
-const monitor = {};
+const monitor = Object.fromEntries(
+  Object.keys(rpcs).map(networksId => [
+    networksId,
+    Object.fromEntries(rpcs[networksId].map((rpc, index) => [index, { rpc }]))
+  ])
+);
 
 // Set authorization header for the proxy request
 function setAdditionalHeaders(proxyReqOpts, srcReq) {
@@ -69,20 +74,28 @@ router.use(
   })
 );
 
+let countCounter = 0;
 async function check() {
-  for (const network of Object.entries(rpcs)) {
-    for (let i = 0; i < network[1].length; i++) {
-      console.log('Check network', network[0], 'index', i);
-      const rpc = network[1][i];
-      const p = await Promise.all([getBlockNumber(rpc), isFullArchive(rpc)]);
+  countCounter++;
+
+  for (const [chainId, chainList] of Object.entries(rpcs)) {
+    for (let i = 0; i < chainList.length; i++) {
+      console.log('Check network', chainId, 'index', i);
+      const rpc = chainList[i];
+      const [block_num, is_archive] = await Promise.all([getBlockNumber(rpc), isFullArchive(rpc)]);
+      const oldSuccessTotal = monitor[chainId][i].success_total || 0;
+      const newScore = block_num > 0 ? 1 : 0;
+      const success_total = oldSuccessTotal + newScore;
+      const success_score = parseFloat(((success_total * 100) / countCounter).toFixed(2));
       const result = {
         rpc,
-        block_num: p[0],
-        is_archive: p[1],
+        block_num,
+        is_archive,
+        success_total,
+        success_score,
         ts: Math.round(Date.now() / 1e3)
       };
-      if (!monitor[network[0]]) monitor[network[0]] = [];
-      monitor[network[0]][i] = result;
+      monitor[chainId][i] = result;
     }
   }
   return check();
