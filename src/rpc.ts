@@ -74,28 +74,28 @@ router.use(
   })
 );
 
-let countCounter = 0;
+let checkCount = 0;
 async function check() {
-  countCounter++;
+  checkCount++;
 
-  for (const [chainId, chainList] of Object.entries(rpcs)) {
-    for (let i = 0; i < chainList.length; i++) {
-      console.log('Check network', chainId, 'index', i);
-      const rpc = chainList[i];
-      const [block_num, is_archive] = await Promise.all([getBlockNumber(rpc), isFullArchive(rpc)]);
-      const oldSuccessTotal = monitor[chainId][i].success_total || 0;
-      const newScore = block_num > 0 ? 1 : 0;
-      const success_total = oldSuccessTotal + newScore;
-      const success_score = parseFloat(((success_total * 100) / countCounter).toFixed(2));
+  for (const [network, rpcList] of Object.entries(rpcs)) {
+    for (let i = 0; i < rpcList.length; i++) {
+      console.log('Check network', network, 'index', i);
+      const rpc = rpcList[i];
+      const [blockNumber, isArchive] = await Promise.all([getBlockNumber(rpc), isFullArchive(rpc)]);
+      const oldSuccessTotal = monitor[network][i].success_total || 0;
+      const newScore = blockNumber > 0 ? 1 : 0;
+      const successTotal = oldSuccessTotal + newScore;
+      const successScore = parseFloat(((successTotal * 100) / checkCount).toFixed(2));
       const result = {
         rpc,
-        block_num,
-        is_archive,
-        success_total,
-        success_score,
+        block_number: blockNumber,
+        is_archive: isArchive,
+        success_total: successTotal,
+        success_score: successScore,
         ts: Math.round(Date.now() / 1e3)
       };
-      monitor[chainId][i] = result;
+      monitor[network][i] = result;
     }
   }
   return check();
