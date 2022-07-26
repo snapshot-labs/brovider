@@ -77,15 +77,14 @@ router.use(
 let checkCount = 0;
 async function check() {
   checkCount++;
-
   for (const [network, rpcList] of Object.entries(rpcs)) {
     for (let i = 0; i < rpcList.length; i++) {
       console.log('Check network', network, 'index', i);
       const rpc = rpcList[i];
       const [blockNumber, isArchive] = await Promise.all([getBlockNumber(rpc), isFullArchive(rpc)]);
       const oldSuccessTotal = monitor[network][i].success_total || 0;
-      const newScore = blockNumber > 0 ? 1 : 0;
-      const successTotal = oldSuccessTotal + newScore;
+      const successReward = blockNumber > 0 ? 1 : 0;
+      const successTotal = oldSuccessTotal + successReward;
       const successScore = parseFloat(((successTotal * 100) / checkCount).toFixed(2));
       const result = {
         rpc,
