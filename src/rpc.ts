@@ -7,7 +7,9 @@ const router = express.Router();
 const monitor = Object.fromEntries(
   Object.keys(rpcs).map(networksId => [
     networksId,
-    Object.fromEntries(rpcs[networksId].map((rpc, index) => [index, { rpc }]))
+    rpcs[networksId].map(rpc => ({
+      rpc
+    }))
   ])
 );
 
