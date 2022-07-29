@@ -102,6 +102,9 @@
   "82": [
     "https://rpc.meter.io"
   ],
+  "87": [
+    "https://dev.rpc.novanetwork.io/"
+  ],
   "97": [
     "https://data-seed-prebsc-1-s1.binance.org:8545",
     "https://speedy-nodes-nyc.moralis.io/f2963e29bec0de5787da3164/bsc/testnet/archive"
@@ -318,6 +321,9 @@
   ],
   "8217": [
     "https://cypress.fandom.finance/archive"
+  ],
+  "12321": [
+    "https://rpc.testnet.wennect.com"
   ],
   "666666": [
     "https://vpioneer.infragrid.v.network/ethereum/compatible"
