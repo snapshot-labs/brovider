@@ -277,6 +277,9 @@
   "47805": [
     "https://rpc.rei.network"
   ],
+  "53935": [
+    "https://subnets.avax.network/defi-kingdoms/dfk-chain/rpc"
+  ],
   "60001": [
     "https://test1.thinkiumrpc.net"
   ],
