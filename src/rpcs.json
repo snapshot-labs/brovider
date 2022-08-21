@@ -142,6 +142,9 @@
     "https://rpc.ankr.com/polygon",
     "https://rpc-mainnet.maticvigil.com/v1/1cfd7598e5ba6dcf0b4db58e8be484badc6ea08e"
   ],
+  "144": [
+    "https://connect.phi.network"
+  ],
   "246": [
     "https://voting-rpc.carbonswap.exchange"
   ],
@@ -198,6 +201,12 @@
   "941": [
     "https://rpc.testnet.pulsedisco.net"
   ],
+  "1001": [
+    "https://baobab.fandom.finance/archive"
+  ],
+  "1002": [
+    "https://kai-internal.kardiachain.io"
+  ],
   "1088": [
     "https://andromeda.metis.io/?owner=1088"
   ],
@@ -242,11 +251,17 @@
   "7341": [
     "https://rpc.shyft.network"
   ],
+  "8217": [
+    "https://cypress.fandom.finance/archive"
+  ],
   "10000": [
     "https://smartbch.greyh.at/"
   ],
   "11437": [
     "https://rpc.testnet.shyft.network"
+  ],
+  "12321": [
+    "https://rpc.testnet.wennect.com"
   ],
   "12357": [
     "https://rpc-testnet.rei.network"
@@ -303,6 +318,12 @@
   "333999": [
     "https://rpc.polis.tech"
   ],
+  "666666": [
+    "https://vpioneer.infragrid.v.network/ethereum/compatible"
+  ],
+  "888888": [
+    "https://infragrid4snapshot.v.network/ethereum/compatible"
+  ],
   "1313161554": [
     "https://mainnet.aurora.dev"
   ],
@@ -314,23 +335,5 @@
   ],
   "11297108109": [
     "https://palm-mainnet.infura.io/v3/3a961d6501e54add9a41aa53f15de99b"
-  ],
-  "1001": [
-    "https://baobab.fandom.finance/archive"
-  ],
-  "1002": [
-    "https://kai-internal.kardiachain.io"
-  ],
-  "8217": [
-    "https://cypress.fandom.finance/archive"
-  ],
-  "12321": [
-    "https://rpc.testnet.wennect.com"
-  ],
-  "666666": [
-    "https://vpioneer.infragrid.v.network/ethereum/compatible"
-  ],
-  "888888": [
-    "https://infragrid4snapshot.v.network/ethereum/compatible"
   ]
 }
