@@ -29,7 +29,7 @@ jobs:
           node-version: '16.10.0'
       - name: Update RPC
         run: |
-          node_modules/ts-node/dist/bin.js scripts/updateRPC.ts ${{ inputs.chainid }} ${{ inputs.rpc }}
+          node scripts/updateRPC.ts ${{ inputs.chainid }} ${{ inputs.rpc }}
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v3
         with:
