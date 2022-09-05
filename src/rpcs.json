@@ -231,6 +231,9 @@
   "1819": [
     "https://http-testnet-archive.cube.network"
   ],
+  "2000": [
+    "https://rpc.dogechain.dog"
+  ],
   "4689": [
     "https://babel-api.mainnet.iotex.io"
   ],
