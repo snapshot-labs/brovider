@@ -43,6 +43,9 @@
   "31": [
     "https://public-node.testnet.rsk.co"
   ],
+  "36": [
+    "https://mainnet.dxchain.com"
+  ],
   "42": [
     "https://eth-kovan.alchemyapi.io/v2/sR9qngOH3w78GAaTtlTe8GwEnij0SnEa",
     "https://speedy-nodes-nyc.moralis.io/b9aed21e7bb7bdeb35972c9a/eth/kovan/archive",
