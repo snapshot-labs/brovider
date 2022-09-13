@@ -142,8 +142,8 @@
     "https://pub001.hg.network/rpc"
   ],
   "137": [
-    "https://matic-mainnet--jsonrpc-archive.datahub.figment.io/apikey/68a7c751daa4f7137ba0e68d3a60f5a2",
     "https://rpc.ankr.com/polygon",
+    "https://matic-mainnet--jsonrpc-archive.datahub.figment.io/apikey/68a7c751daa4f7137ba0e68d3a60f5a2",
     "https://rpc-mainnet.maticvigil.com/v1/1cfd7598e5ba6dcf0b4db58e8be484badc6ea08e"
   ],
   "144": [
