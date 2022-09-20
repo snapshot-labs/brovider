@@ -239,6 +239,9 @@
   "2000": [
     "https://rpc.dogechain.dog"
   ],
+  "2020": [
+    "https://rpc.publicmint.io:8545/"
+  ],
   "4689": [
     "https://babel-api.mainnet.iotex.io"
   ],
