@@ -16,6 +16,7 @@
     "https://eth-ropsten.alchemyapi.io/v2/QzGz6gdkpTyDzebi3PjxIaKO7bDTGnSy"
   ],
   "4": [
+    "https://rpc.ankr.com/eth_rinkeby",
     "https://eth-rinkeby.alchemyapi.io/v2/ugiPEBqMebLQbjro42kalZ1h4StpW_fR",
     "https://eth-rinkeby.gateway.pokt.network/v1/5f76124fb90218002e9ce985"
   ],
