@@ -329,6 +329,7 @@
     "https://proxy103.thinkiumrpc.net"
   ],
   "80001": [
+    "https://public-rpc.blockpi.io/http/polygon-mumbai-testnet",
     "https://rpc.ankr.com/polygon_mumbai",
     "https://speedy-nodes-nyc.moralis.io/9e03baabdc27be2a35bdec4a/polygon/mumbai/archive",
     "https://rpc-mumbai.matic.today"
