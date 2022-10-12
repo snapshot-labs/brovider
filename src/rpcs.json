@@ -33,8 +33,14 @@
     "https://rpc.ankr.com/optimism",
     "https://opt-mainnet.g.alchemy.com/v2/JzmIL4Q3jBj7it2duxLFeuCa9Wobmm7D"
   ],
+  "14": [
+    "https://flare-api.flare.network/ext/C/rpc"
+  ],
   "16": [
     "https://coston-api.flare.network/ext/bc/C/rpc"
+  ],
+  "19": [
+    "https://songbird-api.flare.network/ext/C/rpc"
   ],
   "20": [
     "https://rpc.glidefinance.io",
