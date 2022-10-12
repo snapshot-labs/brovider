@@ -36,6 +36,9 @@
   "14": [
     "https://flare-api.flare.network/ext/C/rpc"
   ],
+  "19": [
+    "https://songbird-api.flare.network/ext/C/rpc"
+  ],
   "20": [
     "https://rpc.glidefinance.io",
     "https://escrpc.elaphant.app"
