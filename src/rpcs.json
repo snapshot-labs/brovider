@@ -321,8 +321,8 @@
     "https://api.avax.network/ext/bc/C/rpc"
   ],
   "43288": [
-    "https://avax.boba.network",
-    "https://replica.avax.boba.network"
+    "https://replica.avax.boba.network",
+    "https://avax.boba.network"
   ],
   "47805": [
     "https://rpc.rei.network"
