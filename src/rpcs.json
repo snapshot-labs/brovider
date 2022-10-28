@@ -12,14 +12,6 @@
     "https://eth-archival.gateway.pokt.network/v1/5f76124fb90218002e9ce985",
     "https://eth-mainnet.alchemyapi.io/v2/4bdDVB5QAaorY2UE-GBUbM2yQB3QJqzv"
   ],
-  "3": [
-    "https://eth-ropsten.alchemyapi.io/v2/QzGz6gdkpTyDzebi3PjxIaKO7bDTGnSy"
-  ],
-  "4": [
-    "https://rpc.ankr.com/eth_rinkeby",
-    "https://eth-rinkeby.alchemyapi.io/v2/ugiPEBqMebLQbjro42kalZ1h4StpW_fR",
-    "https://eth-rinkeby.gateway.pokt.network/v1/5f76124fb90218002e9ce985"
-  ],
   "5": [
     "https://eth-goerli.alchemyapi.io/v2/v4nqH_J-J3STit45Mm07TxuYexMHQsYZ"
   ],
@@ -57,12 +49,6 @@
   ],
   "36": [
     "https://mainnet.dxchain.com"
-  ],
-  "42": [
-    "https://eth-kovan.alchemyapi.io/v2/sR9qngOH3w78GAaTtlTe8GwEnij0SnEa",
-    "https://speedy-nodes-nyc.moralis.io/b9aed21e7bb7bdeb35972c9a/eth/kovan/archive",
-    "https://eth-kovan.alchemyapi.io/v2/s96TIUFYg0LuddgpmafA040ZyUaZbrpM",
-    "https://poa-kovan.gateway.pokt.network/v1/5f76124fb90218002e9ce985"
   ],
   "44": [
     "https://crab-rpc.darwinia.network"
