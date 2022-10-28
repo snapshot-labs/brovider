@@ -6,11 +6,13 @@ on:
     inputs:
       chainid:
         description: 'Chain ID'
-        required: true
+        required: false
+        default: ''
         type: string
       rpc:
         description: 'RPC URL'
-        required: true
+        required: false
+        default: ''
         type: string
         
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
