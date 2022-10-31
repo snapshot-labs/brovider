@@ -349,6 +349,9 @@
   "888888": [
     "https://infragrid4snapshot.v.network/ethereum/compatible"
   ],
+  "900000": [
+    "https://api-a001.s0.posichain.org"
+  ],
   "278611351": [
     "https://mainnet.skalenodes.com/v1/turbulent-unique-scheat"
   ],
