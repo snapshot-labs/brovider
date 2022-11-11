@@ -48,7 +48,7 @@ router.get('/monitor', async (req, res) => {
 
 async function getBlockNumber(rpc) {
   try {
-    if(typeof rpc !== 'string') rpc.timeout = 30000 
+    if(typeof rpc === 'string') rpc = { url: rpc, timeout: 30000 } 
     const provider = new JsonRpcProvider(rpc);
     return await provider.getBlockNumber();
   } catch (e) {
@@ -58,7 +58,7 @@ async function getBlockNumber(rpc) {
 
 async function isFullArchive(rpc) {
   try {
-    if(typeof rpc !== 'string') rpc.timeout = 30000
+    if(typeof rpc === 'string') rpc = { url: rpc, timeout: 30000 } 
     const provider = new JsonRpcProvider(rpc);
     await provider.getBalance('0xeF8305E140ac520225DAf050e2f71d5fBcC543e7', 1);
     return true;
