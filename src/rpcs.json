@@ -116,6 +116,7 @@
     "https://core.poa.network"
   ],
   "100": [
+    "https://rpc.ankr.com/gnosis",
     "https://gno.getblock.io/mainnet/6c1d1e6e-75d9-452f-a863-a694bff93d5c/",
     "https://xdai-archive.blockscout.com",
     "https://poa-xdai.gateway.pokt.network/v1/5f76124fb90218002e9ce985",
