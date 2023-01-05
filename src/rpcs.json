@@ -248,6 +248,9 @@
   "2020": [
     "https://rpc.publicmint.io:8545/"
   ],
+  "2109": [
+    "https://rpc.exosama.com"
+  ],
   "4689": [
     "https://babel-api.mainnet.iotex.io"
   ],
