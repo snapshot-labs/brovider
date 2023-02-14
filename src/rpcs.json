@@ -202,6 +202,9 @@
   "595": [
     "https://tc7-eth.aca-dev.network"
   ],
+  "647": [
+    "https://rpc.toronto.sx.technology"
+  ],
   "813": [
     "https://evm-dataseed1.meerscan.com"
   ],
@@ -302,6 +305,12 @@
   ],
   "12357": [
     "https://rpc-testnet.rei.network"
+  ],
+  "16718": [
+    "https://network-archive.ambrosus.io"
+  ],
+  "22040": [
+    "https://network-archive.ambrosus-test.io"
   ],
   "32659": [
     "https://mainnet-archive.fusionnetwork.io"
