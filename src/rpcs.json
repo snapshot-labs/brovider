@@ -13,6 +13,7 @@
     "https://eth-mainnet.alchemyapi.io/v2/4bdDVB5QAaorY2UE-GBUbM2yQB3QJqzv"
   ],
   "5": [
+    "https://rpc.ankr.com/eth_goerli",
     "https://eth-goerli.public.blastapi.io",
     "https://eth-goerli.alchemyapi.io/v2/v4nqH_J-J3STit45Mm07TxuYexMHQsYZ"
   ],
