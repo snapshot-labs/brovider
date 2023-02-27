@@ -228,6 +228,9 @@
   "1088": [
     "https://andromeda.metis.io/?owner=1088"
   ],
+  "1116": [
+    "https://rpc.coredao.org/"
+  ],
   "1234": [
     "https://rpc.step.network"
   ],
@@ -375,6 +378,9 @@
     "https://rpc.ankr.com/polygon_mumbai",
     "https://public-rpc.blockpi.io/http/polygon-mumbai-testnet",
     "https://speedy-nodes-nyc.moralis.io/9e03baabdc27be2a35bdec4a/polygon/mumbai/archive"
+  ],
+  "84531": [
+    "https://goerli.base.org"
   ],
   "333888": [
     "https://sparta-rpc.polis.tech"
