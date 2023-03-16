@@ -221,7 +221,7 @@
     "https://rpc.testnet.pulsedisco.net"
   ],
   "1001": [
-    "https://baobab.fandom.finance/archive"
+    "https://archive-en.baobab.klaytn.net"
   ],
   "1002": [
     "https://kai-internal.kardiachain.io"
@@ -298,9 +298,9 @@
     "https://canto.neobase.one"
   ],
   "8217": [
+    "https://archive-en.cypress.klaytn.net",
     "https://cypress.fautor.app/archive",
-    "https://public-node-api.klaytnapi.com/v1/cypress",
-    "https://cypress.fandom.finance/archive"
+    "https://public-node-api.klaytnapi.com/v1/cypress"
   ],
   "9000": [
     "https://devnet.cascadia.foundation"
