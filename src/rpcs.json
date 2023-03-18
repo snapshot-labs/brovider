@@ -265,6 +265,9 @@
   "2109": [
     "https://rpc.exosama.com"
   ],
+  "2400": [
+    "https://rpc.tcgverse.xyz"
+  ],
   "2611": [
     "https://dataseed2.redlightscan.finance"
   ],
@@ -304,6 +307,9 @@
   ],
   "9000": [
     "https://devnet.cascadia.foundation"
+  ],
+  "9052": [
+    "https://evm.acrescan.com"
   ],
   "10000": [
     "https://smartbch.greyh.at/"
