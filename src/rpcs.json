@@ -226,6 +226,9 @@
   "1002": [
     "https://kai-internal.kardiachain.io"
   ],
+  "1071": [
+    "https://json-rpc.evm.testnet.shimmer.network/"
+  ],
   "1088": [
     "https://andromeda.metis.io/?owner=1088"
   ],
