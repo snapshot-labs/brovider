@@ -276,6 +276,9 @@
   "2611": [
     "https://dataseed2.redlightscan.finance"
   ],
+  "4062": [
+    "https://ngeth.testnet.n3.nahmii.io"
+  ],
   "4689": [
     "https://babel-api.mainnet.iotex.io"
   ],
@@ -284,9 +287,6 @@
   ],
   "5551": [
     "https://l2.nahmii.io"
-  ],
-  "5553": [
-    "https://l2.testnet.nahmii.io"
   ],
   "5851": [
     "https://polaris1.ont.io:10339",
@@ -410,6 +410,9 @@
   "900000": [
     "https://api-a001.s0.posichain.org"
   ],
+  "11155111": [
+    "https://sepolia.infura.io/v3/d26b4fd748814fe994b05899fd89e667"
+  ],
   "278611351": [
     "https://mainnet.skalenodes.com/v1/turbulent-unique-scheat"
   ],
@@ -427,8 +430,5 @@
   ],
   "11297108099": [
     "https://palm-testnet.infura.io/v3/e504875614714d3aac7061d4a197b190"
-  ],
-  "11155111": [
-    "https://sepolia.infura.io/v3/d26b4fd748814fe994b05899fd89e667"
   ]
 }
