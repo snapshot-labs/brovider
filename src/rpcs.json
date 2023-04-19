@@ -427,5 +427,8 @@
   ],
   "11297108099": [
     "https://palm-testnet.infura.io/v3/e504875614714d3aac7061d4a197b190"
+  ],
+  "11155111": [
+    "https://sepolia.infura.io/v3/d26b4fd748814fe994b05899fd89e667"
   ]
 }
