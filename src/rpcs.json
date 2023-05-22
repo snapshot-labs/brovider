@@ -60,6 +60,9 @@
   "44": [
     "https://crab-rpc.darwinia.network"
   ],
+  "46": [
+    "https://rpc.darwinia.network"
+  ],
   "50": [
     "https://snapshotrpc.blocksscan.io/",
     "https://rpc.xinfin.network"
@@ -140,6 +143,9 @@
   "111": [
     "https://evmexplorer.testnet.velas.com/rpc",
     "https://explorer.testnet.velas.com/rpc"
+  ],
+  "119": [
+    "https://evmapi.nuls.io/"
   ],
   "122": [
     "https://explorer-node.fuse.io/",
