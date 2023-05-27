@@ -371,6 +371,7 @@
     "https://api.avax-test.network/ext/bc/C/rpc"
   ],
   "43114": [
+    "https://rpc.ankr.com/avalanche/27198b4ad0044dd80e264a81b7067198589c73bf62e8d9802b0f3577825ad95d",
     "https://rpc.ankr.com/avalanche",
     "https://api.avax.network/ext/bc/C/rpc",
     "https://nd-784-543-849.p2pify.com/aa7b29fc5fed65b34f0ee6b8de33f8c0/ext/bc/C/rpc"
