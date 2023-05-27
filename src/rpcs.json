@@ -71,6 +71,7 @@
     "https://apothemrpc.blocksscan.io"
   ],
   "56": [
+    "https://rpc.ankr.com/bsc/27198b4ad0044dd80e264a81b7067198589c73bf62e8d9802b0f3577825ad95d",
     "https://rpc.ankr.com/bsc",
     "https://bsc-mainnet.nodereal.io/v1/167f77697b754db0981ddb1ee9736abe",
     "https://speedy-nodes-nyc.moralis.io/b9aed21e7bb7bdeb35972c9a/bsc/mainnet/archive",
