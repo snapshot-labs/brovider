@@ -20,7 +20,7 @@ async function loadNodes() {
     FROM nodes
     ORDER BY rate DESC, average ASC
   `;
-  const nodes = await db.queryAsync(query);
+  const [nodes]: any[] = await db.query(query);
 
   nodes.forEach(node => {
     if (!networks[`_${node.network}`]) networks[`_${node.network}`] = { nodes: [] };
@@ -70,7 +70,7 @@ function onProxyRes(proxyRes, req) {
   networks[`_${node.network}`].algorithm.reward(i, Math.abs(averageDiff) * -1);
 
   const query = 'UPDATE nodes SET requests = requests + 1, duration = duration + ? WHERE url = ?';
-  db.queryAsync(query, [duration, req.params._node.url]);
+  db.query(query, [duration, req.params._node.url]);
 
   // reward
 }
@@ -93,7 +93,7 @@ function onError(e, req) {
     SET requests = requests + 1, errors = errors + 1, duration = duration + ?
     WHERE url = ?
   `;
-  db.queryAsync(query, [25e3, node.url]);
+  db.query(query, [25e3, node.url]);
 }
 
 async function getNode(network: string) {
