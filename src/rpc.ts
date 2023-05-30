@@ -4,17 +4,17 @@ import { JsonRpcProvider } from '@ethersproject/providers';
 import rpcs from './rpcs.json';
 
 const ANKR_KEY = process.env.ANKR_KEY;
-const RPC_LIST_WITH_KEYS = Object.fromEntries(
-  Object.keys(rpcs).map(networksId => [
-    networksId,
-    rpcs[networksId].map(rpc => {
-      if(typeof rpc === 'string' && rpc.startsWith('https://rpc.ankr.com/')) {
-        return `${rpc}/${ANKR_KEY}`
-      }
-      return rpc;
-    })
-  ])
-);
+const RPC_LIST_WITH_KEYS = {};
+for (const networkId in rpcs) {
+  const rpcList = rpcs[networkId].map(rpc => {
+    if (typeof rpc === 'string' && rpc.startsWith('https://rpc.ankr.com/')) {
+      return `${rpc}/${ANKR_KEY}`;
+    }
+    return rpc;
+  });
+
+  RPC_LIST_WITH_KEYS[networkId] = rpcList;
+}
 
 const router = express.Router();
 const monitor = Object.fromEntries(
