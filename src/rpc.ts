@@ -46,6 +46,8 @@ async function onRouter(req) {
 
   const node = await getNode(network);
 
+  if (!node) return;
+
   req.params._node = node;
 
   return node.url;
@@ -95,10 +97,12 @@ function onError(e, req) {
 }
 
 async function getNode(network: string) {
+  if (!networks[`_${network}`]?.nodes || networks[`_${network}`].nodes.length === 0) return false;
+
   const arm = await networks[`_${network}`].algorithm.select();
 
   const node = networks[`_${network}`].nodes[arm];
-  console.log('Arm', arm, node.url, node.provider, node.average);
+  // console.log('Arm', arm, node.url, node.provider, node.average);
 
   return node;
 }
