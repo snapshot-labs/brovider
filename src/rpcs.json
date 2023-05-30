@@ -21,11 +21,11 @@
     "https://rpc.octano.dev"
   ],
   "10": [
+    "https://1rpc.io/op",
     "https://mainnet.optimism.io",
     "https://opt-mainnet.g.alchemy.com/v2/JzmIL4Q3jBj7it2duxLFeuCa9Wobmm7D",
     "https://optimism-mainnet.infura.io/v3/d26b4fd748814fe994b05899fd89e667",
-    "https://rpc.ankr.com/optimism",
-    "https://1rpc.io/op"
+    "https://rpc.ankr.com/optimism"
   ],
   "14": [
     "https://flare-api.flare.network/ext/C/rpc"
