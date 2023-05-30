@@ -3,6 +3,19 @@ import proxy from 'express-http-proxy';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import rpcs from './rpcs.json';
 
+const ANKR_KEY = process.env.ANKR_KEY;
+const RPC_LIST_WITH_KEYS = {};
+for (const networkId in rpcs) {
+  const rpcList = rpcs[networkId].map(rpc => {
+    if (typeof rpc === 'string' && rpc.startsWith('https://rpc.ankr.com/')) {
+      return `${rpc}/${ANKR_KEY}`;
+    }
+    return rpc;
+  });
+
+  RPC_LIST_WITH_KEYS[networkId] = rpcList;
+}
+
 const router = express.Router();
 const monitor = Object.fromEntries(
   Object.keys(rpcs).map(networksId => [
@@ -27,7 +40,7 @@ function getPathFromURL(url) {
 
 function setNode(req, res, next) {
   const { network } = req.params;
-  const node = rpcs[network] ? rpcs[network][0] : null;
+  const node = RPC_LIST_WITH_KEYS[network] ? RPC_LIST_WITH_KEYS[network][0] : null;
   if (!node) return res.status(404).send('Network not found');
   const nodeURL = typeof node === 'object' ? node.url : node;
   req.nodeData = {
@@ -48,7 +61,7 @@ router.get('/monitor', async (req, res) => {
 
 async function getBlockNumber(rpc) {
   try {
-    if(typeof rpc === 'string') rpc = { url: rpc, timeout: 30000 } 
+    if (typeof rpc === 'string') rpc = { url: rpc, timeout: 30000 };
     const provider = new JsonRpcProvider(rpc);
     return await provider.getBlockNumber();
   } catch (e) {
@@ -58,7 +71,7 @@ async function getBlockNumber(rpc) {
 
 async function isFullArchive(rpc) {
   try {
-    if(typeof rpc === 'string') rpc = { url: rpc, timeout: 30000 } 
+    if (typeof rpc === 'string') rpc = { url: rpc, timeout: 30000 };
     const provider = new JsonRpcProvider(rpc);
     await provider.getBalance('0xeF8305E140ac520225DAf050e2f71d5fBcC543e7', 1);
     return true;
