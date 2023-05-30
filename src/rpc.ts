@@ -1,21 +1,11 @@
 import express from 'express';
 import proxy from 'express-http-proxy';
 import { JsonRpcProvider } from '@ethersproject/providers';
+import serve from './helpers/ee';
 import rpcs from './rpcs.json';
+import { RPC_LIST_WITH_KEYS, getBlock } from './utils';
 
-const ANKR_KEY = process.env.ANKR_KEY;
-const RPC_LIST_WITH_KEYS = {};
-for (const networkId in rpcs) {
-  const rpcList = rpcs[networkId].map(rpc => {
-    if (typeof rpc === 'string' && rpc.startsWith('https://rpc.ankr.com/')) {
-      return `${rpc}/${ANKR_KEY}`;
-    }
-    return rpc;
-  });
-
-  RPC_LIST_WITH_KEYS[networkId] = rpcList;
-}
-
+const CACHE_METHODS = ['eth_getBlockByNumber', 'eth_chainId'];
 const router = express.Router();
 const monitor = Object.fromEntries(
   Object.keys(rpcs).map(networksId => [
@@ -87,9 +77,39 @@ router.use(
     timeout: 30000,
     memoizeHost: false,
     proxyReqOptDecorator: setAdditionalHeaders,
-    proxyReqPathResolver: req => req.nodeData.path
+    proxyReqPathResolver: req => req.nodeData.path,
+    filter: function (req) {
+      return new Promise(function (resolve) {
+        resolve(
+          !(req.body && CACHE_METHODS.includes(req.body.method) && req.body.params[0] !== 'latest')
+        );
+      });
+    }
   })
 );
+
+router.use('/:network', async (req, res) => {
+  const network = req.params.network;
+  const method = req.body.method;
+  const jsonrpc = req.body.jsonrpc;
+  const id = req.body.id;
+
+  if (!rpcs[network]) return res.status(404).send('Network not found');
+
+  if (method === 'eth_chainId') {
+    const result = `0x${Number(network).toString(16)}`;
+    return res.json({ jsonrpc, id, result });
+  }
+
+  if (method === 'eth_getBlockByNumber') {
+    const block = req.body.params[0];
+    const key = `${method}:${network}:${block}`;
+    const response: any = await serve(key, getBlock, [key, network, req.body]);
+    return res.json({ jsonrpc, id, error: response.error, result: response.result });
+  }
+
+  res.json({ error: 'Method not found' });
+});
 
 let checkCount = 0;
 async function check() {
