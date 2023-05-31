@@ -79,11 +79,9 @@ router.use(
     proxyReqOptDecorator: setAdditionalHeaders,
     proxyReqPathResolver: req => req.nodeData.path,
     filter: function (req) {
-      return new Promise(function (resolve) {
-        resolve(
-          !(req.body && CACHE_METHODS.includes(req.body.method) && req.body.params[0] !== 'latest')
-        );
-      });
+      return Promise.resolve(
+        !(req.body && CACHE_METHODS.includes(req.body.method) && req.body.params[0] !== 'latest')
+      );
     }
   })
 );
