@@ -31,7 +31,10 @@ function getPathFromURL(url) {
 function setNode(req, res, next) {
   const { network } = req.params;
   const node = RPC_LIST_WITH_KEYS[network] ? RPC_LIST_WITH_KEYS[network][0] : null;
-  if (!node) return res.status(404).send('Network not found');
+  if (!node)
+    return res
+      .status(404)
+      .json({ jsonrpc: req.body.jsonrpc, id: req.body.id, error: 'Network not found' });
   const nodeURL = typeof node === 'object' ? node.url : node;
   req.nodeData = {
     url: nodeURL,
@@ -91,8 +94,6 @@ router.use('/:network', async (req, res) => {
   const method = req.body.method;
   const jsonrpc = req.body.jsonrpc;
   const id = req.body.id;
-
-  if (!rpcs[network]) return res.status(404).send('Network not found');
 
   if (method === 'eth_chainId') {
     const result = `0x${Number(network).toString(16)}`;
