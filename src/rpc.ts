@@ -43,7 +43,7 @@ function getPathFromURL(url) {
 function setNode(req, res, next) {
   const { network } = req.params;
   const node = RPC_LIST_WITH_KEYS[network] ? RPC_LIST_WITH_KEYS[network][0] : null;
-  if (!node) return res.json({ jsonrpc: req.body.jsonrpc, id: req.body.id, error: 'Network not found' });
+  if (!node) return res.status(404).json({ jsonrpc: req.body.jsonrpc, id: req.body.id, error: 'Network not found' });
   const nodeURL = typeof node === 'object' ? node.url : node;
   req.nodeData = {
     url: nodeURL,
@@ -109,7 +109,7 @@ router.use('/:network', async (req, res) => {
     const result = `0x${Number(network).toString(16)}`;
     return res.json({ jsonrpc, id, result });
   }
-  res.json({ jsonrpc, id, error: 'Method not found' });
+  res.status(404).json({ jsonrpc, id, error: 'Method not found' });
 });
 
 let checkCount = 0;
