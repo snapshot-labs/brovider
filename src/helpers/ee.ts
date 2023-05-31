@@ -11,7 +11,8 @@ export default async function serve(key, action, args) {
         eventEmitter.emit(key, await action(...args));
       } catch (error: any) {
         console.log('EventEmitter Error', error);
-        eventEmitter.emit(key, { errors: [{ message: error.message }] });
+        const errorMessage = error.message || error;
+        eventEmitter.emit(key, { error: errorMessage });
       }
     }
   });

@@ -5,7 +5,7 @@ import serve from './helpers/ee';
 import rpcs from './rpcs.json';
 import { RPC_LIST_WITH_KEYS, getBlock } from './utils';
 
-const CACHE_METHODS = ['eth_getBlockByNumber', 'eth_chainId'];
+const CACHE_METHODS = ['eth_chainId', 'eth_getBlockByNumber'];
 const router = express.Router();
 const monitor = Object.fromEntries(
   Object.keys(rpcs).map(networksId => [
@@ -82,9 +82,12 @@ router.use(
     proxyReqOptDecorator: setAdditionalHeaders,
     proxyReqPathResolver: req => req.nodeData.path,
     filter: function (req) {
-      return Promise.resolve(
-        !(req.body && CACHE_METHODS.includes(req.body.method) && req.body.params[0] !== 'latest')
-      );
+      if (req.body && CACHE_METHODS.includes(req.body.method)) {
+        if (req.body.method === 'eth_getBlockByNumber' && req.body.params[0] === 'latest')
+          return true;
+        return false;
+      }
+      return true;
     }
   })
 );
@@ -115,7 +118,6 @@ async function check() {
   checkCount++;
   for (const [network, rpcList] of Object.entries(rpcs)) {
     for (let i = 0; i < rpcList.length; i++) {
-      console.log('Check network', network, 'index', i);
       const rpc = rpcList[i];
       const [blockNumber, isArchive] = await Promise.all([getBlockNumber(rpc), isFullArchive(rpc)]);
       const oldSuccessTotal = monitor[network][i].success_total || 0;

@@ -1,7 +1,8 @@
 import fetch from 'cross-fetch';
-import redis from './helpers/redis';
+import AwsStorageEngine from './helpers/aws';
 import rpcs from './rpcs.json';
-import { createHash } from 'crypto';
+
+const aws = new AwsStorageEngine('blocks');
 
 const ANKR_KEY = process.env.ANKR_KEY;
 export const RPC_LIST_WITH_KEYS = {};
@@ -16,14 +17,11 @@ for (const networkId in rpcs) {
   RPC_LIST_WITH_KEYS[networkId] = rpcList;
 }
 
-export function sha256(str) {
-  return createHash('sha256').update(str).digest('hex');
-}
-
-export async function getBlock(key, network, body) {
-  if (redis) {
-    const cached = await redis.get(key);
-    if (cached) return { error: null, result: JSON.parse(cached) };
+export async function getBlock(key: string, network: string, body: string) {
+  const withCache = aws.client;
+  if (withCache) {
+    const cached = await aws.get(key);
+    if (cached) return { error: undefined, result: JSON.parse(cached) };
   }
   body = JSON.stringify(body);
   const node = RPC_LIST_WITH_KEYS[network] ? RPC_LIST_WITH_KEYS[network][0] : null;
@@ -44,8 +42,8 @@ export async function getBlock(key, network, body) {
   });
 
   const { error, result } = await response.json();
-  if (redis && !error && result) {
-    redis.set(key, JSON.stringify(result)).catch(console.log);
+  if (withCache && !error && result) {
+    aws.set(key, JSON.stringify(result)).catch(console.log);
   }
   return { error, result };
 }
