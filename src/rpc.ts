@@ -1,5 +1,5 @@
 import express from 'express';
-import Algorithm from 'egreedy';
+import bandit from 'bayesian-bandit';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import db from './mysql';
 
@@ -29,25 +29,19 @@ async function loadNodes() {
 
   Object.keys(networks).forEach(id => {
     networks[id].id = id;
-    networks[id].algorithm = new Algorithm({
-      arms: networks[id].nodes.length,
-      epsilon: 0.25
+    networks[id].algorithm = new bandit.Bandit({
+      arms: networks[id].nodes.map(node => ({
+        count: node.requests,
+        sum: -Math.abs(node.duration + node.errors * 25e3)
+      }))
     });
-  });
-
-  nodes.forEach(node => {
-    const i = networks[`_${node.network}`].nodes.findIndex(n => n.url === node.url);
-    networks[`_${node.network}`].algorithm.reward(i, -Math.abs(node.average));
   });
 }
 
 async function onRouter(req) {
   const network = req.params.network;
-
-  const node = await getNode(network);
-
+  const node = getNode(network);
   if (!node) return;
-
   req.params._node = node;
 
   return node.url;
@@ -59,52 +53,40 @@ function onProxyReq(proxyReq, req) {
 
 function onProxyRes(proxyRes, req) {
   const duration = Date.now() - req.params._start;
-
   const node = req.params._node;
   const i = networks[`_${node.network}`].nodes.findIndex(n => n.url === node.url);
-  node.requests += 1;
-  node.duration += duration;
-  const average = node.duration / node.requests;
-  node.average = average;
-  const averageDiff = average - node.average;
-  networks[`_${node.network}`].algorithm.reward(i, Math.abs(averageDiff) * -1);
 
-  const query = 'UPDATE nodes SET requests = requests + 1, duration = duration + ? WHERE url = ?';
-  db.query(query, [duration, req.params._node.url]);
+  if (proxyRes.statusCode !== 200) {
+    console.log('error status', node.url);
 
-  // reward
+    networks[`_${node.network}`].algorithm.arms[i].reward(-25e3);
+
+    const query = 'UPDATE nodes SET requests = requests + 1, errors = errors + 1 WHERE url = ?';
+    db.query(query, [node.url]);
+  } else {
+    networks[`_${node.network}`].algorithm.arms[i].reward(-Math.abs(duration));
+
+    const query = 'UPDATE nodes SET requests = requests + 1, duration = duration + ? WHERE url = ?';
+    db.query(query, [duration, req.params._node.url]);
+  }
 }
 
 function onError(e, req) {
   const node = req.params._node;
   const i = networks[`_${node.network}`].nodes.findIndex(n => n.url === node.url);
-  node.requests += 1;
-  node.errors += 1;
-  node.duration += 25e3;
-  const average = node.duration / node.requests;
-  node.average = average;
-  const averageDiff = average - node.average;
-  networks[`_${node.network}`].algorithm.reward(i, Math.abs(averageDiff) * -1);
+  networks[`_${node.network}`].algorithm.arms[i].reward(-25e3);
 
-  console.log('error', node.url, e);
+  console.log('on error', node.url);
 
-  const query = `
-    UPDATE nodes
-    SET requests = requests + 1, errors = errors + 1, duration = duration + ?
-    WHERE url = ?
-  `;
-  db.query(query, [25e3, node.url]);
+  const query = 'UPDATE nodes SET requests = requests + 1, errors = errors + 1 WHERE url = ?';
+  db.query(query, [node.url]);
 }
 
-async function getNode(network: string) {
+function getNode(network: string) {
   if (!networks[`_${network}`]?.nodes || networks[`_${network}`].nodes.length === 0) return false;
+  const arm = networks[`_${network}`].algorithm.selectArm();
 
-  const arm = await networks[`_${network}`].algorithm.select();
-
-  const node = networks[`_${network}`].nodes[arm];
-  // console.log('Arm', arm, node.url, node.provider, node.average);
-
-  return node;
+  return networks[`_${network}`].nodes[arm];
 }
 
 router.post(
@@ -113,7 +95,7 @@ router.post(
     secure: true,
     router: onRouter,
     changeOrigin: true,
-    // logLevel: 'debug',
+    logLevel: 'silent',
     ignorePath: true,
     proxyTimeout: 20e3,
     timeout: 20e3,
