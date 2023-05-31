@@ -3,6 +3,8 @@ import proxy from 'express-http-proxy';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import rpcs from './rpcs.json';
 
+const CACHE_METHODS = ['eth_chainId'];
+
 const ANKR_KEY = process.env.ANKR_KEY;
 const RPC_LIST_WITH_KEYS = {};
 for (const networkId in rpcs) {
@@ -41,7 +43,7 @@ function getPathFromURL(url) {
 function setNode(req, res, next) {
   const { network } = req.params;
   const node = RPC_LIST_WITH_KEYS[network] ? RPC_LIST_WITH_KEYS[network][0] : null;
-  if (!node) return res.status(404).send('Network not found');
+  if (!node) return res.status(404).json({ jsonrpc: req.body.jsonrpc, id: req.body.id, error: 'Network not found' });
   const nodeURL = typeof node === 'object' ? node.url : node;
   req.nodeData = {
     url: nodeURL,
@@ -87,9 +89,28 @@ router.use(
     timeout: 30000,
     memoizeHost: false,
     proxyReqOptDecorator: setAdditionalHeaders,
-    proxyReqPathResolver: req => req.nodeData.path
+    proxyReqPathResolver: req => req.nodeData.path,
+    filter: function (req) {
+      return !(
+        req.body &&
+        CACHE_METHODS.includes(req.body.method)
+      );
+    }
   })
 );
+
+router.use('/:network', async (req, res) => {
+  const network = req.params.network;
+  const method = req.body.method;
+  const jsonrpc = req.body.jsonrpc;
+  const id = req.body.id;
+
+  if (method === 'eth_chainId') {
+    const result = `0x${Number(network).toString(16)}`;
+    return res.json({ jsonrpc, id, result });
+  }
+  res.status(404).json({ jsonrpc, id, error: 'Method not found' });
+});
 
 let checkCount = 0;
 async function check() {
