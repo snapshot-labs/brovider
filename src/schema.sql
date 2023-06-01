@@ -5,9 +5,11 @@ CREATE TABLE nodes (
   `requests` INT(24) NOT NULL DEFAULT '0',
   `errors` INT(24) NOT NULL DEFAULT '0',
   `duration` INT(24) NOT NULL DEFAULT '0',
+  `archive` INT(1) NOT NULL DEFAULT '-1',
   `created` INT(11) NOT NULL,
   PRIMARY KEY (`url`),
   INDEX `network` (`network`),
   INDEX `provider` (`provider`),
+  INDEX `archive` (`archive`),
   INDEX `created` (`created`)
 );

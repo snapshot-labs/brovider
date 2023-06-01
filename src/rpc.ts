@@ -1,50 +1,22 @@
 import express from 'express';
-import bandit from 'bayesian-bandit';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import db from './mysql';
+import { networks } from './process';
 
 const router = express.Router();
-const networks: Record<string, any> = {};
 
-loadNodes().then(() => console.log('Nodes loaded'));
-
-async function loadNodes() {
-  const query = `
-    SELECT *,
-      CASE WHEN requests = 0 THEN 1000000
-      ELSE (duration / requests)
-      END AS average,
-      CASE WHEN errors = 0 THEN 1000000
-      ELSE (requests / errors)
-      END AS rate
-    FROM nodes
-    ORDER BY rate DESC, average ASC
-  `;
-  const [nodes]: any[] = await db.query(query);
-
-  nodes.forEach(node => {
-    if (!networks[`_${node.network}`]) networks[`_${node.network}`] = { nodes: [] };
-    networks[`_${node.network}`].nodes.push(node);
-  });
-
-  Object.keys(networks).forEach(id => {
-    networks[id].id = id;
-    networks[id].algorithm = new bandit.Bandit({
-      arms: networks[id].nodes.map(node => ({
-        count: node.requests,
-        sum: -Math.abs(node.duration + node.errors * 25e3)
-      }))
-    });
-  });
-}
-
-async function onRouter(req) {
+function onRouter(req) {
   const network = req.params.network;
-  const node = getNode(network);
-  if (!node) return;
-  req.params._node = node;
 
-  return node.url;
+  if (!networks[`_${network}`]) {
+    console.log('error no node for network', network);
+    return undefined;
+  }
+
+  const arm = networks[`_${network}`].algorithm.selectArm();
+  req.params._node = networks[`_${network}`].nodes[arm];
+
+  return req.params._node.url;
 }
 
 function onProxyReq(proxyReq, req) {
@@ -72,6 +44,8 @@ function onProxyRes(proxyRes, req) {
 }
 
 function onError(e, req) {
+  if (!req) return;
+
   const node = req.params._node;
   const i = networks[`_${node.network}`].nodes.findIndex(n => n.url === node.url);
   networks[`_${node.network}`].algorithm.arms[i].reward(-25e3);
@@ -80,13 +54,6 @@ function onError(e, req) {
 
   const query = 'UPDATE nodes SET requests = requests + 1, errors = errors + 1 WHERE url = ?';
   db.query(query, [node.url]);
-}
-
-function getNode(network: string) {
-  if (!networks[`_${network}`]?.nodes || networks[`_${network}`].nodes.length === 0) return false;
-  const arm = networks[`_${network}`].algorithm.selectArm();
-
-  return networks[`_${network}`].nodes[arm];
 }
 
 router.post(
