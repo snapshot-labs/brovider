@@ -1,9 +1,49 @@
 import express from 'express';
-import { createProxyMiddleware } from 'http-proxy-middleware';
+import { createProxyMiddleware, fixRequestBody } from 'http-proxy-middleware';
+import { hexlify } from '@ethersproject/bytes';
 import db from './mysql';
 import { networks } from './process';
 
 const router = express.Router();
+
+function cacheMiddleware(req, res, next) {
+  try {
+    const { network } = req.params;
+    const { method, params, id } = req.body;
+
+    const archive = params[1] === 'latest' || params[1] === false ? 0 : 1;
+    const request = { method, archive, count: 1 };
+    const query = 'INSERT IGNORE INTO requests SET ? ON DUPLICATE KEY UPDATE count = count + 1';
+    db.query(query, [request]);
+
+    switch (method) {
+      case 'eth_chainId': {
+        const result = hexlify(Number(network));
+
+        return res.json({ jsonrpc: '2.0', id, result });
+      }
+      case 'eth_getBalance': {
+        console.log('eth_getBalance', network, params, id);
+        break;
+      }
+      case 'eth_getBlockByHash': {
+        console.log('eth_getBlockByHash', network, params, id);
+        break;
+      }
+      case 'eth_getBlockByNumber': {
+        console.log('eth_chainId', network, params, id);
+        break;
+      }
+      default: {
+        console.log(method, network, id);
+      }
+    }
+
+    next();
+  } catch (e) {
+    console.log('wrong format');
+  }
+}
 
 function onRouter(req) {
   const network = req.params.network;
@@ -21,6 +61,7 @@ function onRouter(req) {
 
 function onProxyReq(proxyReq, req) {
   req.params._start = Date.now();
+  fixRequestBody(proxyReq, req);
 }
 
 function onProxyRes(proxyRes, req) {
@@ -58,6 +99,7 @@ function onError(e, req) {
 
 router.post(
   '/:network',
+  cacheMiddleware,
   createProxyMiddleware({
     secure: true,
     router: onRouter,

@@ -13,3 +13,11 @@ CREATE TABLE nodes (
   INDEX `archive` (`archive`),
   INDEX `created` (`created`)
 );
+
+CREATE TABLE requests (
+  `method` VARCHAR(512) NOT NULL,
+  `archive` INT(1) NOT NULL,
+  `count` INT(24) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`method`, `archive`),
+  INDEX `count` (`count`)
+);
