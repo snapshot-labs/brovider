@@ -11,7 +11,7 @@ function cacheMiddleware(req, res, next) {
     const { network } = req.params;
     const { method, params, id } = req.body;
 
-    const archive = params[1] === 'latest' || params[1] === false ? 0 : 1;
+    const archive = params && (params[1] === 'latest' || params[1] === false) ? 0 : 1;
     const request = { method, archive, count: 1 };
     const query = 'INSERT IGNORE INTO requests SET ? ON DUPLICATE KEY UPDATE count = count + 1';
     db.query(query, [request]);
@@ -31,7 +31,7 @@ function cacheMiddleware(req, res, next) {
         break;
       }
       case 'eth_getBlockByNumber': {
-        console.log('eth_chainId', network, params, id);
+        console.log('eth_getBlockByNumber', network, params, id);
         break;
       }
       default: {
@@ -41,7 +41,7 @@ function cacheMiddleware(req, res, next) {
 
     next();
   } catch (e) {
-    console.log('wrong format');
+    console.log('wrong format', e);
   }
 }
 
