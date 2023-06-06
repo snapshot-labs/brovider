@@ -1,43 +1,57 @@
 import express from 'express';
-import { createProxyMiddleware, fixRequestBody } from 'http-proxy-middleware';
+import { createProxyMiddleware, fixRequestBody, responseInterceptor } from 'http-proxy-middleware';
 import { hexlify } from '@ethersproject/bytes';
 import db from './mysql';
+import redis from './redis';
 import { networks } from './process';
+import { getRequestKey, storeRequest } from './utils';
 
 const router = express.Router();
 
-function cacheMiddleware(req, res, next) {
+async function cacheMiddleware(req, res, next) {
   try {
     const { network } = req.params;
     const { method, params, id } = req.body;
-
+    const key = getRequestKey(network, method, params);
     const archive = params && (params[1] === 'latest' || params[1] === false) ? 0 : 1;
-    const request = { method, archive, count: 1 };
-    const query = 'INSERT IGNORE INTO requests SET ? ON DUPLICATE KEY UPDATE count = count + 1';
-    db.query(query, [request]);
 
     switch (method) {
       case 'eth_chainId': {
         const result = hexlify(Number(network));
+        storeRequest(network, method, archive, 1);
 
         return res.json({ jsonrpc: '2.0', id, result });
       }
       case 'eth_getBalance': {
-        console.log('eth_getBalance', network, params, id);
+        // console.log('eth_getBalance', network, params, id);
         break;
       }
       case 'eth_getBlockByHash': {
-        console.log('eth_getBlockByHash', network, params, id);
+        // console.log('eth_getBlockByHash', network, params, id);
         break;
       }
       case 'eth_getBlockByNumber': {
-        console.log('eth_getBlockByNumber', network, params, id);
+        // console.log('eth_getBlockByNumber', network, params, id);
         break;
       }
       default: {
-        console.log(method, network, id);
+        console.log('unknown method', method, network, id);
       }
     }
+
+    if (await redis.exists(key)) {
+      const cache = await redis.get(key);
+
+      if (cache) {
+        const data = JSON.parse(cache);
+        data.id = id;
+        storeRequest(network, method, archive, 1);
+
+        return res.json(data);
+      }
+    }
+
+    storeRequest(network, method, archive, 0);
 
     next();
   } catch (e) {
@@ -60,11 +74,17 @@ function onRouter(req) {
 }
 
 function onProxyReq(proxyReq, req) {
+  const { network } = req.params;
+  const { method, params } = req.body;
+
   req.params._start = Date.now();
+  req.params._key = getRequestKey(network, method, params);
+  req.params._archive = params && (params[1] === 'latest' || params[1] === false) ? 0 : 1;
+
   fixRequestBody(proxyReq, req);
 }
 
-function onProxyRes(proxyRes, req) {
+const interceptor = responseInterceptor(async (responseBuffer, proxyRes, req: any) => {
   const duration = Date.now() - req.params._start;
   const node = req.params._node;
   const i = networks[`_${node.network}`].nodes.findIndex(n => n.url === node.url);
@@ -82,7 +102,16 @@ function onProxyRes(proxyRes, req) {
     const query = 'UPDATE nodes SET requests = requests + 1, duration = duration + ? WHERE url = ?';
     db.query(query, [duration, req.params._node.url]);
   }
-}
+
+  if (proxyRes.statusCode === 200 && proxyRes.headers?.['content-type'] === 'application/json') {
+    const options = req.params._archive ? { EX: 60 * 60 } : { EX: 3 };
+    redis.set(req.params._key, responseBuffer.toString('utf8'), options);
+
+    return responseBuffer.toString('utf8');
+  }
+
+  return responseBuffer;
+});
 
 function onError(e, req) {
   if (!req) return;
@@ -108,8 +137,9 @@ router.post(
     ignorePath: true,
     proxyTimeout: 20e3,
     timeout: 20e3,
+    selfHandleResponse: true,
     onProxyReq,
-    onProxyRes,
+    onProxyRes: interceptor,
     onError
   })
 );
