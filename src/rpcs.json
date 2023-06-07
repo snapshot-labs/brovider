@@ -385,6 +385,9 @@
   "53935": [
     "https://subnets.avax.network/defi-kingdoms/dfk-chain/rpc"
   ],
+  "59140": [
+    "https://rpc.goerli.linea.build"
+  ]
   "60001": [
     "https://test1.thinkiumrpc.net"
   ],
