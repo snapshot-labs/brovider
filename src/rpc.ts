@@ -117,7 +117,7 @@ async function check() {
   checkCount++;
   for (const [network, rpcList] of Object.entries(rpcs)) {
     for (let i = 0; i < rpcList.length; i++) {
-      console.log('Check network', network, 'index', i);
+      // console.log('Check network', network, 'index', i);
       const rpc = rpcList[i];
       const [blockNumber, isArchive] = await Promise.all([getBlockNumber(rpc), isFullArchive(rpc)]);
       const oldSuccessTotal = monitor[network][i].success_total || 0;
