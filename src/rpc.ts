@@ -1,6 +1,6 @@
 import express from 'express';
 import proxy from 'express-http-proxy';
-import { JsonRpcProvider } from '@ethersproject/providers';
+// import { JsonRpcProvider } from '@ethersproject/providers';
 import rpcs from './rpcs.json';
 
 const CACHE_METHODS = ['eth_chainId'];
@@ -43,7 +43,10 @@ function getPathFromURL(url) {
 function setNode(req, res, next) {
   const { network } = req.params;
   const node = RPC_LIST_WITH_KEYS[network] ? RPC_LIST_WITH_KEYS[network][0] : null;
-  if (!node) return res.status(404).json({ jsonrpc: req.body.jsonrpc, id: req.body.id, error: 'Network not found' });
+  if (!node)
+    return res
+      .status(404)
+      .json({ jsonrpc: req.body.jsonrpc, id: req.body.id, error: 'Network not found' });
   const nodeURL = typeof node === 'object' ? node.url : node;
   req.nodeData = {
     url: nodeURL,
@@ -61,26 +64,26 @@ router.get('/monitor', async (req, res) => {
   return res.json(monitor);
 });
 
-async function getBlockNumber(rpc) {
-  try {
-    if (typeof rpc === 'string') rpc = { url: rpc, timeout: 30000 };
-    const provider = new JsonRpcProvider(rpc);
-    return await provider.getBlockNumber();
-  } catch (e) {
-    return 0;
-  }
-}
+// async function getBlockNumber(rpc) {
+//   try {
+//     if (typeof rpc === 'string') rpc = { url: rpc, timeout: 30000 };
+//     const provider = new JsonRpcProvider(rpc);
+//     return await provider.getBlockNumber();
+//   } catch (e) {
+//     return 0;
+//   }
+// }
 
-async function isFullArchive(rpc) {
-  try {
-    if (typeof rpc === 'string') rpc = { url: rpc, timeout: 30000 };
-    const provider = new JsonRpcProvider(rpc);
-    await provider.getBalance('0xeF8305E140ac520225DAf050e2f71d5fBcC543e7', 1);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
+// async function isFullArchive(rpc) {
+//   try {
+//     if (typeof rpc === 'string') rpc = { url: rpc, timeout: 30000 };
+//     const provider = new JsonRpcProvider(rpc);
+//     await provider.getBalance('0xeF8305E140ac520225DAf050e2f71d5fBcC543e7', 1);
+//     return true;
+//   } catch (e) {
+//     return false;
+//   }
+// }
 
 router.use(
   '/:network',
@@ -91,10 +94,7 @@ router.use(
     proxyReqOptDecorator: setAdditionalHeaders,
     proxyReqPathResolver: req => req.nodeData.path,
     filter: function (req) {
-      return !(
-        req.body &&
-        CACHE_METHODS.includes(req.body.method)
-      );
+      return !(req.body && CACHE_METHODS.includes(req.body.method));
     }
   })
 );
@@ -112,32 +112,32 @@ router.use('/:network', async (req, res) => {
   res.status(404).json({ jsonrpc, id, error: 'Method not found' });
 });
 
-let checkCount = 0;
-async function check() {
-  checkCount++;
-  for (const [network, rpcList] of Object.entries(rpcs)) {
-    for (let i = 0; i < rpcList.length; i++) {
-      // console.log('Check network', network, 'index', i);
-      const rpc = rpcList[i];
-      const [blockNumber, isArchive] = await Promise.all([getBlockNumber(rpc), isFullArchive(rpc)]);
-      const oldSuccessTotal = monitor[network][i].success_total || 0;
-      const successReward = blockNumber > 0 ? 1 : 0;
-      const successTotal = oldSuccessTotal + successReward;
-      const successScore = parseFloat(((successTotal * 100) / checkCount).toFixed(2));
-      const result = {
-        rpc,
-        block_number: blockNumber,
-        is_archive: isArchive,
-        success_total: successTotal,
-        success_score: successScore,
-        ts: Math.round(Date.now() / 1e3)
-      };
-      monitor[network][i] = result;
-    }
-  }
-  return check();
-}
+// let checkCount = 0;
+// async function check() {
+//   checkCount++;
+//   for (const [network, rpcList] of Object.entries(rpcs)) {
+//     for (let i = 0; i < rpcList.length; i++) {
+//       // console.log('Check network', network, 'index', i);
+//       const rpc = rpcList[i];
+//       const [blockNumber, isArchive] = await Promise.all([getBlockNumber(rpc), isFullArchive(rpc)]);
+//       const oldSuccessTotal = monitor[network][i].success_total || 0;
+//       const successReward = blockNumber > 0 ? 1 : 0;
+//       const successTotal = oldSuccessTotal + successReward;
+//       const successScore = parseFloat(((successTotal * 100) / checkCount).toFixed(2));
+//       const result = {
+//         rpc,
+//         block_number: blockNumber,
+//         is_archive: isArchive,
+//         success_total: successTotal,
+//         success_score: successScore,
+//         ts: Math.round(Date.now() / 1e3)
+//       };
+//       monitor[network][i] = result;
+//     }
+//   }
+//   return check();
+// }
 
-check();
+// check();
 
 export default router;
