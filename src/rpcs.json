@@ -219,6 +219,12 @@
   "813": [
     "https://evm-dataseed1.meerscan.com"
   ],
+  "841": [
+    "https://rpc.mainnet.taraxa.io"
+  ],
+  "842": [
+    "https://rpc.testnet.taraxa.io"
+  ],
   "888": [
     "https://gwan-ssl.wandevs.org:56891"
   ],
@@ -297,6 +303,9 @@
   ],
   "5551": [
     "https://l2.nahmii.io"
+  ],
+  "5555": [
+    "https://rpc.chainverse.info"
   ],
   "5851": [
     "https://polaris1.ont.io:10339",
