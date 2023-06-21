@@ -315,6 +315,9 @@
     "https://polaris4.ont.io:10339",
     "https://polaris5.ont.io:10339"
   ],
+  "6102": [
+    "https://testnet.cascadia.foundation"
+  ],
   "7341": [
     "https://rpc.shyft.network"
   ],
@@ -330,7 +333,10 @@
     "https://public-node-api.klaytnapi.com/v1/cypress"
   ],
   "9000": [
-    "https://devnet.cascadia.foundation"
+    "https://eth.bd.evmos.dev:8545"
+  ],
+  "9001": [
+    "https://eth.bd.evmos.org:8545"
   ],
   "9052": [
     "https://evm.acrescan.com"
