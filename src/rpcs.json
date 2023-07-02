@@ -186,12 +186,18 @@
   "321": [
     "https://rpc-mainnet.kcc.network"
   ],
+  "324": [
+    "https://mainnet.era.zksync.io"
+  ],
   "336": [
     "https://rpc.shiden.astar.network:8545",
     "https://shiden.api.onfinality.io/public"
   ],
   "361": [
     "https://eth-rpc-api.thetatoken.org/rpc"
+  ],
+  "369": [
+    "https://rpc.pulsechain.com"
   ],
   "416": [
     "https://rpc.sx.technology"
@@ -286,6 +292,9 @@
   "2109": [
     "https://rpc.exosama.com"
   ],
+  "2152": [
+    "https://archive.prod.findora.org:8545/"
+  ],
   "2400": [
     "https://rpc.tcgverse.xyz"
   ],
@@ -343,6 +352,9 @@
   ],
   "10000": [
     "https://smartbch.greyh.at/"
+  ],
+  "10243": [
+    "https://rpc-test.arthera.net"
   ],
   "11437": [
     "https://rpc.testnet.shyft.network"
