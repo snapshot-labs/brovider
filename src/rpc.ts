@@ -43,11 +43,16 @@ async function cacheMiddleware(req, res, next) {
       const cache = await redis.get(key);
 
       if (cache) {
-        const data = JSON.parse(cache);
-        data.id = id;
-        storeRequest(network, method, archive, 1);
+        try {
+          const data = JSON.parse(cache);
+          data.id = id;
+          storeRequest(network, method, archive, 1);
 
-        return res.json(data);
+          return res.json(data);
+        } catch (e) {
+          console.log('error parsing cache', e);
+          return res.status(500).send('Error parsing cache');
+        }
       }
     }
 
