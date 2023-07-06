@@ -1,7 +1,7 @@
 {
   "1": [
-    "https://mainnet.infura.io/v3/d26b4fd748814fe994b05899fd89e667",
     "https://rpc.ankr.com/eth",
+    "https://mainnet.infura.io/v3/d26b4fd748814fe994b05899fd89e667",
     "https://eth-mainnet.g.alchemy.com/v2/ZWXqGt01pfN6SG6PuyZ2m9o236iv8iCl",
     "https://apis.ankr.com/e62bc219f9c9462b8749defe472d2dc5/6106d4a3ec1d1bcc87ec72158f8fd089/eth/archive/main",
     "https://speedy-nodes-nyc.moralis.io/b9aed21e7bb7bdeb35972c9a/eth/mainnet/archive",
