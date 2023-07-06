@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { createProxyMiddleware, fixRequestBody, responseInterceptor } from 'http-proxy-middleware';
 import { hexlify } from '@ethersproject/bytes';
 import db from './mysql';
@@ -8,7 +8,8 @@ import { getRequestKey, storeRequest } from './utils';
 
 const router = express.Router();
 
-async function cacheMiddleware(req, res, next) {
+
+async function cacheMiddleware(req: Request, res: Response, next: NextFunction) {
   try {
     const { network } = req.params;
     const { method, params, id } = req.body;
@@ -60,7 +61,8 @@ async function cacheMiddleware(req, res, next) {
 
     next();
   } catch (e) {
-    console.log('wrong format', e);
+    console.log('[cacheMiddleware] error', e);
+    return res.status(500).send('Internal server error');
   }
 }
 
