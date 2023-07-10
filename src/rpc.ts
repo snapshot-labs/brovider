@@ -4,7 +4,7 @@ import { hexlify } from '@ethersproject/bytes';
 import db from './mysql';
 import redis from './redis';
 import { networks } from './process';
-import { getRequestKey, storeRequest } from './utils';
+import { getRequestKey } from './utils';
 
 const router = express.Router();
 
@@ -19,8 +19,6 @@ async function cacheMiddleware(req: Request, res: Response, next: NextFunction) 
     switch (method) {
       case 'eth_chainId': {
         const result = hexlify(Number(network));
-        storeRequest(network, method, archive, 1);
-
         return res.json({ jsonrpc: '2.0', id, result });
       }
       case 'eth_getBalance': {
@@ -47,7 +45,6 @@ async function cacheMiddleware(req: Request, res: Response, next: NextFunction) 
         try {
           const data = JSON.parse(cache);
           data.id = id;
-          storeRequest(network, method, archive, 1);
 
           return res.json(data);
         } catch (e) {
@@ -56,8 +53,6 @@ async function cacheMiddleware(req: Request, res: Response, next: NextFunction) 
         }
       }
     }
-
-    storeRequest(network, method, archive, 0);
 
     next();
   } catch (e) {
