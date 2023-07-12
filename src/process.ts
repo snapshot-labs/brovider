@@ -19,7 +19,7 @@ async function start() {
 }
 
 async function checkArchive() {
-  const [nodes]: any[] = await dbq.getUnarchivedNodes();
+  const [nodes]: any[] = await dbq.getArchiveNodes();
 
   await Promise.all(
     nodes.map(node => {
@@ -34,7 +34,7 @@ async function checkArchive() {
 }
 
 async function checkNetwork() {
-  const [nodes]: any[] = await dbq.loadUndefinedNodes();
+  const [nodes]: any[] = await dbq.loadNodesWithoutChainId();
 
   await Promise.all(
     nodes.map(node => {
@@ -42,8 +42,8 @@ async function checkNetwork() {
 
       return provider
         .getNetwork()
-        .then(n => dbq.setNetwork(node, n.chainId))
-        .catch(() => dbq.setUndefinedNetwork(node));
+        .then(n => dbq.setNetworkChainId(node, n.chainId))
+        .catch(() => dbq.setNetworkChainId(node));
     })
   );
 }

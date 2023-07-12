@@ -1,6 +1,6 @@
 import db from './init';
 
-function getUnarchivedNodes(): Promise<any[]> {
+function getArchiveNodes(): Promise<any[]> {
   return db.query(`SELECT * FROM nodes WHERE network != '' AND archive = 1`);
 }
 
@@ -8,16 +8,12 @@ function setNodeAsArchive(state: boolean, node) {
   return db.query('UPDATE nodes SET archive = ? WHERE url = ?', [Number(state), node.url]);
 }
 
-function loadUndefinedNodes(): Promise<any[]> {
+function loadNodesWithoutChainId(): Promise<any[]> {
   return db.query(`SELECT * FROM nodes WHERE network <= 0`);
 }
 
-function setNetwork(node, network) {
-  return db.query('UPDATE nodes SET network = ? WHERE url = ?', [network, node.url]);
-}
-
-function setUndefinedNetwork(node) {
-  return db.query('UPDATE nodes SET network = 0 WHERE url = ?', [node.url]);
+function setNetworkChainId(node, chainId = 0) {
+  return db.query('UPDATE nodes SET network = ? WHERE url = ?', [chainId, node.url]);
 }
 
 function loadValidNodes(): Promise<any[]> {
@@ -36,11 +32,10 @@ function incDuration(node, duration) {
 
 export default {
   db,
-  getUnarchivedNodes,
+  getArchiveNodes,
   setNodeAsArchive,
-  loadUndefinedNodes,
-  setNetwork,
-  setUndefinedNetwork,
+  loadNodesWithoutChainId,
+  setNetworkChainId,
   loadValidNodes,
   incErrors,
   incDuration
