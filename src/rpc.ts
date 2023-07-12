@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { hexlify } from '@ethersproject/bytes';
 import redis from './redis';
+import { captureErr } from './sentry';
 import { getRequestKey } from './utils';
 import proxyRequest from './proxy';
 
@@ -24,6 +25,7 @@ async function processEthMethods(req: Request, res: Response, next: NextFunction
     }
     next();
   } catch (e) {
+    captureErr(e);
     next(e);
   }
 }
@@ -31,7 +33,7 @@ async function processEthMethods(req: Request, res: Response, next: NextFunction
 async function processCached(req, res: Response, next: NextFunction) {
   try {
     const { network } = req.params;
-    const { method, params, id } = req.body;
+    const { method, params } = req.body;
 
     const key = getRequestKey(network, method, params);
     const exists = await redis.exists(key);
@@ -44,6 +46,7 @@ async function processCached(req, res: Response, next: NextFunction) {
     data.id = req.body.id;
     return res.json(data);
   } catch (e) {
+    captureErr(e);
     return next(e);
   }
 }

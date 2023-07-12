@@ -1,11 +1,14 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import { initLogger, fallbackLogger } from './sentry';
 import rpc from './rpc';
 import { name, version } from '../package.json';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+initLogger(app);
 
 app.use(express.json({ limit: '8mb' }));
 app.use(express.urlencoded({ limit: '8mb', extended: false }));
@@ -16,9 +19,6 @@ app.get('/', (req, res) => {
 });
 app.use('/', rpc);
 
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({ error: 'Internal Server Error' });
-});
+fallbackLogger(app);
 
 app.listen(PORT, () => console.log(`Listening at http://localhost:${PORT}`));

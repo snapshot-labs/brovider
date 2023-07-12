@@ -1,5 +1,6 @@
 import bandit from 'bayesian-bandit';
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
+import { captureErr } from './sentry';
 import { AddressZero } from '@ethersproject/constants';
 import dbq from './mysql';
 
@@ -18,7 +19,7 @@ async function start() {
     await loadNodes();
     console.log('Nodes loaded');
   } catch (error) {
-    console.error(error);
+    captureErr(error);
   }
 }
 
