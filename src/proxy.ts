@@ -52,7 +52,7 @@ const onProxyRes = responseInterceptor(async (responseBuffer, proxyRes, req: any
   const node = req.params._node;
 
   if (proxyRes.statusCode !== 200) {
-    handleError(node)
+    handleError(node);
     return responseBuffer;
   }
 

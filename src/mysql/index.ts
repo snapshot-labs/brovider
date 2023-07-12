@@ -1,19 +1,65 @@
-import db from './init';
+import db, { OkPacket, FieldPacket } from './init';
 
 function getArchiveNodes(): Promise<any[]> {
   return db.query(`SELECT * FROM nodes WHERE network != '' AND archive = 1`);
 }
 
-function setNodeAsArchive(state: boolean, node) {
-  return db.query('UPDATE nodes SET archive = ? WHERE url = ?', [Number(state), node.url]);
+type ArchiveNodeMapItem = {
+  node: any;
+  archive: boolean;
+};
+async function setArchiveNodes(nodes: ArchiveNodeMapItem[]): Promise<OkPacket> {
+  if (!Array.isArray(nodes) || nodes.length === 0) {
+    return Promise.resolve({} as OkPacket);
+  }
+
+  const caseQueryPart = nodes
+    .map(({ node, archive }) => `WHEN '${node.url}' THEN ${Number(archive)}`)
+    .join(' ');
+  const whereInQueryPart = nodes.map(({ node }) => `'${node.url}'`).join(', ');
+
+  const query = `
+    UPDATE nodes
+    SET archive = CASE url
+      ${caseQueryPart}
+      ELSE archive
+    END
+    WHERE url IN (${whereInQueryPart})
+  `;
+
+  const [result] = (await db.query(query)) as [OkPacket, FieldPacket[]];
+  return result;
 }
 
 function loadNodesWithoutChainId(): Promise<any[]> {
   return db.query(`SELECT * FROM nodes WHERE network <= 0`);
 }
 
-function setNetworkChainId(node, chainId = 0) {
-  return db.query('UPDATE nodes SET network = ? WHERE url = ?', [chainId, node.url]);
+type NetworkChainIdMapItem = {
+  node: any;
+  chainId: number;
+};
+async function setNetworkChainIds(nodes: NetworkChainIdMapItem[]): Promise<OkPacket> {
+  if (!Array.isArray(nodes) || nodes.length === 0) {
+    return Promise.resolve({} as OkPacket);
+  }
+
+  const caseQueryPart = nodes
+    .map(({ node, chainId }) => `WHEN '${node.url}' THEN ${chainId}`)
+    .join(' ');
+  const whereInQueryPart = nodes.map(({ node }) => `'${node.url}'`).join(', ');
+
+  const query = `
+    UPDATE nodes
+    SET network = CASE url
+      ${caseQueryPart}
+      ELSE network
+    END
+    WHERE url IN (${whereInQueryPart})
+  `;
+
+  const [result] = (await db.query(query)) as [OkPacket, FieldPacket[]];
+  return result;
 }
 
 function loadValidNodes(): Promise<any[]> {
@@ -33,9 +79,9 @@ function incDuration(node, duration) {
 export default {
   db,
   getArchiveNodes,
-  setNodeAsArchive,
+  setArchiveNodes,
   loadNodesWithoutChainId,
-  setNetworkChainId,
+  setNetworkChainIds,
   loadValidNodes,
   incErrors,
   incDuration

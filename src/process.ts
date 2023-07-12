@@ -21,31 +21,33 @@ async function start() {
 async function checkArchive() {
   const [nodes]: any[] = await dbq.getArchiveNodes();
 
-  await Promise.all(
+  const nodeArchiveMapping = await Promise.all(
     nodes.map(node => {
       const provider = new StaticJsonRpcProvider(node.url, Number(node.network));
-
-      return provider
-        .getBalance(AddressZero, 1)
-        .then(() => dbq.setNodeAsArchive(true, node))
-        .catch(() => dbq.setNodeAsArchive(false, node));
+      const onSuccess = () => ({ node, archive: true });
+      const onError = () => ({ node, archive: false });
+      return provider.getBalance(AddressZero, 1).then(onSuccess, onError);
     })
   );
+
+  return dbq.setArchiveNodes(nodeArchiveMapping);
 }
 
 async function checkNetwork() {
   const [nodes]: any[] = await dbq.loadNodesWithoutChainId();
 
-  await Promise.all(
+  const nodeChainIdMapping = await Promise.all(
     nodes.map(node => {
       const provider = new StaticJsonRpcProvider({ url: node.url, timeout: 20e3 });
 
-      return provider
-        .getNetwork()
-        .then(n => dbq.setNetworkChainId(node, n.chainId))
-        .catch(() => dbq.setNetworkChainId(node));
+      const onSuccess = n => ({ node, chainId: n.chainId });
+      const onError = () => ({ node, chainId: 0 });
+
+      return provider.getNetwork().then(onSuccess, onError);
     })
   );
+
+  return dbq.setNetworkChainIds(nodeChainIdMapping);
 }
 
 async function loadNodes() {
