@@ -8,14 +8,18 @@ export const networks: Record<string, any> = {};
 start();
 
 async function start() {
-  // await checkNetwork();
-  console.log('Check chain id done');
+  try {
+    // await checkNetwork();
+    console.log('Check chain id done');
 
-  // await checkArchive();
-  console.log('Check archive done');
+    // await checkArchive();
+    console.log('Check archive done');
 
-  await loadNodes();
-  console.log('Nodes loaded');
+    await loadNodes();
+    console.log('Nodes loaded');
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 async function checkArchive() {

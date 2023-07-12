@@ -36,16 +36,14 @@ function handleError(node) {
 
   networks[`_${node.network}`].algorithm.arms[i].reward(-25e3);
 
-  // possible memory leak
-  dbq.incErrors(node);
+  dbq.incErrors(node).catch(console.error);
 }
 
 function updateReward(node, duration) {
   const indexOfNetwork = networks[`_${node.network}`].nodes.findIndex(n => n.url === node.url);
   networks[`_${node.network}`].algorithm.arms[indexOfNetwork].reward(-Math.abs(duration));
 
-  // possible memory leak
-  dbq.incDuration(node, duration);
+  dbq.incDuration(node, duration).catch(console.error);
 }
 
 const onProxyRes = responseInterceptor(async (responseBuffer, proxyRes, req: any) => {
