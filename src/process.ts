@@ -1,7 +1,7 @@
 import bandit from 'bayesian-bandit';
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import { AddressZero } from '@ethersproject/constants';
-import db from './mysql';
+import dbq from './mysql';
 
 export const networks: Record<string, any> = {};
 
@@ -19,7 +19,7 @@ async function start() {
 }
 
 async function checkArchive() {
-  const [nodes]: any[] = await db.query(`SELECT * FROM nodes WHERE network != '' AND archive = -1`);
+  const [nodes]: any[] = await dbq.getUnarchivedNodes();
 
   await Promise.all(
     nodes.map(node => {
@@ -27,14 +27,14 @@ async function checkArchive() {
 
       return provider
         .getBalance(AddressZero, 1)
-        .then(() => db.query('UPDATE nodes SET archive = 1 WHERE url = ?', [node.url]))
-        .catch(() => db.query('UPDATE nodes SET archive = 0 WHERE url = ?', [node.url]));
+        .then(() => dbq.setNodeAsArchive(true, node))
+        .catch(() => dbq.setNodeAsArchive(false, node));
     })
   );
 }
 
 async function checkNetwork() {
-  const [nodes]: any[] = await db.query(`SELECT * FROM nodes WHERE network = -1`);
+  const [nodes]: any[] = await dbq.loadUndefinedNodes();
 
   await Promise.all(
     nodes.map(node => {
@@ -42,15 +42,14 @@ async function checkNetwork() {
 
       return provider
         .getNetwork()
-        .then(n => db.query('UPDATE nodes SET network = ? WHERE url = ?', [n.chainId, node.url]))
-        .catch(() => db.query('UPDATE nodes SET network = 0 WHERE url = ?', [node.url]));
+        .then(n => dbq.setNetwork(node, n.chainId))
+        .catch(() => dbq.setUndefinedNetwork(node));
     })
   );
 }
 
 async function loadNodes() {
-  const query = `SELECT * FROM nodes WHERE network != -1 AND network != 0 AND archive = 1`;
-  const [nodes]: any[] = await db.query(query);
+  const [nodes]: any[] = await dbq.loadValidNodes();
 
   nodes.forEach(node => {
     if (!networks[`_${node.network}`]) networks[`_${node.network}`] = { nodes: [] };
