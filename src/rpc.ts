@@ -1,9 +1,10 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { hexlify } from '@ethersproject/bytes';
-import redis from './redis';
+import redis, { EXPIRE_ARCHIVE, EXPIRE_LATEST } from './redis';
 import { captureErr } from './sentry';
 import { getRequestKey } from './utils';
 import proxyRequest from './proxy';
+import { networks } from './process';
 
 const router = express.Router();
 
@@ -30,27 +31,68 @@ async function processEthMethods(req: Request, res: Response, next: NextFunction
   }
 }
 
-async function processCached(req, res: Response, next: NextFunction) {
-  try {
-    const { network } = req.params;
-    const { method, params } = req.body;
+function defineArchive(req: Request, _res: Response, next: NextFunction) {
+  const { params } = req.body;
+  if (params && params[1] !== 'latest' && params[1] !== false) {
+    req.params._archive = '_archive';
+  }
+  next();
+}
 
-    const key = getRequestKey(network, method, params);
-    const exists = await redis.exists(key);
+function genRequestKey(req: Request, res: Response, next: NextFunction) {
+  const { network } = req.params;
+  const { method, params } = req.body;
+  req.params._reqHashKey = getRequestKey(network, method, params);
+
+  next();
+}
+
+async function processCached(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { _reqHashKey: hashKey, _archive } = req.params;
+    const exists = await redis.exists(hashKey);
     if (!exists) return next();
 
-    const cache = await redis.get(req.key);
+    const cache = await redis.get(hashKey);
     if (!cache) return next();
+
+    const isArchive = Boolean(_archive);
+    const ttl = isArchive ? EXPIRE_ARCHIVE : EXPIRE_LATEST;
+    await redis.expire(hashKey, ttl);
 
     const data = JSON.parse(cache);
     data.id = req.body.id;
     return res.json(data);
   } catch (e) {
     captureErr(e);
-    return next(e);
+    return next();
   }
 }
 
-router.post('/:network', processEthMethods, processCached, proxyRequest);
+function pickNode(req: Request, res: Response, next: NextFunction) {
+  const { network } = req.params;
+  const networkData = networks[`_${network}`];
+
+  if (!networkData) {
+    captureErr(new Error(`No node for network ${network}`));
+    return res.status(500).send('No node for network');
+  }
+
+  const armIndex = networkData.algorithm.selectArm();
+  req.params._arm = networkData.algorithm.arms[armIndex];
+  req.params._node = networkData.nodes[armIndex];
+
+  return next();
+}
+
+router.post(
+  '/:network',
+  processEthMethods,
+  defineArchive,
+  genRequestKey,
+  processCached,
+  pickNode,
+  proxyRequest
+);
 
 export default router;

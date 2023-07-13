@@ -4,6 +4,9 @@ import { captureErr } from './sentry';
 let client;
 const url = process.env.REDIS_DATABASE_URL;
 
+export const EXPIRE_LATEST = 3;
+export const EXPIRE_ARCHIVE = 60 * 60;
+
 (async () => {
   if (!url) return;
 
