@@ -1,6 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { hexlify } from '@ethersproject/bytes';
-import redis, { EXPIRE_ARCHIVE, EXPIRE_LATEST } from './redis';
+import redis, { EXPIRE_ARCHIVE } from './redis';
 import { captureErr } from './sentry';
 import { getRequestKey } from './utils';
 import proxyRequest from './proxy';
@@ -53,12 +53,15 @@ async function processCached(req: Request, res: Response, next: NextFunction) {
     const exists = await redis.exists(hashKey);
     if (!exists) return next();
 
-    const cache = await redis.get(hashKey);
+    const [ttlRemains, cache] = await redis.multi().ttl(hashKey).get(hashKey).exec();
     if (!cache) return next();
 
     const isArchive = Boolean(_archive);
-    const ttl = isArchive ? EXPIRE_ARCHIVE : EXPIRE_LATEST;
-    await redis.expire(hashKey, ttl);
+    const isCalledOften = ttlRemains < EXPIRE_ARCHIVE / 10;
+
+    if (isArchive && isCalledOften) {
+      await redis.expire(hashKey, EXPIRE_ARCHIVE);
+    }
 
     const data = JSON.parse(cache);
     data.id = req.body.id;
