@@ -9,9 +9,9 @@
     "https://eth-mainnet.alchemyapi.io/v2/4bdDVB5QAaorY2UE-GBUbM2yQB3QJqzv"
   ],
   "5": [
+    "https://rpc.ankr.com/eth_goerli",
     "https://goerli.infura.io/v3/695074eece844c2dba54a8ba363170d7",
     "https://eth-goerli.alchemyapi.io/v2/v4nqH_J-J3STit45Mm07TxuYexMHQsYZ",
-    "https://rpc.ankr.com/eth_goerli",
     "https://eth-goerli.public.blastapi.io"
   ],
   "7": [
@@ -21,8 +21,8 @@
     "https://rpc.octano.dev"
   ],
   "10": [
-    "https://optimism-mainnet.infura.io/v3/d26b4fd748814fe994b05899fd89e667",
     "https://opt-mainnet.g.alchemy.com/v2/JzmIL4Q3jBj7it2duxLFeuCa9Wobmm7D",
+    "https://optimism-mainnet.infura.io/v3/d26b4fd748814fe994b05899fd89e667",
     "https://1rpc.io/op",
     "https://mainnet.optimism.io",
     "https://rpc.ankr.com/optimism"
@@ -465,6 +465,7 @@
     "https://api-a001.s0.posichain.org"
   ],
   "11155111": [
+    "https://rpc.ankr.com/eth_sepolia",
     "https://sepolia.infura.io/v3/d26b4fd748814fe994b05899fd89e667"
   ],
   "278611351": [
