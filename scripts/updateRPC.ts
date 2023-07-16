@@ -1,5 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const rpcs = require('../src/rpcs.json');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const https = require('https');
 
 const args = process.argv.slice(2);
