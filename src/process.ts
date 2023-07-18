@@ -1,4 +1,4 @@
-import { Bandit } from 'bayesian-bandit';
+import { Bandit } from './bayesian-bandit';
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import { captureErr } from './sentry';
 import { AddressZero } from '@ethersproject/constants';
