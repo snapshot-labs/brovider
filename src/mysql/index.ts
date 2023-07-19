@@ -63,7 +63,7 @@ async function setNetworkChainIds(nodes: NetworkChainIdMapItem[]): Promise<OkPac
 }
 
 function loadValidNodes(): Promise<any[]> {
-  return db.query(`SELECT * FROM nodes WHERE network > 0 AND archive = 1`);
+  return db.query(`SELECT * FROM nodes WHERE network > 0`);
 }
 
 function incErrors(node) {
