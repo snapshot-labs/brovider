@@ -1,4 +1,5 @@
 import { Bandit } from './bayesian-bandit';
+import { Cron } from 'croner';
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import { captureErr } from './sentry';
 import { AddressZero } from '@ethersproject/constants';
@@ -10,11 +11,42 @@ type NetworkDetails = {
   nodes: any[];
   algorithm: Bandit;
 };
+const cronJob = new Cron('* */20 * * * *'); // every 20 minutes
+let isRunning = false;
+
 export const networks: Record<string, NetworkDetails> = {};
 
-start();
+export async function startJob() {
+  // initial run
+  try {
+    if (isRunning) return;
+    isRunning = true;
+    await processNodes();
+  } catch (error) {
+    captureErr(error);
+  } finally {
+    isRunning = false;
+  }
 
-async function start() {
+  return cronJob.schedule(async () => {
+    try {
+      if (isRunning) return;
+      isRunning = true;
+      await processNodes();
+    } catch (error) {
+      captureErr(error);
+    } finally {
+      isRunning = false;
+    }
+  });
+}
+
+export function stopJob() {
+  console.log('Stop cron job process nodes');
+  return cronJob.stop();
+}
+
+export async function processNodes() {
   try {
     // await checkNetwork();
     console.log('Check chain id done');

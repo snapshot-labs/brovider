@@ -1,15 +1,18 @@
 import redis from './redis';
 import { db } from './mysql';
+import { stopJob } from './process-nodes';
 
 export default function (server) {
   process.on('SIGTERM', cleanup);
   process.on('SIGINT', cleanup);
+  process.on('SIGUSR2', cleanup); // nodemon restart
 
-  function cleanup() {
-    console.info('SIGTERM signal received.');
+  async function cleanup(signal) {
+    console.info(`"${signal}" signal received.`);
     console.log('Closing http server.');
+    await stopJob();
     server.close(async err => {
-      if (err) {
+      if (err && err.code !== 'ERR_SERVER_NOT_RUNNING') {
         console.error('Error closing http server:', err);
       } else {
         console.log('Http server closed.');
@@ -20,7 +23,11 @@ export default function (server) {
         await redis.quit();
         console.log('Redis connection closed.');
       } catch (err) {
-        console.error('Error closing redis connection:', err);
+        if ((err as any).message !== 'The client is closed') {
+          console.error('Error closing redis connection:', err);
+        } else {
+          console.log('Redis connection closed.');
+        }
       }
 
       console.log('Closing mysql connection.');
