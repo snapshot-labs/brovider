@@ -331,6 +331,9 @@
   "6102": [
     "https://testnet.cascadia.foundation"
   ],
+  "7332": [
+    "https://eon-rpc.horizenlabs.io/ethv1"
+  ],
   "7341": [
     "https://rpc.shyft.network"
   ],
