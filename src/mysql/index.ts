@@ -76,8 +76,9 @@ function incDuration(node, duration) {
   return db.query(query, [duration, node.url]);
 }
 
+export { db };
+
 export default {
-  db,
   getArchiveNodes,
   setArchiveNodes,
   loadNodesWithoutChainId,

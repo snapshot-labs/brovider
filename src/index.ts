@@ -4,6 +4,7 @@ import cors from 'cors';
 import { initLogger, fallbackLogger } from './sentry';
 import rpc from './rpc';
 import { name, version } from '../package.json';
+import gracefulShutdown from './graceful-shutdown';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,4 +22,6 @@ app.use('/', rpc);
 
 fallbackLogger(app);
 
-app.listen(PORT, () => console.log(`Listening at http://localhost:${PORT}`));
+const server = app.listen(PORT, () => console.log(`Listening at http://localhost:${PORT}`));
+
+gracefulShutdown(server);
