@@ -6,7 +6,7 @@ CREATE TABLE nodes (
   `errors` INT(24) NOT NULL DEFAULT 0,
   `duration` INT(24) NOT NULL DEFAULT 0,
   `archive` TINYINT(1) NOT NULL DEFAULT -1,
-  `multicall` TINYINT(1) NOT NULL DEFAULT -1,
+  `multicall` VARCHAR(256) NOT NULL,
   `created` INT(11) NOT NULL,
   PRIMARY KEY (`url`),
   INDEX `network` (`network`),
