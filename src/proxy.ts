@@ -2,6 +2,7 @@ import { createProxyMiddleware, fixRequestBody, responseInterceptor } from 'http
 import { captureProxy, captureErr } from './sentry';
 import dbq from './mysql';
 import redis, { EXPIRE_ARCHIVE, EXPIRE_LATEST } from './redis';
+import { getErrorReward, getDurationReward } from './process-nodes';
 
 function router(req) {
   return req.params._node.url;
@@ -13,12 +14,14 @@ function onProxyReq(proxyReq, req) {
 }
 
 function handleError(arm, node) {
-  arm.reward(-25e3);
+  const reward = getErrorReward();
+  arm.reward(reward);
   dbq.incErrors(node).catch(captureErr);
 }
 
 function updateReward(arm, node, duration) {
-  arm.reward(-Math.abs(duration));
+  const reward = getDurationReward(duration);
+  arm.reward(reward);
   dbq.incDuration(node, duration).catch(captureErr);
 }
 

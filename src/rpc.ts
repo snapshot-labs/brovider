@@ -83,7 +83,7 @@ function pickNode(req: Request, res: Response, next: NextFunction) {
     return res.status(500).send('No node for network');
   }
 
-  const [armIndex] = networkData.algorithm.orderedArms();
+  const armIndex = networkData.algorithm.selectArm();
   req.params._arm = networkData.algorithm.arms[armIndex];
   req.params._node = networkData.nodes[armIndex];
 
