@@ -3,9 +3,14 @@
   "version": "1.0.0",
   "license": "MIT",
   "scripts": {
+    "preinstall": "cd ui && yarn",
     "lint": "eslint src/ --ext .ts --fix",
-    "build": "tsc -p tsconfig.json",
-    "dev": "nodemon src/index.ts",
+    "build:serv": "tsc -p tsconfig.json",
+    "build:ui": "cd ui && yarn generate",
+    "build": "yarn build:ui && yarn build:serv",
+    "dev:serv": "nodemon src/index.ts",
+    "dev:ui": "cd ui && yarn dev --port 8080",
+    "dev": "yarn dev:serv & yarn dev:ui",
     "start": "node dist/src/index.js",
     "test": "jest"
   },
@@ -38,6 +43,7 @@
   "devDependencies": {
     "@snapshot-labs/eslint-config": "^0.1.0-beta.7",
     "@snapshot-labs/prettier-config": "^0.1.0-beta.7",
+    "concurrently": "^8.2.0",
     "eslint": "^8.28.0",
     "jest": "^27.5.1",
     "jest-mock-extended": "^2.0.6",
