@@ -1,0 +1,35 @@
+{
+  "name": "nuxt-app",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint ./ --ext .js,.vue,.ts --ignore-path .gitignore"
+  },
+  "eslintConfig": {
+    "extends": "@snapshot-labs/vue",
+    "root": true
+  },
+  "prettier": "@snapshot-labs/prettier-config",
+  "devDependencies": {
+    "@nuxt/devtools": "latest",
+    "@nuxtjs/eslint-module": "^4.1.0",
+    "@nuxtjs/tailwindcss": "^6.8.0",
+    "@snapshot-labs/eslint-config-vue": "^0.1.0-beta.7",
+    "@snapshot-labs/prettier-config": "^0.1.0-beta.7",
+    "@types/node": "^18.17.0",
+    "eslint": "^8.45.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "nuxt": "^3.6.5",
+    "nuxt-headlessui": "^1.1.4",
+    "nuxt-lodash": "^2.5.0",
+    "prettier": "^3.0.0",
+    "sass": "^1.64.1"
+  },
+  "dependencies": {
+    "@vueuse/nuxt": "^10.2.1"
+  }
+}
