@@ -9,6 +9,7 @@
     "build:ui": "cd ui && yarn build",
     "build": "yarn build:serv && yarn build:ui",
     "postbuild": "mkdir ./dist/ui && cp -r ./ui/.output ./dist/ui/.output",
+    "predev:serv": "rm -rf ./ui/.output",
     "dev:serv": "nodemon src/index.ts",
     "dev:ui": "cd ui && yarn dev --port 8080",
     "dev": "yarn dev:serv & yarn dev:ui",
