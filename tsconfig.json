@@ -9,5 +9,6 @@
     "noImplicitAny": false,
     "resolveJsonModule": true,
     "moduleResolution": "Node"
-  }
+  },
+  "exclude": ["ui"]
 }
