@@ -1,7 +1,5 @@
 <template>
-  <div class="text-red-500">
-    <NuxtWelcome />
-  </div>
+  <nuxt-page />
 </template>
 
 <style>
