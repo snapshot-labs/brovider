@@ -6,12 +6,15 @@
     "preinstall": "cd ui && yarn",
     "lint": "eslint src/ --ext .ts --fix",
     "build:serv": "tsc -p tsconfig.json",
-    "build:ui": "cd ui && yarn generate",
-    "build": "yarn build:ui && yarn build:serv",
+    "build:ui": "cd ui && yarn build",
+    "build": "yarn build:serv && yarn build:ui",
+    "postbuild": "mkdir ./dist/ui && cp -r ./ui/.output ./dist/ui/.output",
     "dev:serv": "nodemon src/index.ts",
     "dev:ui": "cd ui && yarn dev --port 8080",
     "dev": "yarn dev:serv & yarn dev:ui",
-    "start": "node dist/src/index.js",
+    "start:serv": "node dist/src/index.js",
+    "start:ui": "cd ui && yarn preview",
+    "start": "yarn start:serv & yarn start:ui",
     "test": "jest"
   },
   "eslintConfig": {
