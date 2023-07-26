@@ -6,6 +6,5 @@ export default defineNuxtRouteMiddleware(to => {
 });
 
 function isNumeric(str) {
-  const parsed = parseInt(str, 10);
-  return !isNaN(parsed) && isFinite(parsed);
+  return /^\d+$/.test(str);
 }

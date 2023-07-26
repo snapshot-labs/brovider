@@ -197,6 +197,7 @@ function viewNodeDetails(node) {
       </div>
     </div>
   </div>
-  <ModalConfirmRemove v-model="isRemoveModalOpen" @confirm="removeNode()" />
+  <ModalConfirmRemove v-model="isRemoveModalOpen" @confirm="removeNode" />
   <ModalDetailsView v-model="isViewModalOpen" :node="selectedNode" />
+  <ModalNodeEdit v-model="isEditModalOpen" :node="selectedNode" @edit="editNode" />
 </template>
