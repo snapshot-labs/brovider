@@ -17,7 +17,7 @@ const nodes = computed(() => {
       errors: 0,
       duration: 0,
       archive: 0,
-      multicall: '0x123'
+      multicall: '0xeefba1e63905ef1d7acba5a8513c70307c1ce441'
     },
     {
       url: 'https://eth-mainnet.alchemyapi.io/v2/123',
@@ -27,7 +27,7 @@ const nodes = computed(() => {
       errors: 0,
       duration: 0,
       archive: -1,
-      multicall: '0x123'
+      multicall: '0xeefba1e63905ef1d7acba5a8513c70307c1ce441'
     },
     {
       url: 'https://eth-mainnet.alchemyapi.io/v2/123',
@@ -37,7 +37,7 @@ const nodes = computed(() => {
       errors: 0,
       duration: 0,
       archive: 1,
-      multicall: '0x123'
+      multicall: '0xeefba1e63905ef1d7acba5a8513c70307c1ce441'
     }
   ];
 });
@@ -109,7 +109,8 @@ function removeNode() {
   selectedNode.value = null;
 }
 
-function viewNodeDetails() {
+function viewNodeDetails(node) {
+  selectedNode.value = node;
   isViewModalOpen.value = true;
 }
 </script>
@@ -193,4 +194,5 @@ function viewNodeDetails() {
     </div>
   </div>
   <ModalConfirmRemove v-model="isRemoveModalOpen" @confirm="removeNode()" />
+  <ModalDetailsView v-model="isViewModalOpen" :node="selectedNode" />
 </template>
