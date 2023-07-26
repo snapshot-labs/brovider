@@ -8,6 +8,8 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     IHeroiconsEllipsisVertical: typeof import('~icons/heroicons/ellipsis-vertical')['default']
+    IHeroiconsMinusCircle: typeof import('~icons/heroicons/minus-circle')['default']
+    IHeroiconsPlusCircle: typeof import('~icons/heroicons/plus-circle')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
   }
