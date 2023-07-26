@@ -91,30 +91,6 @@ const imageCopy = () => {
         </button>
       </div>
     </div>
-    <div v-if="app.editNetwork">
-      <h3>Edit Network Object</h3>
-      <textarea
-        v-model="app.newNetworkObject"
-        class="form-textarea mt-1 block w-full input text-left p-2 border border-gray-300 rounded-md"
-        rows="10"
-        placeholder="Enter Network"
-      ></textarea>
-      <button
-        type="button"
-        class="px-4 py-2 my-2 mr-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        @click="app.editNetwork = false"
-      >
-        Cancel
-      </button>
-      <button
-        type="button"
-        class="px-4 py-2 my-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        @click="changeNetworksObject"
-      >
-        Apply
-      </button>
-    </div>
-    <div v-if="app.error">ERROR: {{ app.error }}</div>
     <div class="flex flex-col mt-2">
       <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
         <table class="min-w-full divide-y divide-gray-200">
