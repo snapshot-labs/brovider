@@ -3,13 +3,15 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import path from 'path';
 import dotenv from 'dotenv';
 
-const { parsed: nuxtConfig } = dotenv.config({ path: path.join(__dirname, '..', 'ui', '.env') });
+// path to the nuxt folder from node dist folder
+const pathToNuxt = path.join(__dirname, '..', '..', 'ui');
+const { parsed: nuxtConfig } = dotenv.config({ path: path.join(pathToNuxt, '.env') });
 const endpoint = '/networks';
 const { PORT: nuxtPort = 3000 } = nuxtConfig ?? {};
 
 const router = express.Router();
 
-const staticMiddleware = express.static(path.join(__dirname, '..', 'ui', '.output', 'public'));
+const staticMiddleware = express.static(path.join(pathToNuxt, '.output', 'public'));
 const proxyMiddleware = createProxyMiddleware({
   target: `http://localhost:${nuxtPort}${endpoint}`,
   changeOrigin: true,

@@ -8,7 +8,6 @@
     "build:serv": "tsc -p tsconfig.json",
     "build:ui": "cd ui && yarn build",
     "build": "yarn build:serv && yarn build:ui",
-    "postbuild": "mkdir ./dist/ui && cp -r ./ui/.output ./dist/ui/.output",
     "predev:serv": "rm -rf ./ui/.output",
     "dev:serv": "nodemon src/index.ts --ignore ui",
     "dev:ui": "cd ui && yarn dev --port 8080",
