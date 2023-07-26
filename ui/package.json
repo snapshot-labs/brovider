@@ -15,6 +15,7 @@
   },
   "prettier": "@snapshot-labs/prettier-config",
   "devDependencies": {
+    "@iconify-json/heroicons": "^1.1.11",
     "@nuxt/devtools": "latest",
     "@nuxtjs/eslint-module": "^4.1.0",
     "@nuxtjs/tailwindcss": "^6.8.0",
@@ -27,7 +28,9 @@
     "nuxt-headlessui": "^1.1.4",
     "nuxt-lodash": "^2.5.0",
     "prettier": "^3.0.0",
-    "sass": "^1.64.1"
+    "sass": "^1.64.1",
+    "unplugin-icons": "^0.16.5",
+    "unplugin-vue-components": "^0.25.1"
   },
   "dependencies": {
     "@vueuse/nuxt": "^10.2.1"
