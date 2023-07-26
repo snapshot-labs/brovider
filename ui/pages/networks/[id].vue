@@ -1,4 +1,8 @@
 <script setup>
+definePageMeta({
+  middleware: 'validate-network'
+});
+
 const route = useRoute();
 const network = route.params.id;
 const networkName = computed(() => getNetworkName(network));
