@@ -7,6 +7,7 @@ const props = defineProps({
 });
 
 const imageLoaded = ref(false);
+const imageUrl = computed(() => getUrl(props.network));
 
 const onLoad = () => {
   imageLoaded.value = true;
@@ -18,11 +19,11 @@ const onLoad = () => {
     <img
       :class="{ invisible: !imageLoaded }"
       class="absolute top-0 left-0 h-4/5 w-4/5 rounded-full"
-      :src="getUrl(props.network)"
+      :src="imageUrl"
       alt=""
       @load="onLoad"
     />
-    <div v-if="!imageLoaded" class="bottom-2">
+    <div v-if="!imageLoaded && imageUrl" class="bottom-2">
       <div
         class="border-y-primary animate-spin ease-linear rounded-full border-4 border-t-4 border-gray-200 h-8 w-8 mb-4"
       ></div>
