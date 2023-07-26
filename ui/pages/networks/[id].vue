@@ -2,6 +2,10 @@
 const route = useRoute();
 const network = route.params.id;
 const networkName = computed(() => getNetworkName(network));
+const isRemoveModalOpen = ref(false);
+const isEditModalOpen = ref(false);
+const isViewModalOpen = ref(false);
+const selectedNode = ref(null);
 
 const nodes = computed(() => {
   return [
@@ -82,15 +86,31 @@ const nodeParams = [
     component: resolveComponent('NodeActionsDropdown'),
     componentListeners: {
       view: viewNodeDetails,
-      edit: network => console.log('edit', network),
-      remove: network => console.log('remove', network)
+      edit: node => {
+        isEditModalOpen.value = true;
+        selectedNode.value = node;
+      },
+      remove: node => {
+        isRemoveModalOpen.value = true;
+        selectedNode.value = node;
+      }
     },
     classes: 'text-right'
   }
 ];
 
-function viewNodeDetails(nodeKey) {
-  console.log('view node details', nodeKey);
+function editNode() {
+  isEditModalOpen.value = false;
+}
+
+function removeNode() {
+  isRemoveModalOpen.value = false;
+  console.log('remove node', selectedNode.value);
+  selectedNode.value = null;
+}
+
+function viewNodeDetails() {
+  isViewModalOpen.value = true;
 }
 </script>
 
@@ -172,4 +192,5 @@ function viewNodeDetails(nodeKey) {
       </div>
     </div>
   </div>
+  <ModalConfirmRemove v-model="isRemoveModalOpen" @confirm="removeNode()" />
 </template>

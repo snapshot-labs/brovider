@@ -31,7 +31,7 @@ const buttons = [
     </HeadlessMenuButton>
     <HeadlessMenuItems class="absolute right-10 z-10 bg-white flex flex-col border rounded">
       <HeadlessMenuItem v-for="(button, index) in buttons" :key="index" v-slot="{ active }">
-        <button class="py-2 px-4" :class="{ 'bg-blue-500': active }" @click.stop="button.action">
+        <button class="py-2 px-4" :class="{ 'bg-primary': active }" @click.stop="button.action">
           {{ button.label }}
         </button>
       </HeadlessMenuItem>
