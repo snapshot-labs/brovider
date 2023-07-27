@@ -12,6 +12,26 @@ const emit = defineEmits(['update:modelValue']);
 
 const detailsList = computed(() => {
   return Object.entries(props.node).map(([key, value]) => {
+    if (key === 'archive') {
+      switch (value) {
+        case 1:
+          value = 'archive';
+          break;
+        case 0:
+          value = 'light';
+          break;
+        default:
+          value = 'n/a';
+      }
+    }
+
+    if (key === 'created') {
+      value = new Date(value * 1000).toLocaleString();
+    }
+
+    if (key === 'multicall') {
+      value = value ?? 'n/a';
+    }
     return {
       key,
       value
@@ -68,7 +88,11 @@ function setIsOpen(value) {
                     class="flex justify-between py-2 border-t last:border-b"
                   >
                     <div class="font-semibold">{{ listItem.key }}</div>
-                    <div>{{ listItem.value }}</div>
+                    <div
+                      class="max-w-[80%] overflow-hidden overflow-ellipsis whitespace-nowrap pl-1 text-primary"
+                    >
+                      {{ listItem.value }}
+                    </div>
                   </div>
                 </div>
               </div>

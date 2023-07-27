@@ -1,4 +1,5 @@
 <script setup>
+const { nodesForNetwork } = await useFetchNodes();
 definePageMeta({
   middleware: 'validate-network'
 });
@@ -12,38 +13,7 @@ const isViewModalOpen = ref(false);
 const selectedNode = ref(null);
 
 const nodes = computed(() => {
-  return [
-    {
-      url: 'https://eth-mainnet.alchemyapi.io/v2/123',
-      network: '1',
-      provider: 'alchemy',
-      requests: 0,
-      errors: 0,
-      duration: 0,
-      archive: 0,
-      multicall: '0xeefba1e63905ef1d7acba5a8513c70307c1ce441'
-    },
-    {
-      url: 'https://eth-mainnet.alchemyapi.io/v2/123',
-      network: '1',
-      provider: 'alchemy',
-      requests: 0,
-      errors: 0,
-      duration: 0,
-      archive: -1,
-      multicall: '0xeefba1e63905ef1d7acba5a8513c70307c1ce441'
-    },
-    {
-      url: 'https://eth-mainnet.alchemyapi.io/v2/123',
-      network: '1',
-      provider: 'alchemy',
-      requests: 0,
-      errors: 0,
-      duration: 0,
-      archive: 1,
-      multicall: '0xeefba1e63905ef1d7acba5a8513c70307c1ce441'
-    }
-  ];
+  return nodesForNetwork(network) || [];
 });
 
 const nodeParams = [

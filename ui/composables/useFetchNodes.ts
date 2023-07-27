@@ -43,10 +43,15 @@ function useFetchNodes() {
     }
   }
 
+  function nodesForNetwork(network: string) {
+    return nodes.value.filter(node => node.network === network);
+  }
+
   return {
     nodes,
     error,
     networks,
+    nodesForNetwork,
     fetchNodes,
     processNodes
   };
