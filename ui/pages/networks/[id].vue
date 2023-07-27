@@ -1,5 +1,5 @@
 <script setup>
-const { nodesForNetwork, deleteNode, fetchNodes } = await useFetchNodes();
+const { nodesForNetwork, deleteNode, fetchNodes, editNode } = await useFetchNodes();
 definePageMeta({
   middleware: 'validate-network'
 });
@@ -10,7 +10,7 @@ const networkName = computed(() => getNetworkName(network));
 const isRemoveModalOpen = ref(false);
 const isEditModalOpen = ref(false);
 const isViewModalOpen = ref(false);
-const selectedNode = ref(null);
+const lastInteractedNode = ref(null);
 
 const nodes = computed(() => {
   return nodesForNetwork(network) || [];
@@ -62,31 +62,32 @@ const nodeParams = [
       view: viewNodeDetails,
       edit: node => {
         isEditModalOpen.value = true;
-        selectedNode.value = node;
+        lastInteractedNode.value = node;
       },
       remove: node => {
         isRemoveModalOpen.value = true;
-        selectedNode.value = node;
+        lastInteractedNode.value = node;
       }
     },
     classes: 'text-right'
   }
 ];
 
-function editNode() {
+async function editNodeData(newNode) {
+  await editNode(newNode);
+  await fetchNodes();
   isEditModalOpen.value = false;
 }
 
 async function removeNode() {
-  isRemoveModalOpen.value = false;
-  await deleteNode(selectedNode.value.url);
+  await deleteNode(lastInteractedNode.value.url);
   await fetchNodes();
-  selectedNode.value = null;
+  isRemoveModalOpen.value = false;
 }
 
 function viewNodeDetails(node) {
-  selectedNode.value = node;
   isViewModalOpen.value = true;
+  lastInteractedNode.value = node;
 }
 </script>
 
@@ -169,6 +170,6 @@ function viewNodeDetails(node) {
     </div>
   </div>
   <ModalConfirmRemove v-model="isRemoveModalOpen" @confirm="removeNode" />
-  <ModalDetailsView v-model="isViewModalOpen" :node="selectedNode" />
-  <ModalNodeEdit v-model="isEditModalOpen" :node="selectedNode" @edit="editNode" />
+  <ModalDetailsView v-model="isViewModalOpen" :node="lastInteractedNode" />
+  <ModalNodeEdit v-model="isEditModalOpen" :node="lastInteractedNode" @edit="editNodeData" />
 </template>

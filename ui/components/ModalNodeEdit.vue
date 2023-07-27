@@ -23,7 +23,7 @@ const form = computed(() => ({
 
 const errors = reactive({});
 
-watchEffect(
+watch(
   () => props.modelValue,
   val => {
     if (!val) {
@@ -56,7 +56,7 @@ const validate = field => {
 };
 
 function saveChanges() {
-  emit('edit', nodeEditCopy.value);
+  emit('edit', form.value);
 }
 
 function setIsOpen(value) {
