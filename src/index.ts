@@ -4,12 +4,13 @@ import cors from 'cors';
 import nuxt from './nuxt';
 import { initLogger, fallbackLogger } from './sentry';
 import rpc from './rpc';
+import api from './api';
 import { name, version } from '../package.json';
 import gracefulShutdown from './graceful-shutdown';
 import { startJob } from './process-nodes';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8081;
 
 initLogger(app);
 startJob();
@@ -25,6 +26,7 @@ app.get('/', (req, res) => {
   res.json({ name, version, commit });
 });
 app.use('/', rpc);
+app.use('/api', api);
 
 fallbackLogger(app);
 

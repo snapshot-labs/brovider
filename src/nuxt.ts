@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 const pathToNuxt = path.join(__dirname, '..', '..', 'ui');
 const { parsed: nuxtConfig } = dotenv.config({ path: path.join(pathToNuxt, '.env') });
 const endpoint = '/networks';
-const { PORT: nuxtPort = 3000 } = nuxtConfig ?? {};
+const { PORT: nuxtPort = 8080 } = nuxtConfig ?? {};
 
 const router = express.Router();
 

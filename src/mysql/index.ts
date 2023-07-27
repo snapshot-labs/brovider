@@ -31,7 +31,7 @@ async function setArchiveNodes(nodes: ArchiveNodeMapItem[]): Promise<OkPacket> {
   return result;
 }
 
-function loadNodesWithoutChainId(): Promise<any[]> {
+function loadNodes(): Promise<any[]> {
   return db.query(`SELECT * FROM nodes`);
 }
 
@@ -81,7 +81,7 @@ export { db };
 export default {
   getUnknownArchiveNodes,
   setArchiveNodes,
-  loadNodesWithoutChainId,
+  loadNodes,
   setNetworkChainIds,
   loadValidNodes,
   incErrors,

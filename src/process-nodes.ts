@@ -75,7 +75,7 @@ export async function processNodes() {
 }
 
 async function checkNetwork() {
-  const [nodes]: any[] = await dbq.loadNodesWithoutChainId();
+  const [nodes]: any[] = await dbq.loadNodes();
 
   const nodeChainIdMapping = await Promise.all(
     nodes.map(node => {
