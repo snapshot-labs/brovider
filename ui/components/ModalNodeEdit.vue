@@ -10,7 +10,16 @@ const props = defineProps({
 });
 const emit = defineEmits(['update:modelValue', 'edit']);
 
-const form = computed(() => ({ ...props.node }));
+const form = computed(() => ({
+  url: props.node.url,
+  network: props.node.network,
+  provider: props.node.provider,
+  requests: props.node.requests,
+  errors: props.node.errors,
+  duration: props.node.duration,
+  archive: props.node.archive,
+  multicall: props.node.multicall
+}));
 
 const errors = reactive({});
 
@@ -31,7 +40,7 @@ const validators = {
 };
 
 function isDisabled(field) {
-  return ['archive', 'network'].includes(field);
+  return ['url', 'archive', 'network'].includes(field);
 }
 
 function isNumeric(stringVal) {

@@ -35,6 +35,62 @@ function loadNodes(): Promise<any[]> {
   return db.query(`SELECT * FROM nodes`);
 }
 
+type NodeBase = {
+  url: string;
+  provider?: string;
+  multicall?: string;
+};
+async function addNodes(nodes: NodeBase[]): Promise<OkPacket> {
+  if (!Array.isArray(nodes) || nodes.length === 0) {
+    return Promise.resolve({} as OkPacket);
+  }
+
+  const valuesQueryPart = nodes.map(({ url, provider, multicall }) => {
+    return `('${url}', '${provider}', '${multicall}', 0, 0, 0, '', '', '', ${Date.now()})`;
+  });
+
+  const query = `
+    INSERT INTO nodes (url, provider, multicall, network, archive, requests, errors, duration, created)
+    VALUES ${valuesQueryPart.join(', ')}
+  `;
+
+  const [result] = (await db.query(query)) as [OkPacket, FieldPacket[]];
+  return result;
+}
+
+async function deleteNode(nodeUrl: string): Promise<OkPacket> {
+  const query = `DELETE FROM nodes WHERE url = ?`;
+  const [result] = (await db.query(query, [nodeUrl])) as [OkPacket, FieldPacket[]];
+  return result;
+}
+
+type NodeUpdate = {
+  url: string;
+  provider?: string;
+  multicall?: string;
+  requests?: number;
+  errors?: number;
+  duration?: number;
+};
+async function updateNode(node: NodeUpdate): Promise<OkPacket> {
+  const { url, provider, multicall, requests, errors, duration } = node;
+  const query = `
+    UPDATE nodes
+    SET provider = ?, multicall = ?, requests = ?, errors = ?, duration = ?
+    WHERE url = ?
+  `;
+
+  const [result] = (await db.query(query, [
+    provider,
+    multicall,
+    requests,
+    errors,
+    duration,
+    url
+  ])) as [OkPacket, FieldPacket[]];
+  return result;
+}
+
 type NetworkChainIdMapItem = {
   node: any;
   chainId: number;
@@ -82,6 +138,9 @@ export default {
   getUnknownArchiveNodes,
   setArchiveNodes,
   loadNodes,
+  addNodes,
+  deleteNode,
+  updateNode,
   setNetworkChainIds,
   loadValidNodes,
   incErrors,
