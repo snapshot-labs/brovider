@@ -28,11 +28,27 @@ function useFetchNodes() {
     nodes.value = fetchedNodes;
   }
 
+  async function processNodes() {
+    const { data, error: err } = await useFetch('/api/process', {
+      method: 'POST'
+    });
+    if (err.value) {
+      error.value = err.value || 'Unknown error';
+      return;
+    }
+    const { status } = data.value as { status: string };
+    if (status !== 'ok') {
+      error.value = 'Unknown error';
+      return;
+    }
+  }
+
   return {
-    fetchNodes,
-    error,
     nodes,
-    networks
+    error,
+    networks,
+    fetchNodes,
+    processNodes
   };
 }
 

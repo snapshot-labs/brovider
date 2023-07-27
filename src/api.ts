@@ -1,13 +1,20 @@
 import express from 'express';
 import dbq from './mysql';
 import { captureErr } from './sentry';
+import { processNodes } from './process-nodes';
 
 const router = express.Router();
 
-router.post('/process', (req, res) => {
-  return res.json({
-    status: 'ok'
-  });
+router.post('/process', async (req, res) => {
+  try {
+    await processNodes();
+    return res.json({
+      status: 'ok'
+    });
+  } catch (error) {
+    captureErr(error);
+    return res.status(500).json({ error: (error as any).message });
+  }
 });
 
 router.get('/nodes', async (req, res) => {

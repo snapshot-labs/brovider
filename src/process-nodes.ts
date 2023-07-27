@@ -29,27 +29,9 @@ export const networks: Record<string, NetworkDetails> = {};
 
 export async function startJob() {
   // initial run
-  try {
-    if (isRunning) return;
-    isRunning = true;
-    await processNodes();
-  } catch (error) {
-    captureErr(error);
-  } finally {
-    isRunning = false;
-  }
+  await processNodes();
 
-  return cronJob.schedule(async () => {
-    try {
-      if (isRunning) return;
-      isRunning = true;
-      await processNodes();
-    } catch (error) {
-      captureErr(error);
-    } finally {
-      isRunning = false;
-    }
-  });
+  return cronJob.schedule(processNodes);
 }
 
 export function stopJob() {
@@ -58,6 +40,8 @@ export function stopJob() {
 }
 
 export async function processNodes() {
+  if (isRunning) return;
+  isRunning = true;
   try {
     if (process.env.NODE_ENV === 'production') {
       await checkNetwork();
@@ -71,6 +55,8 @@ export async function processNodes() {
     console.log('Nodes loaded');
   } catch (error) {
     captureErr(error);
+  } finally {
+    isRunning = false;
   }
 }
 
