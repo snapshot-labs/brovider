@@ -33,6 +33,7 @@
     "unplugin-vue-components": "^0.25.1"
   },
   "dependencies": {
-    "@vueuse/nuxt": "^10.2.1"
+    "@vueuse/nuxt": "^10.2.1",
+    "http-proxy-middleware": "^2.0.6"
   }
 }
