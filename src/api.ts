@@ -35,12 +35,12 @@ router.post('/nodes', async (req, res) => {
 
   const serializedNodes = nodes
     .map(node => {
-      const { url, provider, multicall } = node;
+      const { url, provider = null, multicall = null } = node;
       if (
         !url ||
         typeof url !== 'string' ||
-        typeof provider !== 'string' ||
-        typeof multicall !== 'string'
+        (provider && typeof provider !== 'string') ||
+        (multicall && typeof multicall !== 'string')
       ) {
         return null;
       }

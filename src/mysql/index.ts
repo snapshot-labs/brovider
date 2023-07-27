@@ -45,16 +45,16 @@ async function addNodes(nodes: NodeBase[]): Promise<OkPacket> {
     return Promise.resolve({} as OkPacket);
   }
 
-  const valuesQueryPart = nodes.map(({ url, provider, multicall }) => {
-    return `('${url}', '${provider}', '${multicall}', 0, 0, 0, '', '', '', ${Date.now()})`;
-  });
-
   const query = `
     INSERT INTO nodes (url, provider, multicall, network, archive, requests, errors, duration, created)
-    VALUES ${valuesQueryPart.join(', ')}
+    VALUES ?
   `;
 
-  const [result] = (await db.query(query)) as [OkPacket, FieldPacket[]];
+  const values = nodes.map(({ url, provider, multicall }) => {
+    return [url, provider, multicall, '-1', -1, 0, 0, 0, +new Date() / 1e3];
+  });
+
+  const [result] = (await db.query(query, [values])) as [OkPacket, FieldPacket[]];
   return result;
 }
 

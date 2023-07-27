@@ -15,7 +15,7 @@ function useFetchNodes() {
   const error = ref(null) as Ref<any | null>;
   const networks = computed(() => {
     const grouped = useGroupBy(nodes.value, 'network');
-    return Object.keys(grouped);
+    return Object.keys(grouped).filter(key => Number(key) >= 0);
   });
 
   async function fetchNodes() {
@@ -26,6 +26,24 @@ function useFetchNodes() {
     }
     const { nodes: fetchedNodes } = data.value as { nodes: Node[] };
     nodes.value = fetchedNodes;
+  }
+
+  async function addNodes(nodes: Node[]) {
+    const { data, error: err } = await useFetch('/api/nodes', {
+      method: 'POST',
+      body: JSON.stringify({ nodes })
+    });
+
+    if (err.value) {
+      error.value = err.value || 'Unknown error';
+      return;
+    }
+    const { status, nodeIds } = data.value as { status: string; nodeIds: string[] };
+    if (status !== 'ok') {
+      error.value = 'Unknown error';
+      return;
+    }
+    return nodeIds;
   }
 
   async function processNodes() {
@@ -44,7 +62,12 @@ function useFetchNodes() {
   }
 
   function nodesForNetwork(network: string) {
-    return nodes.value.filter(node => node.network === network);
+    return nodes.value.filter(node => {
+      if (network === '0') {
+        return node.network === network || node.network === '-1';
+      }
+      return node.network === network;
+    });
   }
 
   return {
@@ -53,6 +76,7 @@ function useFetchNodes() {
     networks,
     nodesForNetwork,
     fetchNodes,
+    addNodes,
     processNodes
   };
 }

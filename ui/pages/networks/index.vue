@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 
-const { processNodes } = await useFetchNodes();
+const { processNodes, addNodes } = await useFetchNodes();
 
 const items = ref([]);
 
@@ -19,8 +19,8 @@ const addItem = () => {
   if (newItem.value.url) {
     items.value.push({
       url: newItem.value.url,
-      provider: newItem.value.provider || 'n/a',
-      multicall: newItem.value.multicall || 'n/a'
+      provider: newItem.value.provider,
+      multicall: newItem.value.multicall
     });
     newItem.value = {
       url: '',
@@ -30,8 +30,13 @@ const addItem = () => {
   }
 };
 
-function addNodes() {
-  console.log('addNodes', items.value);
+async function addNewNodes() {
+  try {
+    await addNodes(items.value);
+    items.value = [];
+  } catch (e) {
+    console.log(e);
+  }
 }
 </script>
 
@@ -85,7 +90,7 @@ function addNodes() {
         />
       </div>
       <button
-        class="rounded-full text-gray-600 min-w-10 w-10 h-10 flex items-center justify-center shadow border-gray-200 sm:rounded-lg"
+        class="rounded-full text-gray-600 min-w-[2.5rem] w-10 h-10 flex items-center justify-center shadow border-gray-200 sm:rounded-lg"
         @click="addItem()"
       >
         <i-heroicons-plus-circle class="w-[60%] h-[60%]" />
@@ -93,8 +98,9 @@ function addNodes() {
     </div>
     <div class="flex bg-white bottom-0">
       <button
-        class="items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-transparent"
-        @click="addNodes()"
+        class="items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-transparent disabled:opacity-50 disabled:hover:bg-white"
+        :disabled="!items.length"
+        @click="addNewNodes()"
       >
         Add nodes
       </button>
