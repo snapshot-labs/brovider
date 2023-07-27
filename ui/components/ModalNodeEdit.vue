@@ -33,7 +33,7 @@ watch(
 );
 
 const validators = {
-  url: value => console.log(value) || (!value ? 'URL is required' : null),
+  url: value => (!value ? 'URL is required' : null),
   requests: value => (!isNumeric(value) ? 'Requests must be a number' : null),
   errors: value => (!isNumeric(value) ? 'Errors must be a number' : null),
   duration: value => (!isNumeric(value) ? 'Duration must be a number' : null)
@@ -50,7 +50,6 @@ function isNumeric(stringVal) {
 const validate = field => {
   const validator = validators[field];
   if (validator) {
-    console.log('validate', validator(form.value[field]));
     errors[field] = validator(form.value[field]);
   }
 };

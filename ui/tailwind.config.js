@@ -1,7 +1,7 @@
 const content = ['layouts', 'components', 'pages', 'plugins'].map(
   folder => `./${folder}/**/*.{js,ts,vue}`
 );
-console.log(content);
+
 module.exports = {
   content,
   theme: {
