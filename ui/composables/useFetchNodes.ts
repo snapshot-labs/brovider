@@ -46,6 +46,22 @@ function useFetchNodes() {
     return nodeIds;
   }
 
+  async function deleteNode(nodeUrl: string) {
+    const { data, error: err } = await useFetch('/api/nodes', {
+      method: 'DELETE',
+      body: JSON.stringify({ nodeUrl })
+    });
+    if (err.value) {
+      error.value = err.value || 'Unknown error';
+      return;
+    }
+    const { status } = data.value as { status: string };
+    if (status !== 'ok') {
+      error.value = 'Unknown error';
+      return;
+    }
+  }
+
   async function processNodes() {
     const { data, error: err } = await useFetch('/api/process', {
       method: 'POST'
@@ -77,6 +93,7 @@ function useFetchNodes() {
     nodesForNetwork,
     fetchNodes,
     addNodes,
+    deleteNode,
     processNodes
   };
 }

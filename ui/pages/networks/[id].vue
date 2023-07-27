@@ -1,5 +1,5 @@
 <script setup>
-const { nodesForNetwork } = await useFetchNodes();
+const { nodesForNetwork, deleteNode, fetchNodes } = await useFetchNodes();
 definePageMeta({
   middleware: 'validate-network'
 });
@@ -77,9 +77,10 @@ function editNode() {
   isEditModalOpen.value = false;
 }
 
-function removeNode() {
+async function removeNode() {
   isRemoveModalOpen.value = false;
-  console.log('remove node', selectedNode.value);
+  await deleteNode(selectedNode.value.url);
+  await fetchNodes();
   selectedNode.value = null;
 }
 
