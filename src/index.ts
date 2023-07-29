@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { initLogger, fallbackLogger } from './helpers/sentry';
+import { initLogger, fallbackLogger } from '@snapshot-labs/snapshot-sentry';
 import rpc from './rpc';
 import pkg from '../package.json';
 

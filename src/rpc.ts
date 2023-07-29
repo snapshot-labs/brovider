@@ -54,7 +54,7 @@ function setNode(req, res, next) {
     network,
     authHeader:
       typeof node === 'object' && node.user && node.password
-        ? 'Basic ' + Buffer.from(`${node.user}:${node.password}`).toString('base64')
+        ? `Basic ${Buffer.from(`${node.user}:${node.password}`).toString('base64')}`
         : undefined
   };
   next();
