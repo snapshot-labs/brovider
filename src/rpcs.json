@@ -167,9 +167,9 @@
     "https://voting-rpc.carbonswap.exchange"
   ],
   "250": [
+    "https://rpcapi.fantom.network",
     "https://rpc.ankr.com/fantom",
-    "https://rpc.ftm.tools",
-    "https://rpcapi.fantom.network"
+    "https://rpc.ftm.tools"
   ],
   "256": [
     "https://http-testnet.hecochain.com"
