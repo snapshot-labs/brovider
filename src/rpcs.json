@@ -348,6 +348,9 @@
     "https://cypress.fautor.app/archive",
     "https://public-node-api.klaytnapi.com/v1/cypress"
   ],
+  "8453": [
+    "https://mainnet.base.org"
+  ],
   "9000": [
     "https://eth.bd.evmos.dev:8545"
   ],
