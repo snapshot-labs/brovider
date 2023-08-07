@@ -247,8 +247,8 @@
   "1002": [
     "https://kai-internal.kardiachain.io"
   ],
-  "1071": [
-    "https://json-rpc.evm.testnet.shimmer.network/"
+  "1072": [
+    "https://archive.evm.testnet.shimmer.network/v1/chains/rms1pr75wa5xuepg2hew44vnr28wz5h6n6x99zptk2g68sp2wuu2karywgrztx3/evm"
   ],
   "1088": [
     "https://andromeda.metis.io/?owner=1088"
