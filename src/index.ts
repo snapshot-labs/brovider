@@ -2,8 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { initLogger, fallbackLogger } from '@snapshot-labs/snapshot-sentry';
-import rpc from './rpc';
 import pkg from '../package.json';
+import rpc from './rpc';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
