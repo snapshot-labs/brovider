@@ -1,5 +1,5 @@
 import { createProxyMiddleware, fixRequestBody, responseInterceptor } from 'http-proxy-middleware';
-import db from './mysql';
+import dbq from './mysql';
 import { networks } from './process';
 import { getRequestKey } from './utils';
 import redis from './redis';
@@ -36,39 +36,34 @@ function handleError(node) {
 
   networks[`_${node.network}`].algorithm.arms[i].reward(-25e3);
 
-  const query = 'UPDATE nodes SET requests = requests + 1, errors = errors + 1 WHERE url = ?';
-  // possible memory leak
-  db.query(query, [node.url]);
+  dbq.incErrors(node).catch(console.error);
 }
 
 function updateReward(node, duration) {
   const indexOfNetwork = networks[`_${node.network}`].nodes.findIndex(n => n.url === node.url);
   networks[`_${node.network}`].algorithm.arms[indexOfNetwork].reward(-Math.abs(duration));
 
-  const query = 'UPDATE nodes SET requests = requests + 1, duration = duration + ? WHERE url = ?';
-  db.query(query, [duration, node.url]);
+  dbq.incDuration(node, duration).catch(console.error);
 }
 
 const onProxyRes = responseInterceptor(async (responseBuffer, proxyRes, req: any) => {
   const node = req.params._node;
-  
+
   if (proxyRes.statusCode !== 200) {
-    handleError(node)
+    handleError(node);
     return responseBuffer;
   }
 
   updateReward(node, Date.now() - req.params._start);
-    
-  let response;
+
   let responseBody;
   try {
     responseBody = responseBuffer.toString('utf8');
-    response = JSON.parse(responseBody);
   } catch (e) {
     console.log('error parsing response', e);
     return responseBuffer;
   }
-  
+
   if (proxyRes.headers?.['content-type'] === 'application/json') {
     const options = req.params._archive ? { EX: 60 * 60 } : { EX: 3 };
     redis.set(req.params._key, responseBody, options);

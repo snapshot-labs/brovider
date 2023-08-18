@@ -48,11 +48,6 @@ async function processCached(req, res: Response, next: NextFunction) {
   }
 }
 
-router.post(
-  '/:network',
-  processEthMethods,
-  processCached,
-  proxyRequest
-);
+router.post('/:network', processEthMethods, processCached, proxyRequest);
 
 export default router;

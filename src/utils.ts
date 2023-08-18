@@ -1,5 +1,4 @@
 import crypto from 'crypto';
-import db from './mysql';
 
 export function sha256(str) {
   return crypto.createHash('sha256').update(str).digest('hex');
