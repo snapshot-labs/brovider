@@ -1,4 +1,5 @@
 import { createProxyMiddleware, fixRequestBody, responseInterceptor } from 'http-proxy-middleware';
+import { captureProxy, captureErr } from './sentry';
 import dbq from './mysql';
 import { networks } from './process';
 import { getRequestKey } from './utils';
@@ -36,20 +37,22 @@ function handleError(node) {
 
   networks[`_${node.network}`].algorithm.arms[i].reward(-25e3);
 
-  dbq.incErrors(node).catch(console.error);
+  dbq.incErrors(node).catch(captureErr);
 }
 
 function updateReward(node, duration) {
   const indexOfNetwork = networks[`_${node.network}`].nodes.findIndex(n => n.url === node.url);
   networks[`_${node.network}`].algorithm.arms[indexOfNetwork].reward(-Math.abs(duration));
 
-  dbq.incDuration(node, duration).catch(console.error);
+  dbq.incDuration(node, duration).catch(captureErr);
 }
 
-const onProxyRes = responseInterceptor(async (responseBuffer, proxyRes, req: any) => {
+const onProxyRes = responseInterceptor(async (responseBuffer, proxyRes, req: any, res: any) => {
   const node = req.params._node;
 
   if (proxyRes.statusCode !== 200) {
+    const err = new Error('Error status code');
+    captureProxy(err, req, res, node.url);
     handleError(node);
     return responseBuffer;
   }
@@ -60,7 +63,7 @@ const onProxyRes = responseInterceptor(async (responseBuffer, proxyRes, req: any
   try {
     responseBody = responseBuffer.toString('utf8');
   } catch (e) {
-    console.log('error parsing response', e);
+    captureProxy(e, req, res, node.url);
     return responseBuffer;
   }
 
@@ -74,9 +77,10 @@ const onProxyRes = responseInterceptor(async (responseBuffer, proxyRes, req: any
   return responseBuffer;
 });
 
-function onError(e, req) {
+function onError(e, req, res, target) {
   if (!req) return;
   const node = req.params._node;
+  captureProxy(e, req, res, target);
   handleError(node);
 }
 

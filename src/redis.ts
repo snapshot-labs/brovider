@@ -1,4 +1,5 @@
 import { createClient } from 'redis';
+import { captureErr } from './sentry';
 
 let client;
 const url = process.env.REDIS_DATABASE_URL;
@@ -9,9 +10,9 @@ const url = process.env.REDIS_DATABASE_URL;
   client = createClient({ url });
   client.on('connect', () => console.log('redis connect'));
   client.on('ready', () => console.log('redis ready'));
-  client.on('reconnecting', err => console.log('redis reconnecting', err));
-  client.on('error', err => console.log('redis error', err));
-  client.on('end', err => console.log('redis end', err));
+  client.on('reconnecting', data => console.log('redis reconnecting', data));
+  client.on('error', captureErr);
+  client.on('end', data => console.log('redis end', data));
 
   await client.connect();
 
@@ -19,7 +20,7 @@ const url = process.env.REDIS_DATABASE_URL;
     try {
       await client.set('heartbeat', ~~(Date.now() / 1e3));
     } catch (e) {
-      console.log('redis heartbeat failed', e);
+      captureErr(e);
     }
   }, 10e3);
 })();
