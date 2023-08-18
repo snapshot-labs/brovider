@@ -33,7 +33,7 @@ async function processEthMethods(req: Request, res: Response, next: NextFunction
 async function processCached(req, res: Response, next: NextFunction) {
   try {
     const { network } = req.params;
-    const { method, params } = req.body;
+    const { method, params, id } = req.body;
 
     const key = getRequestKey(network, method, params);
     const exists = await redis.exists(key);
@@ -43,7 +43,7 @@ async function processCached(req, res: Response, next: NextFunction) {
     if (!cache) return next();
 
     const data = JSON.parse(cache);
-    data.id = req.body.id;
+    data.id = id;
     return res.json(data);
   } catch (e) {
     captureErr(e);
