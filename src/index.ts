@@ -15,6 +15,9 @@ const PORT = process.env.PORT || 8081;
 initLogger(app);
 startJob();
 
+initLogger(app);
+startJob();
+
 app.use(express.json({ limit: '8mb' }));
 app.use(express.urlencoded({ limit: '8mb', extended: false }));
 app.use(cors({ maxAge: 86400 }));
@@ -29,6 +32,11 @@ app.use('/', rpc);
 app.use('/api', api);
 
 fallbackLogger(app);
+
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
 
 const server = app.listen(PORT, () => console.log(`Listening at http://localhost:${PORT}`));
 
