@@ -1,4 +1,4 @@
-import { Bandit } from './bayesian-bandit';
+import { Bandit } from 'bayesian-bandit';
 import { Cron } from 'croner';
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import { captureErr } from './sentry';
@@ -13,6 +13,17 @@ type NetworkDetails = {
 };
 const cronJob = new Cron('* */20 * * * *'); // every 20 minutes
 let isRunning = false;
+
+const ERROR_REWARD_MULTIPLIER = -25e3;
+const DURATION_REWARD_MULTIPLIER = -1;
+
+export function getErrorReward(errors = 1) {
+  return errors * ERROR_REWARD_MULTIPLIER;
+}
+
+export function getDurationReward(duration = 0, requests = 1) {
+  return Math.abs(duration) * DURATION_REWARD_MULTIPLIER * requests;
+}
 
 export const networks: Record<string, NetworkDetails> = {};
 
@@ -123,7 +134,7 @@ async function loadNodes() {
       algorithm: new Bandit({
         arms: nodes.map(node => ({
           count: node.requests,
-          sum: -Math.abs(node.duration + node.errors * 25e3)
+          sum: getErrorReward(node.errors) + getDurationReward(node.duration, node.requests)
         }))
       })
     };
