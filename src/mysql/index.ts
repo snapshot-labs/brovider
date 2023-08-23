@@ -1,7 +1,7 @@
 import db, { OkPacket, FieldPacket } from './init';
 
-function getArchiveNodes(): Promise<any[]> {
-  return db.query(`SELECT * FROM nodes WHERE network != '' AND archive = 1`);
+function getUnknownArchiveNodes(): Promise<any[]> {
+  return db.query(`SELECT * FROM nodes WHERE network != '' AND archive = -1`);
 }
 
 type ArchiveNodeMapItem = {
@@ -32,7 +32,7 @@ async function setArchiveNodes(nodes: ArchiveNodeMapItem[]): Promise<OkPacket> {
 }
 
 function loadNodesWithoutChainId(): Promise<any[]> {
-  return db.query(`SELECT * FROM nodes WHERE network <= 0`);
+  return db.query(`SELECT * FROM nodes`);
 }
 
 type NetworkChainIdMapItem = {
@@ -63,7 +63,7 @@ async function setNetworkChainIds(nodes: NetworkChainIdMapItem[]): Promise<OkPac
 }
 
 function loadValidNodes(): Promise<any[]> {
-  return db.query(`SELECT * FROM nodes WHERE network > 0`);
+  return db.query(`SELECT * FROM nodes WHERE network > 0 AND archive >= 0`);
 }
 
 function incErrors(node) {
@@ -76,9 +76,10 @@ function incDuration(node, duration) {
   return db.query(query, [duration, node.url]);
 }
 
+export { db };
+
 export default {
-  db,
-  getArchiveNodes,
+  getUnknownArchiveNodes,
   setArchiveNodes,
   loadNodesWithoutChainId,
   setNetworkChainIds,

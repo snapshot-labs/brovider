@@ -4,7 +4,7 @@ import redis, { EXPIRE_ARCHIVE } from './redis';
 import { captureErr } from './sentry';
 import { getRequestKey } from './utils';
 import proxyRequest from './proxy';
-import { networks } from './process';
+import { networks } from './process-nodes';
 
 const router = express.Router();
 

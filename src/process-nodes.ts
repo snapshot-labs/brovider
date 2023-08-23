@@ -1,4 +1,5 @@
 import { Bandit } from './bayesian-bandit';
+import { Cron } from 'croner';
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import { captureErr } from './sentry';
 import { AddressZero } from '@ethersproject/constants';
@@ -10,16 +11,49 @@ type NetworkDetails = {
   nodes: any[];
   algorithm: Bandit;
 };
+const cronJob = new Cron('* */20 * * * *'); // every 20 minutes
+let isRunning = false;
+
 export const networks: Record<string, NetworkDetails> = {};
 
-start();
-
-async function start() {
+export async function startJob() {
+  // initial run
   try {
-    // await checkNetwork();
-    console.log('Check chain id done');
+    if (isRunning) return;
+    isRunning = true;
+    await processNodes();
+  } catch (error) {
+    captureErr(error);
+  } finally {
+    isRunning = false;
+  }
 
-    // await checkArchive();
+  return cronJob.schedule(async () => {
+    try {
+      if (isRunning) return;
+      isRunning = true;
+      await processNodes();
+    } catch (error) {
+      captureErr(error);
+    } finally {
+      isRunning = false;
+    }
+  });
+}
+
+export function stopJob() {
+  console.log('Stop cron job process nodes');
+  return cronJob.stop();
+}
+
+export async function processNodes() {
+  try {
+    if (process.env.NODE_ENV === 'production') {
+      await checkNetwork();
+      console.log('Check chain id done');
+    }
+
+    await checkArchive();
     console.log('Check archive done');
 
     await loadNodes();
@@ -27,21 +61,6 @@ async function start() {
   } catch (error) {
     captureErr(error);
   }
-}
-
-async function checkArchive() {
-  const [nodes]: any[] = await dbq.getArchiveNodes();
-
-  const nodeArchiveMapping = await Promise.all(
-    nodes.map(node => {
-      const provider = new StaticJsonRpcProvider(node.url, Number(node.network));
-      const onSuccess = () => ({ node, archive: true });
-      const onError = () => ({ node, archive: false });
-      return provider.getBalance(AddressZero, 1).then(onSuccess, onError);
-    })
-  );
-
-  return dbq.setArchiveNodes(nodeArchiveMapping);
 }
 
 async function checkNetwork() {
@@ -59,6 +78,21 @@ async function checkNetwork() {
   );
 
   return dbq.setNetworkChainIds(nodeChainIdMapping);
+}
+
+async function checkArchive() {
+  const [nodes]: any[] = await dbq.getUnknownArchiveNodes();
+
+  const nodeArchiveMapping = await Promise.all(
+    nodes.map(node => {
+      const provider = new StaticJsonRpcProvider(node.url, Number(node.network));
+      const onSuccess = () => ({ node, archive: true });
+      const onError = () => ({ node, archive: false });
+      return provider.getBalance(AddressZero, 1).then(onSuccess, onError);
+    })
+  );
+
+  return dbq.setArchiveNodes(nodeArchiveMapping);
 }
 
 async function loadNodes() {
