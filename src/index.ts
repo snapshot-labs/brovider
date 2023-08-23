@@ -24,6 +24,11 @@ app.use('/', rpc);
 
 fallbackLogger(app);
 
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
+
 const server = app.listen(PORT, () => console.log(`Listening at http://localhost:${PORT}`));
 
 gracefulShutdown(server);
