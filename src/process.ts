@@ -1,10 +1,16 @@
-import { Bandit } from 'bayesian-bandit';
+import { Bandit } from './bayesian-bandit';
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import { captureErr } from './sentry';
 import { AddressZero } from '@ethersproject/constants';
+import groupBy from 'lodash/groupBy';
 import dbq from './mysql';
 
-export const networks: Record<string, any> = {};
+type NetworkDetails = {
+  id: string;
+  nodes: any[];
+  algorithm: Bandit;
+};
+export const networks: Record<string, NetworkDetails> = {};
 
 start();
 
@@ -58,18 +64,36 @@ async function checkNetwork() {
 async function loadNodes() {
   const [nodes]: any[] = await dbq.loadValidNodes();
 
-  nodes.forEach(node => {
-    if (!networks[`_${node.network}`]) networks[`_${node.network}`] = { nodes: [] };
-    networks[`_${node.network}`].nodes.push(node);
+  let groupedNodes: Record<string, any[]> = groupBy(nodes, function (item) {
+    return `${item.network}_${item.archive}`;
   });
 
-  Object.keys(networks).forEach(id => {
-    networks[id].id = id;
-    networks[id].algorithm = new Bandit({
-      arms: networks[id].nodes.map(node => ({
-        count: node.requests,
-        sum: -Math.abs(node.duration + node.errors * 25e3)
-      }))
-    });
+  groupedNodes = Object.entries(groupedNodes).reduce((acc: any, entry) => {
+    const [key, value] = entry as [string, any[]];
+    const [network, archive] = key.split('_');
+    if (archive === '1') {
+      acc[`${network}_0`] = acc[`${network}_0`] || [];
+      acc[`${network}_0`].push(...value);
+    }
+
+    acc[key] = acc[key] || [];
+    acc[key].push(...value);
+
+    return acc;
+  }, {});
+
+  Object.entries(groupedNodes).forEach(([id, nodes]) => {
+    const network: NetworkDetails = {
+      id,
+      nodes,
+      algorithm: new Bandit({
+        arms: nodes.map(node => ({
+          count: node.requests,
+          sum: -Math.abs(node.duration + node.errors * 25e3)
+        }))
+      })
+    };
+
+    networks[id] = network;
   });
 }

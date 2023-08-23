@@ -51,11 +51,19 @@ const onProxyRes = responseInterceptor(async (responseBuffer, proxyRes, req: any
   return responseBuffer;
 });
 
-function onError(e, req, res, target) {
-  if (!req) return;
+function onError(err, req, res, target) {
+  if (!req) {
+    captureErr(new Error('No request'));
+    return res.status(500).send({
+      jsonrpc: '2.0',
+      id: null,
+      error: { code: -32603, message: 'Internal error' }
+    });
+  }
   const { _node: node, _arm: arm } = req.params;
-  captureProxy(e, req, res, target);
+  captureProxy(err, req, res, target);
   handleError(arm, node);
+  return res.start(500).send(err);
 }
 
 const proxyRequest = createProxyMiddleware({

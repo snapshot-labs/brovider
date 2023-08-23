@@ -73,15 +73,17 @@ async function processCached(req: Request, res: Response, next: NextFunction) {
 }
 
 function pickNode(req: Request, res: Response, next: NextFunction) {
-  const { network } = req.params;
-  const networkData = networks[`_${network}`];
+  const { network, _archive } = req.params;
+  const isArchive = Boolean(_archive);
+  const networkKey = isArchive ? `${network}_1` : `${network}_0`;
+  const networkData = networks[networkKey];
 
   if (!networkData) {
     captureErr(new Error(`No node for network ${network}`));
     return res.status(500).send('No node for network');
   }
 
-  const armIndex = networkData.algorithm.selectArm();
+  const [armIndex] = networkData.algorithm.orderedArms();
   req.params._arm = networkData.algorithm.arms[armIndex];
   req.params._node = networkData.nodes[armIndex];
 
