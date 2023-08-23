@@ -1,4 +1,4 @@
-import bandit from 'bayesian-bandit';
+import { Bandit } from 'bayesian-bandit';
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import { captureErr } from './sentry';
 import { AddressZero } from '@ethersproject/constants';
@@ -65,7 +65,7 @@ async function loadNodes() {
 
   Object.keys(networks).forEach(id => {
     networks[id].id = id;
-    networks[id].algorithm = new bandit.Bandit({
+    networks[id].algorithm = new Bandit({
       arms: networks[id].nodes.map(node => ({
         count: node.requests,
         sum: -Math.abs(node.duration + node.errors * 25e3)

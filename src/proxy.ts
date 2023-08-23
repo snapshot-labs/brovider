@@ -1,77 +1,51 @@
 import { createProxyMiddleware, fixRequestBody, responseInterceptor } from 'http-proxy-middleware';
 import { captureProxy, captureErr } from './sentry';
 import dbq from './mysql';
-import { networks } from './process';
-import { getRequestKey } from './utils';
-import redis from './redis';
+import redis, { EXPIRE_ARCHIVE, EXPIRE_LATEST } from './redis';
 
 function router(req) {
-  const network = req.params.network;
-
-  if (!networks[`_${network}`]) {
-    console.log('error no node for network', network);
-    return undefined;
-  }
-
-  const arm = networks[`_${network}`].algorithm.selectArm();
-  req.params._node = networks[`_${network}`].nodes[arm];
-
   return req.params._node.url;
 }
 
 function onProxyReq(proxyReq, req) {
-  const { network } = req.params;
-  const { method, params } = req.body;
-
   req.params._start = Date.now();
-  req.params._key = getRequestKey(network, method, params);
-  req.params._archive = params && (params[1] === 'latest' || params[1] === false) ? 0 : 1;
-
   fixRequestBody(proxyReq, req);
 }
 
-function handleError(node) {
-  const i = networks[`_${node.network}`].nodes.findIndex(n => n.url === node.url);
-
-  console.log('error status', node.url);
-
-  networks[`_${node.network}`].algorithm.arms[i].reward(-25e3);
-
+function handleError(arm, node) {
+  arm.reward(-25e3);
   dbq.incErrors(node).catch(captureErr);
 }
 
-function updateReward(node, duration) {
-  const indexOfNetwork = networks[`_${node.network}`].nodes.findIndex(n => n.url === node.url);
-  networks[`_${node.network}`].algorithm.arms[indexOfNetwork].reward(-Math.abs(duration));
-
+function updateReward(arm, node, duration) {
+  arm.reward(-Math.abs(duration));
   dbq.incDuration(node, duration).catch(captureErr);
 }
 
 const onProxyRes = responseInterceptor(async (responseBuffer, proxyRes, req: any, res: any) => {
-  const node = req.params._node;
+  const { _node: node, _arm: arm } = req.params;
 
   if (proxyRes.statusCode !== 200) {
     const err = new Error('Error status code');
     captureProxy(err, req, res, node.url);
-    handleError(node);
+    handleError(arm, node);
     return responseBuffer;
   }
 
-  updateReward(node, Date.now() - req.params._start);
+  const duration = Date.now() - req.params._start;
+  updateReward(arm, node, duration);
 
-  let responseBody;
   try {
-    responseBody = responseBuffer.toString('utf8');
+    const responseBody = responseBuffer.toString('utf8');
+    if (proxyRes.headers?.['content-type']?.includes('application/json')) {
+      const options = req.params._archive ? { EX: EXPIRE_ARCHIVE } : { EX: EXPIRE_LATEST };
+      await redis.set(req.params._reqHashKey, responseBody, options);
+
+      return responseBody;
+    }
   } catch (e) {
     captureProxy(e, req, res, node.url);
     return responseBuffer;
-  }
-
-  if (proxyRes.headers?.['content-type'] === 'application/json') {
-    const options = req.params._archive ? { EX: 60 * 60 } : { EX: 3 };
-    redis.set(req.params._key, responseBody, options);
-
-    return responseBody;
   }
 
   return responseBuffer;
@@ -79,9 +53,9 @@ const onProxyRes = responseInterceptor(async (responseBuffer, proxyRes, req: any
 
 function onError(e, req, res, target) {
   if (!req) return;
-  const node = req.params._node;
+  const { _node: node, _arm: arm } = req.params;
   captureProxy(e, req, res, target);
-  handleError(node);
+  handleError(arm, node);
 }
 
 const proxyRequest = createProxyMiddleware({
