@@ -314,6 +314,9 @@
   "4690": [
     "https://babel-api.testnet.iotex.io"
   ],
+  "5000": [
+    "https://rpc.mantle.xyz"
+  ],
   "5551": [
     "https://l2.nahmii.io"
   ],
