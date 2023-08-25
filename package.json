@@ -3,18 +3,12 @@
   "version": "1.0.0",
   "license": "MIT",
   "scripts": {
-    "preinstall": "cd ui && yarn",
     "lint": "eslint src/ --ext .ts --fix",
-    "build:serv": "tsc -p tsconfig.json",
-    "build:ui": "cd ui && yarn build",
-    "build": "yarn build:serv && yarn build:ui",
+    "build": "tsc -p tsconfig.json",
     "predev:serv": "rm -rf ./ui/.output",
     "dev:serv": "nodemon src/index.ts --ignore ui",
-    "dev:ui": "cd ui && yarn dev --port 8080",
-    "dev": "yarn dev:serv & yarn dev:ui",
-    "start:serv": "node dist/src/index.js",
-    "start:ui": "cd ui && yarn preview",
-    "start": "yarn start:serv & yarn start:ui",
+    "dev": "nodemon src/index.ts --ignore ui",
+    "start": "node dist/src/index.js",
     "test": "jest"
   },
   "eslintConfig": {
