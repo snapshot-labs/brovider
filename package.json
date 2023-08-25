@@ -5,9 +5,7 @@
   "scripts": {
     "lint": "eslint src/ --ext .ts --fix",
     "build": "tsc -p tsconfig.json",
-    "predev:serv": "rm -rf ./ui/.output",
-    "dev:serv": "nodemon src/index.ts --ignore ui",
-    "dev": "nodemon src/index.ts --ignore ui",
+    "dev": "nodemon src/index.ts",
     "start": "node dist/src/index.js",
     "test": "jest"
   },
