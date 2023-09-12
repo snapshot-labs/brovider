@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post('/process', async (req, res) => {
   try {
-    await processNodes();
+    await processNodes({ forced: true });
     return res.json({
       status: 'ok'
     });

@@ -13,6 +13,8 @@ type NetworkDetails = {
 };
 const cronJob = new Cron('* */20 * * * *'); // every 20 minutes
 let isRunning = false;
+let lastExecutionTimestamp = 0;
+const EXECUTION_INTERVAL = 20 * 60e3; // 20 minutes
 
 const ERROR_REWARD_MULTIPLIER = -25e3;
 const DURATION_REWARD_MULTIPLIER = -1;
@@ -29,7 +31,7 @@ export const networks: Record<string, NetworkDetails> = {};
 
 export async function startJob() {
   // initial run
-  await processNodes();
+  await processNodes({ forced: true });
 
   return cronJob.schedule(processNodes);
 }
@@ -39,8 +41,13 @@ export function stopJob() {
   return cronJob.stop();
 }
 
-export async function processNodes() {
+export async function processNodes(opts: any) {
+  const { forced = false } = opts || {};
+
   if (isRunning) return;
+  const now = Date.now();
+  if (!forced && now - lastExecutionTimestamp < EXECUTION_INTERVAL) return;
+
   isRunning = true;
   try {
     if (process.env.NODE_ENV === 'production') {
@@ -57,6 +64,7 @@ export async function processNodes() {
     captureErr(error);
   } finally {
     isRunning = false;
+    lastExecutionTimestamp = now;
   }
 }
 

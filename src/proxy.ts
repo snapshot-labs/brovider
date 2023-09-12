@@ -66,7 +66,7 @@ function onError(err, req, res, target) {
   const { _node: node, _arm: arm } = req.params;
   captureProxy(err, req, res, target);
   handleError(arm, node);
-  return res.start(500).send(err);
+  return res.status(500).send(err);
 }
 
 const proxyRequest = createProxyMiddleware({
