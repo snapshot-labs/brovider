@@ -163,6 +163,7 @@
     "https://mainnet.bmcchain.com/"
   ],
   "246": [
+    "https://archive-rpc.energyweb.org/",
     "https://rpc.energyweb.org",
     "https://voting-rpc.carbonswap.exchange"
   ],
@@ -224,7 +225,7 @@
     "https://rpc.toronto.sx.technology"
   ],
   "813": [
-    "https://evm-dataseed1.meerscan.com"
+    "https://evm-dataseed1.meerscan.io"
   ],
   "841": [
     "https://rpc.mainnet.taraxa.io"
@@ -276,6 +277,7 @@
     "https://rpc.tenet.org"
   ],
   "1663": [
+    "https://gobi-rpc.horizenlabs.io/ethv1",
     "https://gobi-testnet.horizenlabs.io/ethv1"
   ],
   "1701": [
