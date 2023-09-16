@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "license": "MIT",
   "scripts": {
+    "preinstall": "yarn global add pm2",
     "lint": "eslint src/ --ext .ts --fix",
     "build": "tsc -p tsconfig.json",
     "dev": "nodemon src/index.ts",
