@@ -27,10 +27,23 @@ function updateReward(arm, node, duration) {
 
 const onProxyRes = responseInterceptor(async (responseBuffer, proxyRes, req: any, res: any) => {
   const { _node: node, _arm: arm } = req.params;
+  let rawBody = '';
+  let responseBody = {};
+  try {
+    rawBody = responseBuffer.toString('utf8');
+    responseBody = JSON.parse(responseBuffer.toString('utf8'));
+  } catch (e: any) {
+    e.message = `Error parsing response body: ${rawBody}`;
+    captureErr(e);
+  }
 
   if (proxyRes.statusCode !== 200) {
     const err = new Error('Error status code');
-    captureProxy(err, req, res, node.url);
+    captureProxy(err, req, res, {
+      url: node.url,
+      statusCode: proxyRes.statusCode,
+      responseBody
+    });
     handleError(arm, node);
     return responseBuffer;
   }
@@ -47,14 +60,18 @@ const onProxyRes = responseInterceptor(async (responseBuffer, proxyRes, req: any
       return responseBody;
     }
   } catch (e) {
-    captureProxy(e, req, res, node.url);
+    captureProxy(e, req, res, {
+      url: node.url,
+      statusCode: proxyRes.statusCode,
+      responseBody
+    });
     return responseBuffer;
   }
 
   return responseBuffer;
 });
 
-function onError(err, req, res, target) {
+function onError(err, req, res) {
   if (!req) {
     captureErr(new Error('No request'));
     return res.status(500).send({
@@ -64,7 +81,10 @@ function onError(err, req, res, target) {
     });
   }
   const { _node: node, _arm: arm } = req.params;
-  captureProxy(err, req, res, target);
+  captureProxy(err, req, res, {
+    url: node.url,
+    responseBody: err.message
+  });
   handleError(arm, node);
   return res.status(500).send(err);
 }
