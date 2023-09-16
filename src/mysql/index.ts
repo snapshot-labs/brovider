@@ -38,7 +38,6 @@ function loadNodes(): Promise<any[]> {
 type NodeBase = {
   url: string;
   provider?: string;
-  multicall?: string;
 };
 async function addNodes(nodes: NodeBase[]): Promise<OkPacket> {
   if (!Array.isArray(nodes) || nodes.length === 0) {
@@ -46,12 +45,12 @@ async function addNodes(nodes: NodeBase[]): Promise<OkPacket> {
   }
 
   const query = `
-    INSERT INTO nodes (url, provider, multicall, network, archive, requests, errors, duration, created)
+    INSERT INTO nodes (url, provider, network, archive, requests, errors, duration, created)
     VALUES ?
   `;
 
-  const values = nodes.map(({ url, provider, multicall }) => {
-    return [url, provider, multicall, '-1', -1, 0, 0, 0, +new Date() / 1e3];
+  const values = nodes.map(({ url, provider }) => {
+    return [url, provider, '-1', -1, 0, 0, 0, +new Date() / 1e3];
   });
 
   const [result] = (await db.query(query, [values])) as [OkPacket, FieldPacket[]];
@@ -67,27 +66,22 @@ async function deleteNode(nodeUrl: string): Promise<OkPacket> {
 type NodeUpdate = {
   url: string;
   provider?: string;
-  multicall?: string;
   requests?: number;
   errors?: number;
   duration?: number;
 };
 async function updateNode(node: NodeUpdate): Promise<OkPacket> {
-  const { url, provider, multicall, requests, errors, duration } = node;
+  const { url, provider, requests, errors, duration } = node;
   const query = `
     UPDATE nodes
-    SET provider = ?, multicall = ?, requests = ?, errors = ?, duration = ?
+    SET provider = ?, requests = ?, errors = ?, duration = ?
     WHERE url = ?
   `;
 
-  const [result] = (await db.query(query, [
-    provider,
-    multicall,
-    requests,
-    errors,
-    duration,
-    url
-  ])) as [OkPacket, FieldPacket[]];
+  const [result] = (await db.query(query, [provider, requests, errors, duration, url])) as [
+    OkPacket,
+    FieldPacket[]
+  ];
   return result;
 }
 

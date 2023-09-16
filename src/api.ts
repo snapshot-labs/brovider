@@ -35,20 +35,14 @@ router.post('/nodes', async (req, res) => {
 
   const serializedNodes = nodes
     .map(node => {
-      const { url, provider = null, multicall = null } = node;
-      if (
-        !url ||
-        typeof url !== 'string' ||
-        (provider && typeof provider !== 'string') ||
-        (multicall && typeof multicall !== 'string')
-      ) {
+      const { url, provider = null } = node;
+      if (!url || typeof url !== 'string' || (provider && typeof provider !== 'string')) {
         return null;
       }
 
       return {
         url,
-        provider,
-        multicall
+        provider
       };
     })
     .filter(Boolean);
@@ -93,22 +87,14 @@ router.put('/nodes', async (req, res) => {
     return res.status(400).json({ error: 'Invalid node' });
   }
 
-  const { url, provider, multicall, requests, errors, duration } = node;
+  const { url, provider, requests, errors, duration } = node;
   const isValidUrl = typeof url === 'string';
   const isValidProvider = typeof provider === 'string';
-  const isValidMulticall = typeof multicall === 'string';
   const isValidRequests = typeof requests === 'number' && requests >= 0;
   const isValidErrors = typeof errors === 'number' && errors >= 0;
   const isValidDuration = typeof duration === 'number' && duration >= 0;
 
-  if (
-    !isValidUrl ||
-    !isValidProvider ||
-    !isValidMulticall ||
-    !isValidRequests ||
-    !isValidErrors ||
-    !isValidDuration
-  ) {
+  if (!isValidUrl || !isValidProvider || !isValidRequests || !isValidErrors || !isValidDuration) {
     return res.status(400).json({ error: 'Invalid node' });
   }
 
@@ -116,7 +102,6 @@ router.put('/nodes', async (req, res) => {
     await dbq.updateNode({
       url,
       provider,
-      multicall,
       requests,
       errors,
       duration
