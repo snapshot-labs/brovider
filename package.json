@@ -6,7 +6,7 @@
     "lint": "eslint src/ --ext .ts --fix",
     "build": "tsc -p tsconfig.json",
     "dev": "nodemon src/index.ts",
-    "start": "node dist/src/index.js",
+    "start": "node build/src/index.js",
     "test": "jest"
   },
   "eslintConfig": {
