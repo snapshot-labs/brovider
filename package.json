@@ -7,6 +7,7 @@
     "build": "tsc -p tsconfig.json",
     "dev": "nodemon src/index.ts",
     "start": "node build/src/index.js",
+    "start:pm2": "pm2 start --name brovider --no-daemon ecosystem.config.js",
     "test": "jest"
   },
   "eslintConfig": {
