@@ -1,0 +1,31 @@
+config:
+  target: http://localhost:8080
+  processor: "./processor.js"
+  defaults:
+    headers:
+      Content-Type: application/json
+  phases:
+    - duration: 10
+      arrivalRate: 50
+      name: Warm up
+    - duration: 30
+      arrivalRate: 100
+      rampTo: 1000
+      name: Sustained peak load
+    - duration: 20
+      arrivalRate: 5
+      name: Ramp down
+
+scenarios:
+  - beforeScenario: "getBalance"
+    flow:
+      - post:
+          url: "/{{ network }}"
+          name: Get strategies
+          body: |
+            {
+              "jsonrpc": "2.0",
+              "id": 1,
+              "method": "eth_getBalance",
+              "params": ["{{ address }}", "latest"]
+            }
