@@ -37,7 +37,7 @@ function loadNodes(): Promise<any[]> {
 
 type NodeBase = {
   url: string;
-  provider?: string;
+  provider: string;
   multicall?: string;
 };
 async function addNodes(nodes: NodeBase[]): Promise<OkPacket> {
