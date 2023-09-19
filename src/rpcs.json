@@ -482,6 +482,9 @@
     "https://rpc.ankr.com/eth_sepolia",
     "https://sepolia.infura.io/v3/d26b4fd748814fe994b05899fd89e667"
   ],
+  "245022926": [
+    "https://devnet.neonevm.org"
+  ],
   "278611351": [
     "https://mainnet.skalenodes.com/v1/turbulent-unique-scheat"
   ],
