@@ -59,7 +59,7 @@ async function addNodes(nodes: NodeBase[]): Promise<OkPacket> {
 }
 
 async function deleteNode(nodeUrl: string): Promise<OkPacket> {
-  const query = `DELETE FROM nodes WHERE url = ?`;
+  const query = `DELETE FROM nodes WHERE url = ? LIMIT 1`;
   const [result] = (await db.query(query, [nodeUrl])) as [OkPacket, FieldPacket[]];
   return result;
 }
