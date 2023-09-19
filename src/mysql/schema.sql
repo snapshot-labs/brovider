@@ -1,4 +1,4 @@
-CREATE TABLE brovider.nodes (
+CREATE TABLE nodes (
   `url` VARCHAR(512) NOT NULL,
   `network` VARCHAR(256) NOT NULL,
   `provider` VARCHAR(256) NOT NULL,
