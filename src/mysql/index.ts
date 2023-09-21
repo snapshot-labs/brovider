@@ -66,11 +66,11 @@ async function deleteNode(nodeUrl: string): Promise<OkPacket> {
 
 type NodeUpdate = {
   url: string;
-  provider?: string;
-  multicall?: string;
-  requests?: number;
-  errors?: number;
-  duration?: number;
+  provider: string;
+  multicall: string;
+  requests: number;
+  errors: number;
+  duration: number;
 };
 async function updateNode(node: NodeUpdate): Promise<OkPacket> {
   const { url, provider, multicall, requests, errors, duration } = node;
