@@ -37,7 +37,7 @@ function loadNodes(): Promise<any[]> {
 
 type NodeBase = {
   url: string;
-  provider?: string;
+  provider: string;
 };
 async function addNodes(nodes: NodeBase[]): Promise<OkPacket> {
   if (!Array.isArray(nodes) || nodes.length === 0) {
@@ -58,17 +58,17 @@ async function addNodes(nodes: NodeBase[]): Promise<OkPacket> {
 }
 
 async function deleteNode(nodeUrl: string): Promise<OkPacket> {
-  const query = `DELETE FROM nodes WHERE url = ?`;
+  const query = `DELETE FROM nodes WHERE url = ? LIMIT 1`;
   const [result] = (await db.query(query, [nodeUrl])) as [OkPacket, FieldPacket[]];
   return result;
 }
 
 type NodeUpdate = {
   url: string;
-  provider?: string;
-  requests?: number;
-  errors?: number;
-  duration?: number;
+  provider: string;
+  requests: number;
+  errors: number;
+  duration: number;
 };
 async function updateNode(node: NodeUpdate): Promise<OkPacket> {
   const { url, provider, requests, errors, duration } = node;
@@ -76,6 +76,7 @@ async function updateNode(node: NodeUpdate): Promise<OkPacket> {
     UPDATE nodes
     SET provider = ?, requests = ?, errors = ?, duration = ?
     WHERE url = ?
+    LIMIT 1
   `;
 
   const [result] = (await db.query(query, [provider, requests, errors, duration, url])) as [

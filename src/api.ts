@@ -84,7 +84,7 @@ router.delete('/nodes', async (req, res) => {
 router.put('/nodes', async (req, res) => {
   const { node } = req.body;
   if (!node || !node.url || typeof node.url !== 'string') {
-    return res.status(400).json({ error: 'Invalid node' });
+    return res.status(400).json({ error: 'Invalid node url' });
   }
 
   const { url, provider, requests, errors, duration } = node;
