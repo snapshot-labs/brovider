@@ -78,6 +78,7 @@ async function updateNode(node: NodeUpdate): Promise<OkPacket> {
     UPDATE nodes
     SET provider = ?, multicall = ?, requests = ?, errors = ?, duration = ?
     WHERE url = ?
+    LIMIT 1
   `;
 
   const [result] = (await db.query(query, [
