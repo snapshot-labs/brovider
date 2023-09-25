@@ -13,7 +13,8 @@ const PORT = process.env.PORT || 3000;
 
 initLogger(app);
 
-if (process.env.NODE_APP_INSTANCE === '0') {
+const processId = process.env.NODE_APP_INSTANCE ?? '0';
+if (processId === '0') {
   startJob();
 }
 
