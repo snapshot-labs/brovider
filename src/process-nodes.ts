@@ -58,8 +58,8 @@ export async function processNodes(opts: any) {
     await checkArchive();
     console.log('Check archive done');
 
-    await loadNodes();
-    console.log('Nodes loaded');
+    const nodes = await loadNodes();
+    console.log(`Loaded ${nodes.length} nodes`);
   } catch (error) {
     captureErr(error);
   } finally {
@@ -135,4 +135,6 @@ async function loadNodes() {
 
     networks[id] = network;
   });
+
+  return nodes;
 }
