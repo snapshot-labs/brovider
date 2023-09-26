@@ -31,7 +31,7 @@ const onProxyRes = responseInterceptor(async (responseBuffer, proxyRes, req: any
   let responseBody = {};
   try {
     rawBody = responseBuffer.toString('utf8');
-    responseBody = JSON.parse(responseBuffer.toString('utf8'));
+    responseBody = JSON.parse(rawBody);
   } catch (e: any) {
     e.message = `Error parsing response body: ${rawBody}`;
     captureErr(e);
