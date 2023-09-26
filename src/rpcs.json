@@ -59,8 +59,8 @@
     "https://rpc.darwinia.network"
   ],
   "50": [
-    "https://snapshotrpc.blocksscan.io/",
-    "https://rpc.xinfin.network"
+    "https://rpc.xinfin.network",
+    "https://snapshotrpc.blocksscan.io/"
   ],
   "51": [
     "https://apothemrpc.blocksscan.io"
