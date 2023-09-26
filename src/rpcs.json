@@ -420,8 +420,8 @@
     "https://api.avax-test.network/ext/bc/C/rpc"
   ],
   "43114": [
-    "https://api.avax.network/ext/bc/C/rpc",
     "https://rpc.ankr.com/avalanche",
+    "https://api.avax.network/ext/bc/C/rpc",
     "https://avalanche-mainnet.infura.io/v3/d26b4fd748814fe994b05899fd89e667",
     "https://nd-784-543-849.p2pify.com/aa7b29fc5fed65b34f0ee6b8de33f8c0/ext/bc/C/rpc"
   ],
