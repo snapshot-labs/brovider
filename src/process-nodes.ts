@@ -67,7 +67,7 @@ export async function processNodes(opts: any) {
 
     const nodes = await loadNodes();
     console.log(`Loaded ${nodes.length} nodes (pid: ${processId})`);
-    sync('loadNodes');
+    setTimeout(() => sync('loadNodes'), 5e3);
   } catch (error) {
     captureErr(error);
   } finally {
