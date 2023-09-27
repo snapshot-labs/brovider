@@ -53,7 +53,10 @@ const onProxyRes = responseInterceptor(async (responseBuffer, proxyRes, req: any
 
   try {
     const responseBody = responseBuffer.toString('utf8');
-    if (proxyRes.headers?.['content-type']?.includes('application/json')) {
+    if (
+      proxyRes.headers?.['content-type']?.includes('application/json') &&
+      typeof redis !== 'undefined'
+    ) {
       const options = req.params._archive ? { EX: EXPIRE_ARCHIVE } : { EX: EXPIRE_LATEST };
       await redis.set(req.params._reqHashKey, responseBody, options);
 

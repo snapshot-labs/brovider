@@ -22,8 +22,10 @@ export default function (server) {
 
       console.log('Closing redis connection.');
       try {
-        await redis.quit();
-        console.log('Redis connection closed.');
+        if (redis) {
+          await redis.quit();
+          console.log('Redis connection closed.');
+        }
       } catch (err) {
         if ((err as any).message !== 'The client is closed') {
           console.error('Error closing redis connection:', err);
