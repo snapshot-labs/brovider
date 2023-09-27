@@ -22,7 +22,7 @@ export default function (server) {
 
       console.log('Closing redis connection.');
       try {
-        if (redis) {
+        if (typeof redis !== 'undefined') {
           await redis.quit();
           console.log('Redis connection closed.');
         }
