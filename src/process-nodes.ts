@@ -5,6 +5,7 @@ import { captureErr } from './sentry';
 import { AddressZero } from '@ethersproject/constants';
 import groupBy from 'lodash/groupBy';
 import dbq from './mysql';
+import { sync, onSync } from './cluster-sync';
 
 type NetworkDetails = {
   id: string;
@@ -18,6 +19,7 @@ const EXECUTION_INTERVAL = 20 * 60e3; // 20 minutes
 
 const ERROR_REWARD_MULTIPLIER = -25e3;
 const DURATION_REWARD_MULTIPLIER = -1;
+const processId = process.env.NODE_APP_INSTANCE ?? '0';
 
 export function getErrorReward(errors = 1) {
   return errors * ERROR_REWARD_MULTIPLIER;
@@ -29,8 +31,13 @@ export function getDurationReward(duration = 0, requests = 1) {
 
 export const networks: Record<string, NetworkDetails> = {};
 
+onSync('loadNodes', async () => {
+  const nodes = await loadNodes();
+  console.log(`Loaded ${nodes.length} nodes (pid: ${processId})`);
+});
+
 export async function startJob() {
-  // initial run
+  if (processId !== '0') return;
   await processNodes({ forced: true });
 
   return cronJob.schedule(processNodes);
@@ -59,7 +66,8 @@ export async function processNodes(opts: any) {
     console.log('Check archive done');
 
     const nodes = await loadNodes();
-    console.log(`Loaded ${nodes.length} nodes`);
+    console.log(`Loaded ${nodes.length} nodes (pid: ${processId})`);
+    sync('loadNodes');
   } catch (error) {
     captureErr(error);
   } finally {

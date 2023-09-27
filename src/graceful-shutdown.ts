@@ -1,6 +1,7 @@
 import redis from './redis';
 import { db } from './mysql';
 import { stopJob } from './process-nodes';
+import { close } from './cluster-sync';
 
 export default function (server) {
   process.on('SIGTERM', cleanup);
@@ -11,6 +12,7 @@ export default function (server) {
     console.info(`"${signal}" signal received.`);
     console.log('Closing http server.');
     await stopJob();
+    close().then(() => console.log('cluster-sync closed'));
     server.close(async err => {
       if (err && err.code !== 'ERR_SERVER_NOT_RUNNING') {
         console.error('Error closing http server:', err);

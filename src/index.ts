@@ -13,10 +13,7 @@ const PORT = process.env.PORT || 3000;
 
 initLogger(app);
 
-const processId = process.env.NODE_APP_INSTANCE ?? '0';
-if (processId === '0') {
-  startJob();
-}
+startJob();
 
 app.use(express.json({ limit: '8mb' }));
 app.use(express.urlencoded({ limit: '8mb', extended: false }));
