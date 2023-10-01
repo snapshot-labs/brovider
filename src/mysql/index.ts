@@ -31,8 +31,65 @@ async function setArchiveNodes(nodes: ArchiveNodeMapItem[]): Promise<OkPacket> {
   return result;
 }
 
-function loadNodesWithoutChainId(): Promise<any[]> {
+function loadNodes(): Promise<any[]> {
   return db.query(`SELECT * FROM nodes`);
+}
+
+type NodeBase = {
+  url: string;
+  provider: string;
+  multicall?: string;
+};
+async function addNodes(nodes: NodeBase[]): Promise<OkPacket> {
+  if (!Array.isArray(nodes) || nodes.length === 0) {
+    return Promise.resolve({} as OkPacket);
+  }
+
+  const query = `
+    INSERT INTO nodes (url, provider, multicall, network, archive, requests, errors, duration, created)
+    VALUES ?
+  `;
+
+  const values = nodes.map(({ url, provider, multicall }) => {
+    return [url, provider, multicall, '-1', -1, 0, 0, 0, +new Date() / 1e3];
+  });
+
+  const [result] = (await db.query(query, [values])) as [OkPacket, FieldPacket[]];
+  return result;
+}
+
+async function deleteNode(nodeUrl: string): Promise<OkPacket> {
+  const query = `DELETE FROM nodes WHERE url = ? LIMIT 1`;
+  const [result] = (await db.query(query, [nodeUrl])) as [OkPacket, FieldPacket[]];
+  return result;
+}
+
+type NodeUpdate = {
+  url: string;
+  provider: string;
+  multicall: string;
+  requests: number;
+  errors: number;
+  duration: number;
+};
+async function updateNode(node: NodeUpdate): Promise<OkPacket> {
+  const { url, provider, multicall, requests, errors, duration } = node;
+  const query = `
+    UPDATE nodes
+    SET provider = ?, multicall = ?, requests = ?, errors = ?, duration = ?
+    WHERE url = ?
+    LIMIT 1
+  `;
+
+  const [result] = (await db.query(query, [
+    provider,
+    multicall,
+    requests,
+    errors,
+    duration,
+    url
+  ])) as [OkPacket, FieldPacket[]];
+  return result;
 }
 
 type NetworkChainIdMapItem = {
@@ -81,7 +138,10 @@ export { db };
 export default {
   getUnknownArchiveNodes,
   setArchiveNodes,
-  loadNodesWithoutChainId,
+  loadNodes,
+  addNodes,
+  deleteNode,
+  updateNode,
   setNetworkChainIds,
   loadValidNodes,
   incErrors,

@@ -13,6 +13,8 @@ type NetworkDetails = {
 };
 const cronJob = new Cron('* */20 * * * *'); // every 20 minutes
 let isRunning = false;
+let lastExecutionTimestamp = 0;
+const EXECUTION_INTERVAL = 20 * 60e3; // 20 minutes
 
 const ERROR_REWARD_MULTIPLIER = -25e3;
 const DURATION_REWARD_MULTIPLIER = -1;
@@ -29,27 +31,9 @@ export const networks: Record<string, NetworkDetails> = {};
 
 export async function startJob() {
   // initial run
-  try {
-    if (isRunning) return;
-    isRunning = true;
-    await processNodes();
-  } catch (error) {
-    captureErr(error);
-  } finally {
-    isRunning = false;
-  }
+  await processNodes({ forced: true });
 
-  return cronJob.schedule(async () => {
-    try {
-      if (isRunning) return;
-      isRunning = true;
-      await processNodes();
-    } catch (error) {
-      captureErr(error);
-    } finally {
-      isRunning = false;
-    }
-  });
+  return cronJob.schedule(processNodes);
 }
 
 export function stopJob() {
@@ -57,7 +41,14 @@ export function stopJob() {
   return cronJob.stop();
 }
 
-export async function processNodes() {
+export async function processNodes(opts: any) {
+  const { forced = false } = opts || {};
+
+  if (isRunning) return;
+  const now = Date.now();
+  if (!forced && now - lastExecutionTimestamp < EXECUTION_INTERVAL) return;
+
+  isRunning = true;
   try {
     if (process.env.NODE_ENV === 'production') {
       await checkNetwork();
@@ -71,11 +62,14 @@ export async function processNodes() {
     console.log('Nodes loaded');
   } catch (error) {
     captureErr(error);
+  } finally {
+    isRunning = false;
+    lastExecutionTimestamp = now;
   }
 }
 
 async function checkNetwork() {
-  const [nodes]: any[] = await dbq.loadNodesWithoutChainId();
+  const [nodes]: any[] = await dbq.loadNodes();
 
   const nodeChainIdMapping = await Promise.all(
     nodes.map(node => {

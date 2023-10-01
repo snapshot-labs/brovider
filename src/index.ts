@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { initLogger, fallbackLogger } from './sentry';
 import rpc from './rpc';
+import api from './api';
 import { name, version } from '../package.json';
 import gracefulShutdown from './graceful-shutdown';
 import { startJob } from './process-nodes';
@@ -21,6 +22,7 @@ app.get('/', (req, res) => {
   res.json({ name, version, commit });
 });
 app.use('/', rpc);
+app.use('/api', api);
 
 fallbackLogger(app);
 
