@@ -48,6 +48,7 @@ function genRequestKey(req: Request, res: Response, next: NextFunction) {
 }
 
 async function processCached(req: Request, res: Response, next: NextFunction) {
+  if (typeof redis === 'undefined') return next();
   try {
     const { _reqHashKey: hashKey, _archive } = req.params;
     const exists = await redis.exists(hashKey);

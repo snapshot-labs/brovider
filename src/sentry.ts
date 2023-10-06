@@ -44,17 +44,24 @@ export function captureErr(e: any) {
   Sentry.captureException(e);
 }
 
-export function captureProxy(e: any, req: Request, res: Response, target?: string | URL) {
+type ProxyErrorContext = {
+  url: string | URL;
+  statusCode?: number;
+  responseBody: any;
+};
+export function captureProxy(e: any, req: Request, res: Response, context: ProxyErrorContext) {
   if (process.env.NODE_ENV !== 'production') {
-    return console.error(e);
+    return console.error(JSON.stringify(context, null, 2));
   }
 
   Sentry.withScope(scope => {
-    scope.setExtra('proxyUrl', target || req.url);
+    scope.setExtra('proxyUrl', context.url || req.url);
     scope.setExtra('method', req.method);
     scope.setExtra('params', req.params);
     scope.setExtra('body', req.body);
     scope.setExtra('response', res);
+    scope.setExtra('resourceResponse', context.responseBody);
+    scope.setExtra('statusCode', context.statusCode);
     Sentry.captureException(e);
   });
 }

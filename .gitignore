@@ -3,6 +3,7 @@ node_modules
 dist
 build
 .env
+.clinic
 coverage
 
 # Remove some common IDE working directories

@@ -12,6 +12,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 initLogger(app);
+
 startJob();
 
 app.use(express.json({ limit: '8mb' }));
