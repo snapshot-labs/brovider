@@ -458,6 +458,7 @@
     "https://v1.mainnet.godwoken.io/rpc"
   ],
   "80001": [
+    "https://polygon-testnet.public.blastapi.io/",
     "https://rpc.ankr.com/polygon_mumbai",
     "https://rpc-mumbai.matic.today",
     "https://public-rpc.blockpi.io/http/polygon-mumbai-testnet",
