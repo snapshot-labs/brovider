@@ -1,5 +1,5 @@
 import { createProxyMiddleware, fixRequestBody, responseInterceptor } from 'http-proxy-middleware';
-import { captureProxy, captureErr } from './sentry';
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import dbq from './mysql';
 import redis, { EXPIRE_ARCHIVE, EXPIRE_LATEST } from './redis';
 import { getErrorReward, getDurationReward } from './process-nodes';
@@ -16,13 +16,13 @@ function onProxyReq(proxyReq, req) {
 function handleError(arm, node) {
   const reward = getErrorReward();
   arm.reward(reward);
-  dbq.incErrors(node).catch(captureErr);
+  dbq.incErrors(node).catch(capture);
 }
 
 function updateReward(arm, node, duration) {
   const reward = getDurationReward(duration);
   arm.reward(reward);
-  dbq.incDuration(node, duration).catch(captureErr);
+  dbq.incDuration(node, duration).catch(capture);
 }
 
 const onProxyRes = responseInterceptor(async (responseBuffer, proxyRes, req: any, res: any) => {
@@ -34,15 +34,19 @@ const onProxyRes = responseInterceptor(async (responseBuffer, proxyRes, req: any
     responseBody = JSON.parse(rawBody);
   } catch (e: any) {
     e.message = `Error parsing response body: ${rawBody}`;
-    captureErr(e);
+    capture(e);
   }
 
   if (proxyRes.statusCode !== 200) {
     const err = new Error('Error status code');
-    captureProxy(err, req, res, {
-      url: node.url,
+    capture(err, {
+      proxyUrl: node.url || req.url,
+      method: req.method,
+      params: req.params,
+      body: req.body,
+      response: res,
       statusCode: proxyRes.statusCode,
-      responseBody
+      proxyRes: responseBody
     });
     handleError(arm, node);
     return responseBuffer;
@@ -63,10 +67,14 @@ const onProxyRes = responseInterceptor(async (responseBuffer, proxyRes, req: any
       return responseBody;
     }
   } catch (e) {
-    captureProxy(e, req, res, {
-      url: node.url,
+    capture(e, {
+      proxyUrl: node.url || req.url,
+      method: req.method,
+      params: req.params,
+      body: req.body,
+      response: res,
       statusCode: proxyRes.statusCode,
-      responseBody
+      proxyRes: responseBody
     });
     return responseBuffer;
   }
@@ -76,7 +84,7 @@ const onProxyRes = responseInterceptor(async (responseBuffer, proxyRes, req: any
 
 function onError(err, req, res) {
   if (!req) {
-    captureErr(new Error('No request'));
+    capture(new Error('No request'));
     return res.status(500).send({
       jsonrpc: '2.0',
       id: null,
@@ -84,9 +92,14 @@ function onError(err, req, res) {
     });
   }
   const { _node: node, _arm: arm } = req.params;
-  captureProxy(err, req, res, {
-    url: node.url,
-    responseBody: err.message
+  capture(err, {
+    proxyUrl: node.url || req.url,
+    method: req.method,
+    params: req.params,
+    body: req.body,
+    response: res,
+    statusCode: err.statusCode,
+    proxyRes: err.message
   });
   handleError(arm, node);
   return res.status(500).send(err);

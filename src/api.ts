@@ -1,6 +1,6 @@
 import express from 'express';
 import dbq from './mysql';
-import { captureErr } from './sentry';
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import { processNodes } from './process-nodes';
 
 const router = express.Router();
@@ -12,7 +12,7 @@ router.post('/process', async (req, res) => {
       status: 'ok'
     });
   } catch (error) {
-    captureErr(error);
+    capture(error);
     return res.status(500).json({ error: (error as any).message });
   }
 });
@@ -22,7 +22,7 @@ router.get('/nodes', async (req, res) => {
     const [nodes] = await dbq.loadNodes();
     return res.json({ nodes });
   } catch (error) {
-    captureErr(error);
+    capture(error);
     return res.status(500).json({ error: (error as any).message });
   }
 });
@@ -59,7 +59,7 @@ router.post('/nodes', async (req, res) => {
       nodeIds: serializedNodes.map(({ url }) => url)
     });
   } catch (error) {
-    captureErr(error);
+    capture(error);
     return res.status(500).json({ error: (error as any).message });
   }
 });
@@ -76,7 +76,7 @@ router.delete('/nodes', async (req, res) => {
       status: 'ok'
     });
   } catch (error) {
-    captureErr(error);
+    capture(error);
     return res.status(500).json({ error: (error as any).message });
   }
 });
@@ -110,7 +110,7 @@ router.put('/nodes', async (req, res) => {
       status: 'ok'
     });
   } catch (error) {
-    captureErr(error);
+    capture(error);
     return res.status(500).json({ error: (error as any).message });
   }
 });
