@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { hexlify } from '@ethersproject/bytes';
 import redis, { EXPIRE_ARCHIVE } from './redis';
-import { captureErr } from './sentry';
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import { getRequestKey } from './utils';
 import proxyRequest from './proxy';
 import { networks } from './process-nodes';
@@ -26,7 +26,7 @@ async function processEthMethods(req: Request, res: Response, next: NextFunction
     }
     next();
   } catch (e) {
-    captureErr(e);
+    capture(e);
     next(e);
   }
 }
@@ -68,7 +68,7 @@ async function processCached(req: Request, res: Response, next: NextFunction) {
     data.id = req.body.id;
     return res.json(data);
   } catch (e) {
-    captureErr(e);
+    capture(e);
     return next();
   }
 }
@@ -80,7 +80,7 @@ function pickNode(req: Request, res: Response, next: NextFunction) {
   const networkData = networks[networkKey];
 
   if (!networkData) {
-    captureErr(new Error(`No node for network ${network}`));
+    capture(new Error(`No node for network ${network}`));
     return res.status(500).send('No node for network');
   }
 

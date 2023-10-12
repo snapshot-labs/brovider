@@ -1,7 +1,7 @@
 import { Bandit } from 'bayesian-bandit';
 import { Cron } from 'croner';
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
-import { captureErr } from './sentry';
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import { AddressZero } from '@ethersproject/constants';
 import groupBy from 'lodash/groupBy';
 import dbq from './mysql';
@@ -69,7 +69,7 @@ export async function processNodes(opts: any) {
     console.log(`Loaded ${nodes.length} nodes (pid: ${processId})`);
     setTimeout(() => sync('loadNodes'), 5e3);
   } catch (error) {
-    captureErr(error);
+    capture(error);
   } finally {
     isRunning = false;
     lastExecutionTimestamp = now;

@@ -1,5 +1,5 @@
 import { createClient } from 'redis';
-import { captureErr } from './sentry';
+import { capture } from '@snapshot-labs/snapshot-sentry';
 
 let client;
 const url = process.env.REDIS_DATABASE_URL;
@@ -14,7 +14,7 @@ export const EXPIRE_ARCHIVE = 60 * 60;
   client.on('connect', () => console.log('redis connect'));
   client.on('ready', () => console.log('redis ready'));
   client.on('reconnecting', data => console.log('redis reconnecting', data));
-  client.on('error', captureErr);
+  client.on('error', capture);
   client.on('end', data => console.log('redis end', data));
 
   await client.connect();
@@ -23,7 +23,7 @@ export const EXPIRE_ARCHIVE = 60 * 60;
     try {
       await client.set('heartbeat', ~~(Date.now() / 1e3));
     } catch (e) {
-      captureErr(e);
+      capture(e);
     }
   }, 10e3);
 })();
