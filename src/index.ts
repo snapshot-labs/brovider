@@ -7,11 +7,13 @@ import api from './api';
 import { name, version } from '../package.json';
 import gracefulShutdown from './graceful-shutdown';
 import { startJob } from './process-nodes';
+import initMetrics from './metrics';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 initLogger(app);
+initMetrics(app);
 
 startJob();
 
