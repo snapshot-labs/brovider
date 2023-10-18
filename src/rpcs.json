@@ -320,6 +320,9 @@
   "4062": [
     "https://ngeth.testnet.n3.nahmii.io"
   ],
+  "4337": [
+    "https://rpc-private.mainnet.onbeam.com"
+  ],
   "4689": [
     "https://babel-api.mainnet.iotex.io"
   ],
