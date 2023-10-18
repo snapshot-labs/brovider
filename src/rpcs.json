@@ -393,6 +393,9 @@
   "12357": [
     "https://rpc-testnet.rei.network"
   ],
+  "13337": [
+    "https://rpc-private.testnet.onbeam.com"
+  ],
   "16718": [
     "https://network-archive.ambrosus.io"
   ],
