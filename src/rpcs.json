@@ -101,6 +101,9 @@
     "https://idchain.one/archive/rpc/",
     "https://idchain.songadao.org/rpc"
   ],
+  "75": [
+    "https://archive-node.decimalchain.com/web3/"
+  ],
   "80": [
     "https://rpc.genechain.io"
   ],
