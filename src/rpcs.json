@@ -195,6 +195,9 @@
   "288": [
     "https://mainnet.boba.network/"
   ],
+  "314": [
+    "https://archive.lotus.vdb.to/rpc/v1"
+  ],
   "321": [
     "https://rpc-mainnet.kcc.network"
   ],
