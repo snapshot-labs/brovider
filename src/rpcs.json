@@ -56,6 +56,9 @@
     "https://1rpc.io/oktc",
     "https://exchainrpc.okex.org"
   ],
+  "75": [
+    "https://archive-node.decimalchain.com/web3/"
+  ],
   "80": [
     "https://rpc.genechain.io"
   ],
@@ -97,6 +100,9 @@
   ],
   "148": [
     "https://json-rpc.evm.shimmer.network/"
+  ],
+  "204": [
+    "https://opbnb-mainnet.nodereal.io/v1/64a9df0874fb4a93b9d0a3849de012d3"
   ],
   "246": [
     "https://archive-rpc.energyweb.org/",
@@ -153,6 +159,9 @@
   "1002": [
     "https://kai-internal.kardiachain.io"
   ],
+  "1072": [
+    "https://archive.evm.testnet.shimmer.network/v1/chains/rms1pr75wa5xuepg2hew44vnr28wz5h6n6x99zptk2g68sp2wuu2karywgrztx3/evm"
+  ],
   "1088": [
     "https://andromeda.metis.io/?owner=1088"
   ],
@@ -192,6 +201,9 @@
   "2400": [
     "https://rpc.tcgverse.xyz"
   ],
+  "4337": [
+    "https://rpc-private.mainnet.onbeam.com"
+  ],
   "4689": [
     "https://babel-api.mainnet.iotex.io"
   ],
@@ -226,6 +238,9 @@
   ],
   "10243": [
     "https://rpc-test.arthera.net"
+  ],
+  "13337": [
+    "https://rpc-private.testnet.onbeam.com"
   ],
   "16718": [
     "https://network-archive.ambrosus.io"
@@ -283,6 +298,9 @@
   "11155111": [
     "https://rpc.ankr.com/eth_sepolia",
     "https://sepolia.infura.io/v3/d26b4fd748814fe994b05899fd89e667"
+  ],
+  "245022926": [
+    "https://devnet.neonevm.org"
   ],
   "1313161554": [
     "https://mainnet.aurora.dev"
