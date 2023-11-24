@@ -30,6 +30,9 @@
   "19": [
     "https://songbird-api.flare.network/ext/C/rpc"
   ],
+  "24": [
+    "https://kai-internal.kardiachain.io"
+  ],
   "25": [
     "https://evm-cronos.crypto.org"
   ],
@@ -50,6 +53,7 @@
     "https://bsc-dataseed1.binance.org"
   ],
   "61": [
+    "https://etc.rivet.link",
     "https://www.ethercluster.com/etc"
   ],
   "66": [
@@ -155,9 +159,6 @@
   ],
   "1001": [
     "https://archive-en.baobab.klaytn.net"
-  ],
-  "24": [
-    "https://kai-internal.kardiachain.io"
   ],
   "1072": [
     "https://archive.evm.testnet.shimmer.network/v1/chains/rms1pr75wa5xuepg2hew44vnr28wz5h6n6x99zptk2g68sp2wuu2karywgrztx3/evm"
