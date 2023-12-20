@@ -260,8 +260,8 @@
     "https://speedy-nodes-nyc.moralis.io/9e03baabdc27be2a35bdec4a/arbitrum/mainnet"
   ],
   "42170": [
-    "https://nova.arbitrum.io/rpc",
-    "https://arbitrum-nova.public.blastapi.io"
+    "https://arbitrum-nova.public.blastapi.io",
+    "https://nova.arbitrum.io/rpc"
   ],
   "42220": [
     "https://rpc.ankr.com/celo",
