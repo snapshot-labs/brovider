@@ -291,8 +291,8 @@
     "https://subnets.avax.network/defi-kingdoms/dfk-chain/rpc"
   ],
   "59140": [
-    "https://linea-goerli.infura.io/v3/695074eece844c2dba54a8ba363170d7",
-    "https://rpc.goerli.linea.build"
+    "https://rpc.goerli.linea.build",
+    "https://linea-goerli.infura.io/v3/695074eece844c2dba54a8ba363170d7"
   ],
   "80001": [
     "https://polygon-testnet.public.blastapi.io/",
