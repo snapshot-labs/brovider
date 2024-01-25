@@ -237,6 +237,7 @@
     "https://mainnet.base.org"
   ],
   "9001": [
+    "https://evmos-mainnet.public.blastapi.io",
     "https://eth.bd.evmos.org:8545"
   ],
   "10000": [
