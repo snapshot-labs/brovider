@@ -136,8 +136,8 @@
     "https://mainnet.era.zksync.io"
   ],
   "336": [
-    "https://rpc.shiden.astar.network:8545",
-    "https://shiden.api.onfinality.io/public"
+    "https://shiden.api.onfinality.io/public",
+    "https://rpc.shiden.astar.network:8545"
   ],
   "369": [
     "https://rpc.pulsechain.com"
