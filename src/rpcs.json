@@ -87,8 +87,8 @@
     "https://poa-xdai.gateway.pokt.network/v1/5f76124fb90218002e9ce985"
   ],
   "108": [
-    "https://mainnet-rpc.thundercore.com/archived/SNAPSHOTEuR82a75fLYA",
-    "https://mainnet-rpc.thundercore.com"
+    "https://mainnet-rpc.thundercore.com",
+    "https://mainnet-rpc.thundercore.com/archived/SNAPSHOTEuR82a75fLYA"
   ],
   "122": [
     "https://explorer-node.fuse.io/",
