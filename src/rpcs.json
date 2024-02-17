@@ -258,13 +258,13 @@
     "https://rpc.oasys.mycryptoheroes.net"
   ],
   "42161": [
+    "https://speedy-nodes-nyc.moralis.io/9e03baabdc27be2a35bdec4a/arbitrum/mainnet",
     "https://rpc.ankr.com/arbitrum",
     "https://arb-mainnet.g.alchemy.com/v2/RuqMiMKGUiICxfv70K7kp6uWXj6vRlTQ",
     "https://arbitrum-mainnet.infura.io/v3/d26b4fd748814fe994b05899fd89e667",
     "https://enterprise-san-jose-inap.onerpc.com/arbitrum?apiKey=c8dd0e3c-1997-4ca1-8f86-58d0b2563e19",
     "https://nd-844-914-428.p2pify.com/bae4d76ef77b84d382b9d76d3bfe5e5b",
-    "https://arb-mainnet.g.alchemy.com/v2/JDvtNGwnHhTltIwfnxQocKwKkCTKA1DL",
-    "https://speedy-nodes-nyc.moralis.io/9e03baabdc27be2a35bdec4a/arbitrum/mainnet"
+    "https://arb-mainnet.g.alchemy.com/v2/JDvtNGwnHhTltIwfnxQocKwKkCTKA1DL"
   ],
   "42170": [
     "https://arbitrum-nova.public.blastapi.io",
