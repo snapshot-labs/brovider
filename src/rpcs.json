@@ -106,6 +106,9 @@
   "148": [
     "https://json-rpc.evm.shimmer.network/"
   ],
+  "169": [
+    "https://pacific-rpc.manta.network/http"
+  ],
   "204": [
     "https://opbnb-mainnet.nodereal.io/v1/64a9df0874fb4a93b9d0a3849de012d3"
   ],
