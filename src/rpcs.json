@@ -307,6 +307,9 @@
   "84531": [
     "https://goerli.base.org"
   ],
+  "686868": [
+    "https://testnet-rpc.merlinchain.io"
+  ],
   "11155111": [
     "https://rpc.ankr.com/eth_sepolia",
     "https://sepolia.infura.io/v3/d26b4fd748814fe994b05899fd89e667"
