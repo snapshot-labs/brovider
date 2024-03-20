@@ -9,9 +9,9 @@
     "https://eth-mainnet.alchemyapi.io/v2/4bdDVB5QAaorY2UE-GBUbM2yQB3QJqzv"
   ],
   "5": [
+    "https://eth-goerli.alchemyapi.io/v2/v4nqH_J-J3STit45Mm07TxuYexMHQsYZ",
     "https://goerli.infura.io/v3/695074eece844c2dba54a8ba363170d7",
     "https://rpc.ankr.com/eth_goerli",
-    "https://eth-goerli.alchemyapi.io/v2/v4nqH_J-J3STit45Mm07TxuYexMHQsYZ",
     "https://eth-goerli.public.blastapi.io"
   ],
   "7": [
