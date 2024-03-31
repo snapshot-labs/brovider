@@ -117,8 +117,8 @@
     "https://voting-rpc.carbonswap.exchange"
   ],
   "250": [
-    "https://rpc.ftm.tools",
     "https://rpcapi.fantom.network",
+    "https://rpc.ftm.tools",
     "https://rpc.ankr.com/fantom"
   ],
   "269": [
