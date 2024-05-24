@@ -256,6 +256,9 @@
     "https://subnets.avax.network/beam/testnet/rpc",
     "https://rpc-private.testnet.onbeam.com"
   ],
+  "13473": [
+    "https://fluent-green-film.imx-testnet.quiknode.pro/074a0568fd076cd2b0f60d269b1da7a4061eb267/"
+  ],
   "16718": [
     "https://network-archive.ambrosus.io"
   ],
