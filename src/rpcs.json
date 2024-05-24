@@ -256,6 +256,9 @@
     "https://subnets.avax.network/beam/testnet/rpc",
     "https://rpc-private.testnet.onbeam.com"
   ],
+  "13371": [
+    "https://dry-cosmological-morning.imx-mainnet.quiknode.pro/47703f32fcbd8b2b64adc58de86ed0de9d5fb76f/"
+  ],
   "13473": [
     "https://fluent-green-film.imx-testnet.quiknode.pro/074a0568fd076cd2b0f60d269b1da7a4061eb267/"
   ],
