@@ -326,6 +326,9 @@
   "84531": [
     "https://goerli.base.org"
   ],
+  "84532": [
+    "https://sepolia.base.org"
+  ],
   "686868": [
     "https://testnet-rpc.merlinchain.io"
   ],
