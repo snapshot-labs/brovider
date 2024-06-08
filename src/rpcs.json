@@ -310,6 +310,9 @@
     "https://rpc.goerli.linea.build",
     "https://linea-goerli.infura.io/v3/695074eece844c2dba54a8ba363170d7"
   ],
+  "59141": [
+    "https://rpc.sepolia.linea.build"
+  ],
   "59144": [
     "https://rpc.linea.build/"
   ],
