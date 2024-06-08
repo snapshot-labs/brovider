@@ -196,6 +196,9 @@
   "2152": [
     "https://archive.prod.findora.org:8545/"
   ],
+  "2222": [
+    "https://evm.kava-rpc.com"
+  ],
   "2400": [
     "https://rpc.tcgverse.xyz"
   ],
