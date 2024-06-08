@@ -128,6 +128,9 @@
     "https://testnet.era.zksync.dev",
     "https://zksync2-testnet.zksync.dev"
   ],
+  "300": [
+    "https://sepolia.era.zksync.dev"
+  ],
   "314": [
     "https://archive.lotus.vdb.to/rpc/v1"
   ],
