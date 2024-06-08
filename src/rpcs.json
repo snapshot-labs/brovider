@@ -8,15 +8,6 @@
     "https://eth-archival.gateway.pokt.network/v1/5f76124fb90218002e9ce985",
     "https://eth-mainnet.alchemyapi.io/v2/4bdDVB5QAaorY2UE-GBUbM2yQB3QJqzv"
   ],
-  "5": [
-    "https://goerli.infura.io/v3/695074eece844c2dba54a8ba363170d7",
-    "https://eth-goerli.alchemyapi.io/v2/v4nqH_J-J3STit45Mm07TxuYexMHQsYZ",
-    "https://rpc.ankr.com/eth_goerli",
-    "https://eth-goerli.public.blastapi.io"
-  ],
-  "7": [
-    "https://rpc.dome.cloud"
-  ],
   "8": [
     "https://rpc.octano.dev"
   ],
@@ -61,9 +52,6 @@
   ],
   "75": [
     "https://archive-node.decimalchain.com/web3/"
-  ],
-  "80": [
-    "https://rpc.genechain.io"
   ],
   "81": [
     "https://evm.shibuya.astar.network",
@@ -123,10 +111,6 @@
   ],
   "269": [
     "https://hpbnode.com"
-  ],
-  "280": [
-    "https://testnet.era.zksync.dev",
-    "https://zksync2-testnet.zksync.dev"
   ],
   "300": [
     "https://sepolia.era.zksync.dev"
@@ -308,10 +292,6 @@
   ],
   "53935": [
     "https://subnets.avax.network/defi-kingdoms/dfk-chain/rpc"
-  ],
-  "59140": [
-    "https://rpc.goerli.linea.build",
-    "https://linea-goerli.infura.io/v3/695074eece844c2dba54a8ba363170d7"
   ],
   "59141": [
     "https://rpc.sepolia.linea.build"
