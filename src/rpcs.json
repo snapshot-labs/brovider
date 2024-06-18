@@ -177,6 +177,7 @@
     "https://rpc.testnet.moonbeam.network"
   ],
   "1329": [
+    "https://evocative-holy-violet.sei-pacific.quiknode.pro/39e0200c3c1e37c273d315f4e8203ad7350e9a61/",
     "https://still-small-telescope.sei-pacific.quiknode.pro/c0f9459f78f6c31174af1400258cf7226039b6cb/",
     "https://evm-rpc.sei-apis.com/"
   ],
@@ -196,11 +197,11 @@
   "2152": [
     "https://archive.prod.findora.org:8545/"
   ],
-  "2222": [
-    "https://evm.kava-rpc.com"
-  ],
   "2221": [
     "https://evm.data-testnet.kava.io"
+  ],
+  "2222": [
+    "https://evm.kava-rpc.com"
   ],
   "2400": [
     "https://rpc.tcgverse.xyz"
