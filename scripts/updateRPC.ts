@@ -1,7 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const rpcs = require('../src/rpcs.json');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const https = require('https');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const rpcs = require('../src/rpcs.json');
 
 const args = process.argv.slice(2);
 if (args.length === 2) {
@@ -11,6 +11,7 @@ if (args.length === 2) {
   rpcs[chainId] = [...new Set([rpc, ...rpcs[chainId]])];
   console.log(rpcs[chainId]);
   // update rpcs.json file with new rpc
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   require('fs').writeFileSync('src/rpcs.json', JSON.stringify(rpcs, null, 2), 'utf8');
 } else {
   // get networks.json file from https://raw.githubusercontent.com/snapshot-labs/snapshot.js/master/src/networks.json
@@ -35,6 +36,7 @@ if (args.length === 2) {
           }
         });
         // update rpcs.json file with new rpc
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         require('fs').writeFileSync('src/rpcs.json', JSON.stringify(rpcs, null, 2), 'utf8');
         console.log('rpcs.json updated');
       });
