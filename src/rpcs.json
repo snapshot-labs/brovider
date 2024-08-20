@@ -339,8 +339,8 @@
     "https://sepolia.rpc.zklink.io"
   ],
   "11155111": [
-    "https://sepolia.infura.io/v3/d26b4fd748814fe994b05899fd89e667",
-    "https://rpc.ankr.com/eth_sepolia"
+    "https://rpc.ankr.com/eth_sepolia",
+    "https://sepolia.infura.io/v3/d26b4fd748814fe994b05899fd89e667"
   ],
   "11155420": [
     "https://sepolia.optimism.io"
