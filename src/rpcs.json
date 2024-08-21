@@ -111,6 +111,9 @@
     "https://rpcapi.fantom.network",
     "https://rpc.ankr.com/fantom"
   ],
+  "252": [
+    "https://rpc.frax.com"
+  ],
   "269": [
     "https://hpbnode.com"
   ],
