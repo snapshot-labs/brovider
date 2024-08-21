@@ -212,6 +212,9 @@
   "2400": [
     "https://rpc.tcgverse.xyz"
   ],
+  "2522": [
+    "https://rpc.testnet.frax.com"
+  ],
   "4200": [
     "https://rpc.merlinchain.io"
   ],
