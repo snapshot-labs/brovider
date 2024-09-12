@@ -326,6 +326,9 @@
     "https://public-rpc.blockpi.io/http/polygon-mumbai-testnet",
     "https://speedy-nodes-nyc.moralis.io/9e03baabdc27be2a35bdec4a/polygon/mumbai/archive"
   ],
+  "80002": [
+    "https://rpc.ankr.com/polygon_amoy"
+  ],
   "81457": [
     "https://rpc.blast.io"
   ],
