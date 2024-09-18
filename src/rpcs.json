@@ -203,6 +203,9 @@
   "2152": [
     "https://archive.prod.findora.org:8545/"
   ],
+  "2192": [
+    "https://mainnet.snaxchain.io"
+  ],
   "2221": [
     "https://evm.data-testnet.kava.io"
   ],
