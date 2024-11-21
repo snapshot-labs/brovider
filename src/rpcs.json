@@ -67,8 +67,8 @@
     "https://speedy-nodes-nyc.moralis.io/f2963e29bec0de5787da3164/bsc/testnet/archive"
   ],
   "100": [
-    "https://rpc.gnosischain.com",
     "https://rpc.ankr.com/gnosis",
+    "https://rpc.gnosischain.com",
     "https://gnosis-mainnet.g.alchemy.com/v2/ZWXqGt01pfN6SG6PuyZ2m9o236iv8iCl",
     "https://gnosis-mainnet.blastapi.io/61b31631-147b-42ed-82d5-d072a88313a7",
     "https://gno.getblock.io/mainnet/6c1d1e6e-75d9-452f-a863-a694bff93d5c/",
