@@ -80,6 +80,9 @@
     "https://mainnet-rpc.thundercore.com/archived/SNAPSHOTEuR82a75fLYA",
     "https://mainnet-rpc.thundercore.com"
   ],
+  "109": [
+    "https://www.shibrpc.com"
+  ],
   "122": [
     "https://explorer-node.fuse.io/",
     "https://oefusefull1.liquify.info/"
