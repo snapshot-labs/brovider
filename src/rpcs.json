@@ -281,6 +281,9 @@
     "https://evmos-mainnet.public.blastapi.io",
     "https://eth.bd.evmos.org:8545"
   ],
+  "9990": [
+    "https://wss-async.agung.peaq.network"
+  ],
   "10000": [
     "https://smartbch.greyh.at/"
   ],
