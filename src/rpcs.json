@@ -232,6 +232,9 @@
   "2522": [
     "https://rpc.testnet.frax.com"
   ],
+  "3338": [
+    "https://peaq.api.onfinality.io/public"
+  ],
   "4200": [
     "https://rpc.merlinchain.io"
   ],
