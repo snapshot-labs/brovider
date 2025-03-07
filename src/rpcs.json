@@ -235,6 +235,9 @@
   "3338": [
     "https://peaq.api.onfinality.io/public"
   ],
+  "4162": [
+    "https://rpc.sx-rollup.gelato.digital"
+  ],
   "4200": [
     "https://rpc.merlinchain.io"
   ],
