@@ -322,8 +322,8 @@
     "https://apechain.calderachain.xyz/http"
   ],
   "42161": [
-    "https://arbitrum-mainnet.infura.io/v3/d26b4fd748814fe994b05899fd89e667",
     "https://rpc.ankr.com/arbitrum",
+    "https://arbitrum-mainnet.infura.io/v3/d26b4fd748814fe994b05899fd89e667",
     "https://arb-mainnet.g.alchemy.com/v2/RuqMiMKGUiICxfv70K7kp6uWXj6vRlTQ",
     "https://enterprise-san-jose-inap.onerpc.com/arbitrum?apiKey=c8dd0e3c-1997-4ca1-8f86-58d0b2563e19",
     "https://arb-mainnet.g.alchemy.com/v2/JDvtNGwnHhTltIwfnxQocKwKkCTKA1DL",
