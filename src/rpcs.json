@@ -384,7 +384,7 @@
     "https://sepolia.base.org"
   ],
   "314159": [
-    "https://rpc.ankr.com/filecoin_testnet"
+    "https://calibration.node.glif.io/archive/lotus/rpc/v1"
   ],
   "686868": [
     "https://testnet-rpc.merlinchain.io"
