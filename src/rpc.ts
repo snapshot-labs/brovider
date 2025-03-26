@@ -6,11 +6,15 @@ import rpcs from './rpcs.json';
 const CACHE_METHODS = ['eth_chainId'];
 
 const ANKR_KEY = process.env.ANKR_KEY;
+const FILECOIN_KEY = process.env.FILECOIN_KEY;
 const RPC_LIST_WITH_KEYS = {};
 for (const networkId in rpcs) {
   const rpcList = rpcs[networkId].map(rpc => {
-    if (typeof rpc === 'string' && rpc.startsWith('https://rpc.ankr.com/')) {
+    if (ANKR_KEY && rpc.startsWith('https://rpc.ankr.com/')) {
       return `${rpc}/${ANKR_KEY}`;
+    }
+    if (FILECOIN_KEY && rpc === 'https://calibration.node.glif.io/archive/lotus/rpc/v1') {
+      return `${rpc}?token=${FILECOIN_KEY}`;
     }
     return rpc;
   });
