@@ -383,6 +383,9 @@
   "84532": [
     "https://sepolia.base.org"
   ],
+  "314159": [
+    "https://rpc.ankr.com/filecoin_testnet"
+  ],
   "686868": [
     "https://testnet-rpc.merlinchain.io"
   ],
