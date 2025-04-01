@@ -134,6 +134,7 @@
     "https://sepolia.era.zksync.dev"
   ],
   "314": [
+    "https://api.node.glif.io/rpc/v1",
     "https://archive.lotus.vdb.to/rpc/v1"
   ],
   "321": [
