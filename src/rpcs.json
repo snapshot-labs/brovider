@@ -282,6 +282,7 @@
     "https://public-node-api.klaytnapi.com/v1/cypress"
   ],
   "8453": [
+    "https://rpc.ankr.com/base",
     "https://mainnet.base.org"
   ],
   "9001": [
