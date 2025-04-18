@@ -376,6 +376,9 @@
   "59144": [
     "https://rpc.linea.build/"
   ],
+  "69000": [
+    "https://rpc-animechain-39xf6m45e3.t.conduit.xyz"
+  ],
   "80001": [
     "https://polygon-testnet.public.blastapi.io/",
     "https://rpc.ankr.com/polygon_mumbai",
