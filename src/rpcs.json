@@ -271,6 +271,9 @@
   "6102": [
     "https://testnet.cascadia.foundation"
   ],
+  "6900": [
+    "https://testnet-rpc.anime.xyz"
+  ],
   "7332": [
     "https://eon-rpc.horizenlabs.io/ethv1"
   ],
