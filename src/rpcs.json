@@ -69,6 +69,7 @@
     "https://speedy-nodes-nyc.moralis.io/f2963e29bec0de5787da3164/bsc/testnet/archive"
   ],
   "100": [
+    "https://lb.drpc.org/ogrpc?network=gnosis",
     "https://rpc.ankr.com/gnosis",
     "https://gnosis.rpc.grove.city/v1/4b148a83",
     "https://rpc.gnosischain.com",
