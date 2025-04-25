@@ -354,6 +354,7 @@
     "https://nova.arbitrum.io/rpc"
   ],
   "42220": [
+    "https://lb.drpc.org/ogrpc?network=celo",
     "https://rpc.ankr.com/celo",
     "https://celo-mainnet--rpc.datahub.figment.io/apikey/948a479c65c96ea90c218419b479fcb1/",
     "https://forno.celo.org"
