@@ -65,6 +65,7 @@
     "https://rpc.meter.io"
   ],
   "97": [
+    "https://lb.drpc.org/ogrpc?network=bsc-testnet",
     "https://rpc.ankr.com/bsc_testnet_chapel",
     "https://data-seed-prebsc-1-s1.binance.org:8545",
     "https://speedy-nodes-nyc.moralis.io/f2963e29bec0de5787da3164/bsc/testnet/archive"
