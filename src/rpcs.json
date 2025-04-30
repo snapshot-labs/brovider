@@ -341,6 +341,7 @@
     "https://rpc.curtis.apechain.com"
   ],
   "33139": [
+    "https://lb.drpc.org/ogrpc?network=apechain",
     "https://apechain.calderachain.xyz/http"
   ],
   "42161": [
