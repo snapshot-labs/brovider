@@ -298,6 +298,7 @@
     "https://public-node-api.klaytnapi.com/v1/cypress"
   ],
   "8453": [
+    "https://base-mainnet.infura.io/v3/9432e50f01e24a94b9df82d95846cce0",
     "https://rpc.ankr.com/base",
     "https://lb.drpc.org/ogrpc?network=base",
     "https://mainnet.base.org"
