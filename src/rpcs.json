@@ -1,7 +1,7 @@
 {
   "1": [
-    "https://lb.drpc.org/ogrpc?network=ethereum",
     "https://rpc.ankr.com/eth",
+    "https://lb.drpc.org/ogrpc?network=ethereum",
     "https://eth-mainnet.g.alchemy.com/v2/ZWXqGt01pfN6SG6PuyZ2m9o236iv8iCl",
     "https://mainnet.infura.io/v3/d26b4fd748814fe994b05899fd89e667",
     "https://apis.ankr.com/e62bc219f9c9462b8749defe472d2dc5/6106d4a3ec1d1bcc87ec72158f8fd089/eth/archive/main",
@@ -14,8 +14,8 @@
     "https://rpc.octano.dev"
   ],
   "10": [
-    "https://lb.drpc.org/ogrpc?network=optimism",
     "https://rpc.ankr.com/optimism",
+    "https://lb.drpc.org/ogrpc?network=optimism",
     "https://optimism-mainnet.infura.io/v3/d26b4fd748814fe994b05899fd89e667",
     "https://opt-mainnet.g.alchemy.com/v2/JzmIL4Q3jBj7it2duxLFeuCa9Wobmm7D",
     "https://1rpc.io/op",
@@ -93,8 +93,8 @@
     "https://oefusefull1.liquify.info/"
   ],
   "137": [
-    "https://lb.drpc.org/ogrpc?network=polygon",
     "https://rpc.ankr.com/polygon",
+    "https://lb.drpc.org/ogrpc?network=polygon",
     "https://polygon-rpc.com",
     "https://polygon-mainnet.nodereal.io/v1/ccafb5707a404431b8986ad46f5fdf29"
   ],
@@ -298,8 +298,8 @@
     "https://public-node-api.klaytnapi.com/v1/cypress"
   ],
   "8453": [
-    "https://base-mainnet.infura.io/v3/9432e50f01e24a94b9df82d95846cce0",
     "https://rpc.ankr.com/base",
+    "https://base-mainnet.infura.io/v3/9432e50f01e24a94b9df82d95846cce0",
     "https://lb.drpc.org/ogrpc?network=base",
     "https://mainnet.base.org"
   ],
@@ -338,7 +338,6 @@
   ],
   "33111": [
     "https://lb.drpc.org/ogrpc?network=apechain-curtis&dkey=AqrKBDkAZkycokrrHI5M--FxlZtvBxUR8I6BssvAG40d",
-    "https://apechain-curtis.drpc.org",
     "https://rpc.curtis.apechain.com"
   ],
   "33139": [
@@ -346,8 +345,8 @@
     "https://apechain.calderachain.xyz/http"
   ],
   "42161": [
-    "https://lb.drpc.org/ogrpc?network=arbitrum",
     "https://rpc.ankr.com/arbitrum",
+    "https://lb.drpc.org/ogrpc?network=arbitrum",
     "https://arbitrum-mainnet.infura.io/v3/d26b4fd748814fe994b05899fd89e667",
     "https://arb-mainnet.g.alchemy.com/v2/RuqMiMKGUiICxfv70K7kp6uWXj6vRlTQ",
     "https://enterprise-san-jose-inap.onerpc.com/arbitrum?apiKey=c8dd0e3c-1997-4ca1-8f86-58d0b2563e19",
@@ -434,9 +433,9 @@
     "https://sepolia.rpc.zklink.io"
   ],
   "11155111": [
+    "https://rpc.ankr.com/eth_sepolia",
     "https://lb.drpc.org/ogrpc?network=sepolia",
-    "https://sepolia.infura.io/v3/d26b4fd748814fe994b05899fd89e667",
-    "https://rpc.ankr.com/eth_sepolia"
+    "https://sepolia.infura.io/v3/d26b4fd748814fe994b05899fd89e667"
   ],
   "11155420": [
     "https://sepolia.optimism.io"
