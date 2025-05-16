@@ -110,14 +110,14 @@ router.use(
 
 router.use('/:network', async (req, res) => {
   const network = req.params.network;
-  const method = req.body.method;
-  const jsonrpc = req.body.jsonrpc;
-  const id = req.body.id;
+  const { method, jsonrpc, id } = req.body;
 
-  if (method === 'eth_chainId') {
+  if (method && method === 'eth_chainId') {
     const result = `0x${Number(network).toString(16)}`;
+
     return res.json({ jsonrpc, id, result });
   }
+
   res.status(404).json({ jsonrpc, id, error: 'Method not found' });
 });
 

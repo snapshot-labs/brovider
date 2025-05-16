@@ -458,5 +458,13 @@
   ],
   "1666700000": [
     "https://api.s0.b.hmny.io"
+  ],
+  "sn": [
+    "https://starknet-mainnet.infura.io/v3/9432e50f01e24a94b9df82d95846cce0",
+    "https://lb.drpc.org/ogrpc?network=starknet"
+  ],
+  "sn-sep": [
+    "https://starknet-sepolia.infura.io/v3/9432e50f01e24a94b9df82d95846cce0",
+    "https://lb.drpc.org/ogrpc?network=starknet-sepolia"
   ]
 }
