@@ -1,5 +1,7 @@
+import crypto from 'crypto';
+import { EventEmitter } from 'events';
 import express from 'express';
-import proxy from 'express-http-proxy';
+import fetch from 'node-fetch';
 // import { JsonRpcProvider } from '@ethersproject/providers';
 import rpcs from './rpcs.json';
 
@@ -37,11 +39,43 @@ const monitor = Object.fromEntries(
   ])
 );
 
-// Set authorization header for the proxy request
-function setAdditionalHeaders(proxyReqOpts, srcReq) {
-  if (srcReq.nodeData.authHeader)
-    proxyReqOpts.headers['Authorization'] = srcReq.nodeData.authHeader;
-  return proxyReqOpts;
+// Request deduplication cache
+const requestCache = new Map();
+const eventEmitter = new EventEmitter();
+eventEmitter.setMaxListeners(5000);
+
+function sha256(str: string): string {
+  return crypto.createHash('sha256').update(str).digest('hex');
+}
+
+// Request deduplication middleware
+function deduplicateRequests(req: any, res: any, next: any) {
+  if (!req.body) return next();
+
+  const cacheKey = sha256(
+    JSON.stringify({
+      url: req.nodeData.url,
+      path: req.nodeData.path,
+      body: req.body
+    })
+  );
+
+  // Check if request is already in progress
+  if (requestCache.has(cacheKey)) {
+    // Wait for the existing request to complete
+    eventEmitter.once(cacheKey, result => {
+      if (result.error) {
+        return res.status(500).json(result.error);
+      }
+      return res.json(result.data);
+    });
+    return;
+  }
+
+  // Mark request as in progress
+  requestCache.set(cacheKey, true);
+  req.cacheKey = cacheKey;
+  next();
 }
 
 function getPathFromURL(url) {
@@ -94,19 +128,53 @@ router.get('/monitor', async (req, res) => {
 //   }
 // }
 
-router.use(
-  '/:network',
-  setNode,
-  proxy(req => req.nodeData.url, {
-    timeout: 30000,
-    memoizeHost: false,
-    proxyReqOptDecorator: setAdditionalHeaders,
-    proxyReqPathResolver: req => req.nodeData.path,
-    filter: function (req) {
-      return !(req.body && CACHE_METHODS.includes(req.body.method));
-    }
-  })
-);
+// Custom proxy handler with deduplication
+function handleProxyRequest(req: any, res: any, next: any) {
+  if (req.body && CACHE_METHODS.includes(req.body.method)) {
+    return next();
+  }
+
+  const url = req.nodeData.url + req.nodeData.path;
+  const options: any = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...req.headers
+    },
+    body: JSON.stringify(req.body),
+    timeout: 30000
+  };
+
+  // Add authorization if needed
+  if (req.nodeData.authHeader) {
+    options.headers['Authorization'] = req.nodeData.authHeader;
+  }
+
+  fetch(url, options)
+    .then((response: any) => response.json())
+    .then((data: any) => {
+      // Cache cleanup and event emission
+      if (req.cacheKey) {
+        requestCache.delete(req.cacheKey);
+        eventEmitter.emit(req.cacheKey, { data });
+      }
+      res.json(data);
+    })
+    .catch(() => {
+      // Cache cleanup and error emission
+      if (req.cacheKey) {
+        requestCache.delete(req.cacheKey);
+        eventEmitter.emit(req.cacheKey, {
+          error: { jsonrpc: req.body?.jsonrpc, id: req.body?.id, error: 'Proxy request failed' }
+        });
+      }
+      res
+        .status(500)
+        .json({ jsonrpc: req.body?.jsonrpc, id: req.body?.id, error: 'Proxy request failed' });
+    });
+}
+
+router.use('/:network', setNode, deduplicateRequests, handleProxyRequest);
 
 router.use('/:network', async (req, res) => {
   const network = req.params.network;
