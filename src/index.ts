@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { fallbackLogger, initLogger } from '@snapshot-labs/snapshot-sentry';
 import cors from 'cors';
 import express from 'express';
+import initMetrics from './helpers/metrics';
 import rpc from './rpc';
 import pkg from '../package.json';
 
@@ -9,6 +10,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 initLogger(app);
+initMetrics(app);
 
 app.disable('x-powered-by');
 app.use(express.json({ limit: '4mb' }));
