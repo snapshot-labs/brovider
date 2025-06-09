@@ -1,9 +1,9 @@
 {
   "1": [
-    "https://rpc.ankr.com/eth",
-    "https://lb.drpc.org/ogrpc?network=ethereum",
+    "https://rpc.ankr.com/eth/${ANKR_KEY}",
+    "https://lb.drpc.org/ogrpc?network=ethereum&dkey=${DRPC_KEY}",
     "https://eth-mainnet.g.alchemy.com/v2/ZWXqGt01pfN6SG6PuyZ2m9o236iv8iCl",
-    "https://mainnet.infura.io/v3/d26b4fd748814fe994b05899fd89e667",
+    "https://mainnet.infura.io/v3/${INFURA_KEY}",
     "https://apis.ankr.com/e62bc219f9c9462b8749defe472d2dc5/6106d4a3ec1d1bcc87ec72158f8fd089/eth/archive/main",
     "https://speedy-nodes-nyc.moralis.io/b9aed21e7bb7bdeb35972c9a/eth/mainnet/archive",
     "https://eth-archival.gateway.pokt.network/v1/5f76124fb90218002e9ce985",
@@ -14,9 +14,9 @@
     "https://rpc.octano.dev"
   ],
   "10": [
-    "https://optimism-mainnet.infura.io/v3/d26b4fd748814fe994b05899fd89e667",
-    "https://rpc.ankr.com/optimism",
-    "https://lb.drpc.org/ogrpc?network=optimism",
+    "https://optimism-mainnet.infura.io/v3/${INFURA_KEY}",
+    "https://rpc.ankr.com/optimism/${ANKR_KEY}",
+    "https://lb.drpc.org/ogrpc?network=optimism&dkey=${DRPC_KEY}",
     "https://opt-mainnet.g.alchemy.com/v2/JzmIL4Q3jBj7it2duxLFeuCa9Wobmm7D",
     "https://1rpc.io/op",
     "https://mainnet.optimism.io"
@@ -38,8 +38,8 @@
   ],
   "56": [
     "https://bsc-mainnet.nodereal.io/v1/167f77697b754db0981ddb1ee9736abe",
-    "https://rpc.ankr.com/bsc",
-    "https://lb.drpc.org/ogrpc?network=bsc",
+    "https://rpc.ankr.com/bsc/${ANKR_KEY}",
+    "https://lb.drpc.org/ogrpc?network=bsc&dkey=${DRPC_KEY}",
     "https://speedy-nodes-nyc.moralis.io/b9aed21e7bb7bdeb35972c9a/bsc/mainnet/archive",
     "https://bsc.getblock.io/mainnet/?api_key=91f8195f-bf46-488f-846a-73d6853790e7",
     "https://bsc-private-dataseed1.nariox.org",
@@ -65,14 +65,14 @@
     "https://rpc.meter.io"
   ],
   "97": [
-    "https://lb.drpc.org/ogrpc?network=bsc-testnet",
-    "https://rpc.ankr.com/bsc_testnet_chapel",
+    "https://lb.drpc.org/ogrpc?network=bsc-testnet&dkey=${DRPC_KEY}",
+    "https://rpc.ankr.com/bsc_testnet_chapel/${ANKR_KEY}",
     "https://data-seed-prebsc-1-s1.binance.org:8545",
     "https://speedy-nodes-nyc.moralis.io/f2963e29bec0de5787da3164/bsc/testnet/archive"
   ],
   "100": [
-    "https://lb.drpc.org/ogrpc?network=gnosis",
-    "https://rpc.ankr.com/gnosis",
+    "https://lb.drpc.org/ogrpc?network=gnosis&dkey=${DRPC_KEY}",
+    "https://rpc.ankr.com/gnosis/${ANKR_KEY}",
     "https://gnosis.rpc.grove.city/v1/4b148a83",
     "https://rpc.gnosischain.com",
     "https://gnosis-mainnet.g.alchemy.com/v2/ZWXqGt01pfN6SG6PuyZ2m9o236iv8iCl",
@@ -93,8 +93,8 @@
     "https://oefusefull1.liquify.info/"
   ],
   "137": [
-    "https://rpc.ankr.com/polygon",
-    "https://lb.drpc.org/ogrpc?network=polygon",
+    "https://rpc.ankr.com/polygon/${ANKR_KEY}",
+    "https://lb.drpc.org/ogrpc?network=polygon&dkey=${DRPC_KEY}",
     "https://polygon-rpc.com",
     "https://polygon-mainnet.nodereal.io/v1/ccafb5707a404431b8986ad46f5fdf29"
   ],
@@ -125,7 +125,7 @@
   "250": [
     "https://rpcapi.fantom.network",
     "https://rpc.ftm.tools",
-    "https://rpc.ankr.com/fantom"
+    "https://rpc.ankr.com/fantom/${ANKR_KEY}"
   ],
   "252": [
     "https://rpc.frax.com"
@@ -185,8 +185,8 @@
     "https://metis-mainnet.blastapi.io/61b31631-147b-42ed-82d5-d072a88313a7"
   ],
   "1101": [
-    "https://lb.drpc.org/ogrpc?network=polygon-zkevm",
-    "https://rpc.ankr.com/polygon_zkevm",
+    "https://lb.drpc.org/ogrpc?network=polygon-zkevm&dkey=${DRPC_KEY}",
+    "https://rpc.ankr.com/polygon_zkevm/${ANKR_KEY}",
     "https://1rpc.io/polygon/zkevm"
   ],
   "1116": [
@@ -204,7 +204,7 @@
     "https://rpc.testnet.moonbeam.network"
   ],
   "1315": [
-    "https://rpc.ankr.com/story_aeneid_testnet"
+    "https://rpc.ankr.com/story_aeneid_testnet/${ANKR_KEY}"
   ],
   "1328": [
     "https://floral-serene-sea.sei-atlantic.quiknode.pro/9b9d4a0234cebb3688960cc0588b0096817b076a/"
@@ -216,7 +216,7 @@
     "https://small-multi-waterfall.vana-mainnet.quiknode.pro/ccb7826e97c6eea23ac57f9f8d8d66920a86f58c/"
   ],
   "1514": [
-    "https://rpc.ankr.com/story_mainnet"
+    "https://rpc.ankr.com/story_mainnet/${ANKR_KEY}"
   ],
   "1559": [
     "https://rpc.tenet.org"
@@ -298,9 +298,9 @@
     "https://public-node-api.klaytnapi.com/v1/cypress"
   ],
   "8453": [
-    "https://rpc.ankr.com/base",
-    "https://base-mainnet.infura.io/v3/9432e50f01e24a94b9df82d95846cce0",
-    "https://lb.drpc.org/ogrpc?network=base",
+    "https://rpc.ankr.com/base/${ANKR_KEY}",
+    "https://base-mainnet.infura.io/v3/${INFURA_KEY}",
+    "https://lb.drpc.org/ogrpc?network=base&dkey=${DRPC_KEY}",
     "https://mainnet.base.org"
   ],
   "9001": [
@@ -337,17 +337,17 @@
     "https://rpc.oasys.mycryptoheroes.net"
   ],
   "33111": [
-    "https://lb.drpc.org/ogrpc?network=apechain-curtis&dkey=AqrKBDkAZkycokrrHI5M--FxlZtvBxUR8I6BssvAG40d",
+    "https://lb.drpc.org/ogrpc?network=apechain-curtis&dkey=${DRPC_KEY}",
     "https://rpc.curtis.apechain.com"
   ],
   "33139": [
-    "https://lb.drpc.org/ogrpc?network=apechain",
+    "https://lb.drpc.org/ogrpc?network=apechain&dkey=${DRPC_KEY}",
     "https://apechain.calderachain.xyz/http"
   ],
   "42161": [
-    "https://rpc.ankr.com/arbitrum",
-    "https://lb.drpc.org/ogrpc?network=arbitrum",
-    "https://arbitrum-mainnet.infura.io/v3/d26b4fd748814fe994b05899fd89e667",
+    "https://rpc.ankr.com/arbitrum/${ANKR_KEY}",
+    "https://lb.drpc.org/ogrpc?network=arbitrum&dkey=${DRPC_KEY}",
+    "https://arbitrum-mainnet.infura.io/v3/${INFURA_KEY}",
     "https://arb-mainnet.g.alchemy.com/v2/RuqMiMKGUiICxfv70K7kp6uWXj6vRlTQ",
     "https://enterprise-san-jose-inap.onerpc.com/arbitrum?apiKey=c8dd0e3c-1997-4ca1-8f86-58d0b2563e19",
     "https://arb-mainnet.g.alchemy.com/v2/JDvtNGwnHhTltIwfnxQocKwKkCTKA1DL",
@@ -358,8 +358,8 @@
     "https://nova.arbitrum.io/rpc"
   ],
   "42220": [
-    "https://lb.drpc.org/ogrpc?network=celo",
-    "https://rpc.ankr.com/celo",
+    "https://lb.drpc.org/ogrpc?network=celo&dkey=${DRPC_KEY}",
+    "https://rpc.ankr.com/celo/${ANKR_KEY}",
     "https://celo-mainnet--rpc.datahub.figment.io/apikey/948a479c65c96ea90c218419b479fcb1/",
     "https://forno.celo.org"
   ],
@@ -367,10 +367,10 @@
     "https://api.avax-test.network/ext/bc/C/rpc"
   ],
   "43114": [
-    "https://lb.drpc.org/ogrpc?network=avalanche",
-    "https://rpc.ankr.com/avalanche",
+    "https://lb.drpc.org/ogrpc?network=avalanche&dkey=${DRPC_KEY}",
+    "https://rpc.ankr.com/avalanche/${ANKR_KEY}",
     "https://api.avax.network/ext/bc/C/rpc",
-    "https://avalanche-mainnet.infura.io/v3/d26b4fd748814fe994b05899fd89e667"
+    "https://avalanche-mainnet.infura.io/v3/${INFURA_KEY}"
   ],
   "47805": [
     "https://rpc.rei.network"
@@ -395,14 +395,14 @@
   ],
   "80001": [
     "https://polygon-testnet.public.blastapi.io/",
-    "https://rpc.ankr.com/polygon_mumbai",
+    "https://rpc.ankr.com/polygon_mumbai/${ANKR_KEY}",
     "https://rpc-mumbai.matic.today",
     "https://public-rpc.blockpi.io/http/polygon-mumbai-testnet",
     "https://speedy-nodes-nyc.moralis.io/9e03baabdc27be2a35bdec4a/polygon/mumbai/archive"
   ],
   "80002": [
-    "https://lb.drpc.org/ogrpc?network=polygon-amoy",
-    "https://rpc.ankr.com/polygon_amoy"
+    "https://lb.drpc.org/ogrpc?network=polygon-amoy&dkey=${DRPC_KEY}",
+    "https://rpc.ankr.com/polygon_amoy/${ANKR_KEY}"
   ],
   "81457": [
     "https://rpc.blast.io"
@@ -414,7 +414,7 @@
     "https://sepolia.base.org"
   ],
   "314159": [
-    "https://calibration.node.glif.io/archive/lotus/rpc/v1"
+    "https://calibration.node.glif.io/archive/lotus/rpc/v1?token=${FILECOIN_KEY}"
   ],
   "686868": [
     "https://testnet-rpc.merlinchain.io"
@@ -433,9 +433,9 @@
     "https://sepolia.rpc.zklink.io"
   ],
   "11155111": [
-    "https://rpc.ankr.com/eth_sepolia",
-    "https://lb.drpc.org/ogrpc?network=sepolia",
-    "https://sepolia.infura.io/v3/d26b4fd748814fe994b05899fd89e667"
+    "https://rpc.ankr.com/eth_sepolia/${ANKR_KEY}",
+    "https://lb.drpc.org/ogrpc?network=sepolia&dkey=${DRPC_KEY}",
+    "https://sepolia.infura.io/v3/${INFURA_KEY}"
   ],
   "11155420": [
     "https://sepolia.optimism.io"
@@ -459,11 +459,11 @@
     "https://api.s0.b.hmny.io"
   ],
   "sn": [
-    "https://starknet-mainnet.infura.io/v3/9432e50f01e24a94b9df82d95846cce0",
-    "https://lb.drpc.org/ogrpc?network=starknet"
+    "https://starknet-mainnet.infura.io/v3/${INFURA_KEY}",
+    "https://lb.drpc.org/ogrpc?network=starknet&dkey=${DRPC_KEY}"
   ],
   "sn-sep": [
-    "https://starknet-sepolia.infura.io/v3/9432e50f01e24a94b9df82d95846cce0",
-    "https://lb.drpc.org/ogrpc?network=starknet-sepolia"
+    "https://starknet-sepolia.infura.io/v3/${INFURA_KEY}",
+    "https://lb.drpc.org/ogrpc?network=starknet-sepolia&dkey=${DRPC_KEY}"
   ]
 }

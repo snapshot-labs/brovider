@@ -1,33 +1,19 @@
 import express from 'express';
 import proxy from 'express-http-proxy';
-// import { JsonRpcProvider } from '@ethersproject/providers';
 import rpcs from './rpcs.json';
+import { getNodeUrl } from './utils';
 
 const CACHE_METHODS = ['eth_chainId'];
 
-const ANKR_KEY = process.env.ANKR_KEY;
-const DRPC_KEY = process.env.DRPC_KEY;
-const FILECOIN_KEY = process.env.FILECOIN_KEY;
-
-const RPC_LIST_WITH_KEYS = {};
-for (const networkId in rpcs) {
-  const rpcList = rpcs[networkId].map(rpc => {
-    if (ANKR_KEY && rpc.startsWith('https://rpc.ankr.com/')) {
-      return `${rpc}/${ANKR_KEY}`;
-    }
-    if (DRPC_KEY && rpc.startsWith('https://lb.drpc.org/ogrpc')) {
-      return `${rpc}&dkey=${DRPC_KEY}`;
-    }
-    if (FILECOIN_KEY && rpc === 'https://calibration.node.glif.io/archive/lotus/rpc/v1') {
-      return `${rpc}?token=${FILECOIN_KEY}`;
-    }
-    return rpc;
-  });
-
-  RPC_LIST_WITH_KEYS[networkId] = rpcList;
-}
+const RPC_LIST_WITH_KEYS = Object.fromEntries(
+  Object.entries(rpcs).map(([networkId, rpcList]) => [
+    networkId,
+    rpcList.map(rpc => getNodeUrl(rpc))
+  ])
+);
 
 const router = express.Router();
+
 const monitor = Object.fromEntries(
   Object.keys(rpcs).map(networksId => [
     networksId,
@@ -44,55 +30,32 @@ function setAdditionalHeaders(proxyReqOpts, srcReq) {
   return proxyReqOpts;
 }
 
-function getPathFromURL(url) {
+function getPathFromURL(url: string) {
   const removePrefix = url.replace(/^(http|https):\/\//, '');
   return removePrefix.indexOf('/') > -1 ? removePrefix.substring(removePrefix.indexOf('/')) : '/';
 }
 
 function setNode(req, res, next) {
   const { network } = req.params;
-  const node = RPC_LIST_WITH_KEYS[network] ? RPC_LIST_WITH_KEYS[network][0] : null;
-  if (!node)
-    return res
-      .status(404)
-      .json({ jsonrpc: req.body.jsonrpc, id: req.body.id, error: 'Network not found' });
-  const nodeURL = typeof node === 'object' ? node.url : node;
+  const { jsonrpc, id } = req.body;
+  const url = RPC_LIST_WITH_KEYS[network] ? RPC_LIST_WITH_KEYS[network][0] : null;
+
+  if (!url) {
+    return res.status(404).json({ jsonrpc, id, error: 'Network not found' });
+  }
+
   req.nodeData = {
-    url: nodeURL,
-    path: getPathFromURL(nodeURL),
-    network,
-    authHeader:
-      typeof node === 'object' && node.user && node.password
-        ? `Basic ${Buffer.from(`${node.user}:${node.password}`).toString('base64')}`
-        : undefined
+    url,
+    path: getPathFromURL(url),
+    network
   };
+
   next();
 }
 
 router.get('/monitor', async (req, res) => {
   return res.json(monitor);
 });
-
-// async function getBlockNumber(rpc) {
-//   try {
-//     if (typeof rpc === 'string') rpc = { url: rpc, timeout: 30000 };
-//     const provider = new JsonRpcProvider(rpc);
-//     return await provider.getBlockNumber();
-//   } catch (e) {
-//     return 0;
-//   }
-// }
-
-// async function isFullArchive(rpc) {
-//   try {
-//     if (typeof rpc === 'string') rpc = { url: rpc, timeout: 30000 };
-//     const provider = new JsonRpcProvider(rpc);
-//     await provider.getBalance('0xeF8305E140ac520225DAf050e2f71d5fBcC543e7', 1);
-//     return true;
-//   } catch (e) {
-//     return false;
-//   }
-// }
 
 router.use(
   '/:network',
@@ -120,33 +83,5 @@ router.use('/:network', async (req, res) => {
 
   res.status(404).json({ jsonrpc, id, error: 'Method not found' });
 });
-
-// let checkCount = 0;
-// async function check() {
-//   checkCount++;
-//   for (const [network, rpcList] of Object.entries(rpcs)) {
-//     for (let i = 0; i < rpcList.length; i++) {
-//       // console.log('Check network', network, 'index', i);
-//       const rpc = rpcList[i];
-//       const [blockNumber, isArchive] = await Promise.all([getBlockNumber(rpc), isFullArchive(rpc)]);
-//       const oldSuccessTotal = monitor[network][i].success_total || 0;
-//       const successReward = blockNumber > 0 ? 1 : 0;
-//       const successTotal = oldSuccessTotal + successReward;
-//       const successScore = parseFloat(((successTotal * 100) / checkCount).toFixed(2));
-//       const result = {
-//         rpc,
-//         block_number: blockNumber,
-//         is_archive: isArchive,
-//         success_total: successTotal,
-//         success_score: successScore,
-//         ts: Math.round(Date.now() / 1e3)
-//       };
-//       monitor[network][i] = result;
-//     }
-//   }
-//   return check();
-// }
-
-// check();
 
 export default router;
