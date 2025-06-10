@@ -17,9 +17,9 @@ export function setNode(req, res, next) {
     return res.status(404).json({ jsonrpc, id, error: 'Invalid network' });
   }
 
-  req.nodeData = {
+  req._node = {
     url,
-    path: new URL(url).pathname || '/',
+    path: url.substring(url.indexOf('/', url.indexOf('://') + 3) || 0) || '/',
     network
   };
 
