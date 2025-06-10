@@ -4,23 +4,22 @@ export async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export function getPathFromURL(url: string) {
-  const removePrefix = url.replace(/^(http|https):\/\//, '');
-
-  return removePrefix.indexOf('/') > -1 ? removePrefix.substring(removePrefix.indexOf('/')) : '/';
-}
-
 export function setNode(req, res, next) {
   const { network } = req.params;
-  const { jsonrpc, id } = req.body;
+  const { jsonrpc, id } = req.body || {};
+  const url = nodes[network];
 
-  if (!nodes[network]) {
+  if (!jsonrpc) {
+    return res.status(400).json({ error: 'Invalid request' });
+  }
+
+  if (!url) {
     return res.status(404).json({ jsonrpc, id, error: 'Invalid network' });
   }
 
   req.nodeData = {
-    url: nodes[network],
-    path: getPathFromURL(nodes[network]),
+    url,
+    path: new URL(url).pathname || '/',
     network
   };
 
