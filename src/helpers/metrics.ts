@@ -4,7 +4,7 @@ import { Express } from 'express';
 
 export default function initMetrics(app: Express) {
   init(app, {
-    whitelistedPath: [/^\/$/, /^\/monitor$/, /^\/[0-9]+$/],
+    whitelistedPath: [/^\/$/, /^\/[0-9]+$/],
     errorHandler: capture
   });
 }
