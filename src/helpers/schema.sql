@@ -12,3 +12,5 @@ CREATE TABLE nodes (
   main SMALLINT NOT NULL DEFAULT '0'::SMALLINT,
   CONSTRAINT nodes_pkey PRIMARY KEY (url)
 ) TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS nodes_main_idx ON nodes USING btree (main) TABLESPACE pg_default;
