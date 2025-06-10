@@ -9,10 +9,10 @@ const router = express.Router();
 router.use(
   '/:network',
   setNode,
-  proxy(req => req.nodeData.url, {
+  proxy(req => req._node.url, {
     timeout: 30e3,
     memoizeHost: false,
-    proxyReqPathResolver: req => req.nodeData.path,
+    proxyReqPathResolver: req => req._node.path,
     filter: req => !(req.body && CACHE_METHODS.includes(req.body.method))
   })
 );
