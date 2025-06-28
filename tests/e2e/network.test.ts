@@ -2,7 +2,7 @@ import express from 'express';
 import request from 'supertest';
 import rpc from '../../src/rpc';
 
-describe('RPC Proxy E2E Tests', () => {
+describe('Network Endpoint E2E Tests', () => {
   let app: express.Application;
 
   beforeAll(() => {

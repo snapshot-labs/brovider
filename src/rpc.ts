@@ -1,33 +1,43 @@
 import express from 'express';
 import proxy from 'express-http-proxy';
-import { setNode } from './helpers/utils';
-
-const CACHE_METHODS = ['eth_chainId'];
+import setDelegation from './middlewares/setDelegation';
+import setNode from './middlewares/setNode';
+import setSubgraph from './middlewares/setSubgraph';
+import withCachedEthChain from './middlewares/withCachedEthChain';
 
 const router = express.Router();
 
-router.use(
-  '/:network',
-  setNode,
-  proxy(req => req._node.url, {
-    timeout: 30e3,
+const TIMEOUT = 30e3;
+
+router.post(
+  '/delegation/:network',
+  setDelegation,
+  proxy(req => req._delegation.url, {
+    timeout: TIMEOUT,
     memoizeHost: false,
-    proxyReqPathResolver: req => req._node.path,
-    filter: req => !(req.body && CACHE_METHODS.includes(req.body.method))
+    proxyReqPathResolver: req => req._delegation.path
   })
 );
 
-router.use('/:network', async (req, res) => {
-  const network = req.params.network;
-  const { method, jsonrpc, id } = req.body;
+router.post(
+  '/subgraph/:network/:subgraph',
+  setSubgraph,
+  proxy(req => req._subgraph.url, {
+    timeout: TIMEOUT,
+    memoizeHost: false,
+    proxyReqPathResolver: req => req._subgraph.path
+  })
+);
 
-  if (method && method === 'eth_chainId') {
-    const result = `0x${Number(network).toString(16)}`;
-
-    return res.json({ jsonrpc, id, result });
-  }
-
-  res.status(404).json({ jsonrpc, id, error: 'Method not found' });
-});
+router.use(
+  /^\/(\d+|sn|sn-tn)$/,
+  withCachedEthChain,
+  setNode,
+  proxy(req => req._node.url, {
+    timeout: TIMEOUT,
+    memoizeHost: false,
+    proxyReqPathResolver: req => req._node.path
+  })
+);
 
 export default router;
