@@ -7,7 +7,9 @@ jobs:
     strategy:
       matrix:
         target: ['18']
-    uses: snapshot-labs/actions/.github/workflows/test.yml@main
+    uses: snapshot-labs/actions/.github/workflows/test.yml@feat-add-psql-support
     secrets: inherit
     with:
       target: ${{ matrix.target }}
+      postgres_database_name: brovider_test
+      postgres_schema_path: 'src/helpers/schema.sql'
