@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { subgraphs } from '../constants';
+import { subgraphs } from '../helpers/data';
 
 export default function setSubgraph(req: Request, res: Response, next: NextFunction) {
   if (!req.body) {

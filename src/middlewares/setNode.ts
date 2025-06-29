@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { nodes } from '../helpers/nodes';
+import { nodes } from '../helpers/data';
 
 export default function setNode(req: Request, res: Response, next: NextFunction) {
   const network = req.params[0];

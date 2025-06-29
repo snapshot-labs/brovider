@@ -14,3 +14,10 @@ CREATE TABLE nodes (
 ) TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS nodes_main_idx ON nodes USING btree (main) TABLESPACE pg_default;
+
+CREATE TABLE graph (
+  network VARCHAR(64) NOT NULL,
+  url TEXT NOT NULL,
+  type VARCHAR(32) NOT NULL,
+  CONSTRAINT graph_pkey PRIMARY KEY (network, url)
+) TABLESPACE pg_default;
