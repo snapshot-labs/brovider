@@ -112,5 +112,20 @@ describe('Subgraph Endpoints', () => {
           .expect(400);
       });
     });
+
+    describe('when database url is not valid', () => {
+      it('should return 500 "Invalid subgraph URL configuration" for network with invalid database URL', async () => {
+        const response = await request(app)
+          .post('/subgraph/11001100/test-subgraph-id')
+          .send({
+            query: '{ test }'
+          })
+          .expect(500);
+
+        expect(response.body).toEqual({
+          error: 'Invalid subgraph URL configuration'
+        });
+      });
+    });
   });
 });

@@ -1,3 +1,4 @@
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import { NextFunction, Request, Response } from 'express';
 import { nodes } from '../helpers/data';
 
@@ -15,9 +16,24 @@ export default function setNode(req: Request, res: Response, next: NextFunction)
     return res.status(404).json({ jsonrpc, id, error: 'Invalid network' });
   }
 
+  let path: string;
+  try {
+    path = new URL(url).pathname || '/';
+  } catch (err) {
+    capture(err, {
+      contexts: {
+        input: {
+          network,
+          url
+        }
+      }
+    });
+    return res.status(500).json({ jsonrpc, id, error: 'Invalid node URL configuration' });
+  }
+
   (req as any)._node = {
     url,
-    path: url.substring(url.indexOf('/', url.indexOf('://') + 3) || 0) || '/',
+    path,
     network
   };
 

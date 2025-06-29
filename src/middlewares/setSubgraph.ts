@@ -1,3 +1,4 @@
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import { NextFunction, Request, Response } from 'express';
 import { subgraphs } from '../helpers/data';
 
@@ -15,7 +16,23 @@ export default function setSubgraph(req: Request, res: Response, next: NextFunct
   }
 
   const fullUrl = baseUrl + subgraph;
-  const parsedUrl = new URL(fullUrl);
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(fullUrl);
+  } catch (err) {
+    capture(err, {
+      contexts: {
+        input: {
+          network,
+          subgraph,
+          baseUrl,
+          fullUrl
+        }
+      }
+    });
+    return res.status(500).json({ error: 'Invalid subgraph URL configuration' });
+  }
 
   (req as any)._subgraph = {
     url: `${parsedUrl.protocol}//${parsedUrl.host}`,

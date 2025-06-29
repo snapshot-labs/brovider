@@ -24,7 +24,8 @@ async function insertTestData() {
       { network: '56', url: 'https://bsc-dataseed.binance.org', main: 1 },
       { network: '137', url: 'https://polygon-rpc.com', main: 1 },
       { network: '8453', url: 'https://mainnet.base.org', main: 1 },
-      { network: '42161', url: 'https://arb1.arbitrum.io/rpc', main: 1 }
+      { network: '42161', url: 'https://arb1.arbitrum.io/rpc', main: 1 },
+      { network: '11001100', url: 'invalid-url', main: 1 }
     ];
 
     for (const node of nodeData) {
@@ -70,12 +71,22 @@ async function insertTestData() {
         network: '137',
         url: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.NON_RESTRICTED_SUBGRAPH_KEY}/subgraphs/id/7ynRuH2PPw975dtHkthpZCyQGKBCrxFA8VsYD3KE631B`,
         type: 'delegation'
+      },
+      {
+        network: '11001100',
+        url: 'invalid-url',
+        type: 'delegation'
+      },
+      {
+        network: '11001100',
+        url: 'invalid-url',
+        type: 'subgraph'
       }
     ];
 
     for (const graph of graphData) {
       await db.none(
-        'INSERT INTO graph (network, url, type) VALUES ($1, $2, $3) ON CONFLICT (network, url) DO NOTHING',
+        'INSERT INTO graph (network, url, type) VALUES ($1, $2, $3) ON CONFLICT (network, url, type) DO NOTHING',
         [graph.network, graph.url, graph.type]
       );
     }

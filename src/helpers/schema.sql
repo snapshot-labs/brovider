@@ -19,5 +19,5 @@ CREATE TABLE graph (
   network VARCHAR(64) NOT NULL,
   url TEXT NOT NULL,
   type VARCHAR(32) NOT NULL,
-  CONSTRAINT graph_pkey PRIMARY KEY (network, url)
+  CONSTRAINT graph_pkey PRIMARY KEY (network, url, type)
 ) TABLESPACE pg_default;
