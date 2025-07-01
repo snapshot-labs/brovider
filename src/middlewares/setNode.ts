@@ -1,6 +1,6 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { NextFunction, Request, Response } from 'express';
-import { nodes } from '../helpers/data';
+import { nodes } from '../helpers/nodes';
 
 export default function setNode(req: Request, res: Response, next: NextFunction) {
   const network = req.params[0];

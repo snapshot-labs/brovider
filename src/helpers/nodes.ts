@@ -2,7 +2,6 @@ import db from './db';
 import { sleep } from './utils';
 
 export let nodes = {};
-export let subgraphs = { subgraph: {}, delegation: {} };
 
 let shouldStop = false;
 
@@ -19,26 +18,9 @@ async function getNodes() {
   }, {});
 }
 
-async function getSubgraphs() {
-  const graphs = await db.query('SELECT * FROM graph');
-
-  return graphs.reduce(
-    (result, graph) => {
-      if (graph.type === 'subgraph') {
-        result.subgraph[graph.network] = graph.url;
-      } else if (graph.type === 'delegation') {
-        result.delegation[graph.network] = graph.url;
-      }
-      return result;
-    },
-    { subgraph: {}, delegation: {} }
-  );
-}
-
 export async function run() {
   while (!shouldStop) {
     nodes = await getNodes();
-    subgraphs = await getSubgraphs();
     await sleep(10e3);
   }
 }

@@ -119,20 +119,5 @@ describe('Delegation Endpoints', () => {
           .expect(400);
       });
     });
-
-    describe('when database url is not valid', () => {
-      it('should return 500 "Invalid delegation URL configuration" for network with invalid database URL', async () => {
-        const response = await request(app)
-          .post('/delegation/11001100')
-          .send({
-            query: '{ test }'
-          })
-          .expect(500);
-
-        expect(response.body).toEqual({
-          error: 'Invalid delegation URL configuration'
-        });
-      });
-    });
   });
 });

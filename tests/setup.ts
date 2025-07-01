@@ -5,9 +5,8 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { config } from 'dotenv';
 
-// Load environment variables for tests
+// Load environment variables for globalSetup context
 config({ path: 'tests/.env.test' });
-config({ path: 'tests/.env.local.test' });
 
 // Insert test data into database
 async function insertTestData() {
@@ -15,7 +14,7 @@ async function insertTestData() {
   const db = (await import('../src/helpers/db')).default;
   try {
     // Clear existing data
-    await db.none('TRUNCATE TABLE nodes, graph CASCADE');
+    await db.none('TRUNCATE TABLE nodes CASCADE');
 
     // Insert nodes data
     const nodeData = [
@@ -32,62 +31,6 @@ async function insertTestData() {
       await db.none(
         'INSERT INTO nodes (network, url, main) VALUES ($1, $2, $3) ON CONFLICT (url) DO NOTHING',
         [node.network, node.url, node.main]
-      );
-    }
-
-    // Insert graph data
-    const graphData = [
-      {
-        network: 'mainnet',
-        url: `https://gateway.network.thegraph.com/api/${process.env.NON_RESTRICTED_SUBGRAPH_KEY}/subgraphs/id/`,
-        type: 'subgraph'
-      },
-      {
-        network: 'arbitrum',
-        url: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.NON_RESTRICTED_SUBGRAPH_KEY}/subgraphs/id/`,
-        type: 'subgraph'
-      },
-      {
-        network: '1',
-        url: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.NON_RESTRICTED_SUBGRAPH_KEY}/subgraphs/id/4YgtogVaqoM8CErHWDK8mKQ825BcVdKB8vBYmb4avAQo`,
-        type: 'delegation'
-      },
-      {
-        network: '10',
-        url: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.NON_RESTRICTED_SUBGRAPH_KEY}/subgraphs/id/CAsVTyvLA6vnvDX9zgXifmi3wFM8GYeNHvRpxsABvbYL`,
-        type: 'delegation'
-      },
-      {
-        network: '56',
-        url: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.NON_RESTRICTED_SUBGRAPH_KEY}/subgraphs/id/GuTMtMnx7zukaA1hiHB1uz6FR45gpZX3GtiEN7Cyitjd`,
-        type: 'delegation'
-      },
-      {
-        network: '100',
-        url: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.NON_RESTRICTED_SUBGRAPH_KEY}/subgraphs/id/2XuuZyGrxw972keXKfeHQW7yaGqVa7dyoghkgdGMdC6Az`,
-        type: 'delegation'
-      },
-      {
-        network: '137',
-        url: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.NON_RESTRICTED_SUBGRAPH_KEY}/subgraphs/id/7ynRuH2PPw975dtHkthpZCyQGKBCrxFA8VsYD3KE631B`,
-        type: 'delegation'
-      },
-      {
-        network: '11001100',
-        url: 'invalid-url',
-        type: 'delegation'
-      },
-      {
-        network: '11001100',
-        url: 'invalid-url',
-        type: 'subgraph'
-      }
-    ];
-
-    for (const graph of graphData) {
-      await db.none(
-        'INSERT INTO graph (network, url, type) VALUES ($1, $2, $3) ON CONFLICT (network, url, type) DO NOTHING',
-        [graph.network, graph.url, graph.type]
       );
     }
 
@@ -112,7 +55,6 @@ async function setupTestDatabase() {
       );
     }
     // Drop and recreate tables
-    await db.none('DROP TABLE IF EXISTS graph CASCADE');
     await db.none('DROP TABLE IF EXISTS nodes CASCADE');
     await db.none('DROP TABLE IF EXISTS providers CASCADE');
 

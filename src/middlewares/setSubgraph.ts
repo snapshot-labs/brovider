@@ -1,6 +1,6 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { NextFunction, Request, Response } from 'express';
-import { subgraphs } from '../helpers/data';
+import { subgraphs } from '../constants';
 
 export default function setSubgraph(req: Request, res: Response, next: NextFunction) {
   if (!req.body) {
