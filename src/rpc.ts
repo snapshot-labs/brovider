@@ -1,33 +1,21 @@
 import express from 'express';
 import proxy from 'express-http-proxy';
-import { setNode } from './helpers/utils';
-
-const CACHE_METHODS = ['eth_chainId'];
+import setNode from './middlewares/setNode';
+import withCachedEthChain from './middlewares/withCachedEthChain';
 
 const router = express.Router();
 
+const TIMEOUT = 30e3;
+
 router.use(
   '/:network',
+  withCachedEthChain,
   setNode,
   proxy(req => req._node.url, {
-    timeout: 30e3,
+    timeout: TIMEOUT,
     memoizeHost: false,
-    proxyReqPathResolver: req => req._node.path,
-    filter: req => !(req.body && CACHE_METHODS.includes(req.body.method))
+    proxyReqPathResolver: req => req._node.path
   })
 );
-
-router.use('/:network', async (req, res) => {
-  const network = req.params.network;
-  const { method, jsonrpc, id } = req.body;
-
-  if (method && method === 'eth_chainId') {
-    const result = `0x${Number(network).toString(16)}`;
-
-    return res.json({ jsonrpc, id, result });
-  }
-
-  res.status(404).json({ jsonrpc, id, error: 'Method not found' });
-});
 
 export default router;
