@@ -167,7 +167,8 @@ describe('Network Endpoint E2E Tests', () => {
             method: 'eth_getBlockByNumber',
             params: ['hello'],
             id: 1
-          });
+          })
+          .expect(200);
 
         expect(response.body).toEqual({
           id: 1,

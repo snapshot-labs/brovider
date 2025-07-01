@@ -30,7 +30,7 @@ router.post(
 );
 
 router.use(
-  /^\/(\d+|sn|sn-tn)$/,
+  '/:network',
   withCachedEthChain,
   setNode,
   proxy(req => req._node.url, {

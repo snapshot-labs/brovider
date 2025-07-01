@@ -3,7 +3,7 @@ import { NextFunction, Request, Response } from 'express';
 import { nodes } from '../helpers/nodes';
 
 export default function setNode(req: Request, res: Response, next: NextFunction) {
-  const network = req.params[0];
+  const network = req.params.network;
   const body = req.body || {};
   const { jsonrpc, id } = body;
   const url = nodes[network];
