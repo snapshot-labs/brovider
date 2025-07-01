@@ -3,6 +3,7 @@ import { fallbackLogger, initLogger } from '@snapshot-labs/snapshot-sentry';
 import cors from 'cors';
 import express from 'express';
 import initMetrics from './helpers/metrics';
+import { run as loadData } from './helpers/nodes';
 import rpc from './rpc';
 import pkg from '../package.json';
 
@@ -11,6 +12,7 @@ const PORT = process.env.PORT || 3000;
 
 initLogger(app);
 initMetrics(app);
+loadData();
 
 app.disable('x-powered-by');
 app.use(express.json({ limit: '4mb' }));
