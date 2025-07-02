@@ -30,13 +30,13 @@ router.post(
 );
 
 router.use(
-  '/:network',
+  /^\/([^\/]+)$/,
   withCachedEthChain,
   setNode,
-  proxy(req => req._node.url, {
+  proxy((req: any) => req._node.url, {
     timeout: TIMEOUT,
     memoizeHost: false,
-    proxyReqPathResolver: req => req._node.path
+    proxyReqPathResolver: (req: any) => req._node.path
   })
 );
 

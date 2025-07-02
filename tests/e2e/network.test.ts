@@ -163,6 +163,24 @@ describe('Network Endpoint E2E Tests', () => {
         });
       });
     });
+
+    it('should return 500 "Invalid node URL configuration" for network with invalid database URL', async () => {
+      const response = await request(app)
+        .post('/11001100')
+        .send({
+          jsonrpc: '2.0',
+          method: 'eth_blockNumber',
+          params: [],
+          id: 1
+        })
+        .expect(500);
+
+      expect(response.body).toEqual({
+        jsonrpc: '2.0',
+        id: 1,
+        error: 'Invalid node URL configuration'
+      });
+    });
   });
 
   describe('JSON-RPC Protocol Compliance', () => {
