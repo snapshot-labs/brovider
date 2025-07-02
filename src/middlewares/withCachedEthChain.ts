@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { nodes } from '../helpers/nodes';
 
 export default function withCachedEthChain(req: Request, res: Response, next: NextFunction) {
-  const network = req.params.network;
+  const network = req.params[0];
   const { method, jsonrpc, id } = req.body || {};
 
   if (method === 'eth_chainId') {
