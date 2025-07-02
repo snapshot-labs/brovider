@@ -7,7 +7,6 @@ import { config } from 'dotenv';
 
 // Load environment variables for tests
 config({ path: 'tests/.env.test' });
-config({ path: 'tests/.env.local.test' });
 
 // Insert test data into database
 async function insertTestData() {
