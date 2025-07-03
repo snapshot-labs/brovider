@@ -13,7 +13,7 @@ describe('Delegation Endpoints', () => {
 
   describe('POST /delegation/:network', () => {
     describe('when network parameter is invalid', () => {
-      it('should return 400 "Invalid url" for non-alphanumeric network', async () => {
+      it('should return 400 "Invalid network" for non-alphanumeric network', async () => {
         const response = await request(app)
           .post('/delegation/invalid-network')
           .send({
@@ -22,11 +22,11 @@ describe('Delegation Endpoints', () => {
           .expect(400);
 
         expect(response.body).toEqual({
-          errors: [{ message: 'Invalid url' }]
+          errors: [{ message: 'Invalid network' }]
         });
       });
 
-      it('should return 400 "Invalid url" for non-existent numeric network', async () => {
+      it('should return 400 "Invalid network" for non-existent numeric network', async () => {
         const response = await request(app)
           .post('/delegation/999999')
           .send({
@@ -35,7 +35,7 @@ describe('Delegation Endpoints', () => {
           .expect(400);
 
         expect(response.body).toEqual({
-          errors: [{ message: 'Invalid url' }]
+          errors: [{ message: 'Invalid network' }]
         });
       });
     });
@@ -90,15 +90,14 @@ describe('Delegation Endpoints', () => {
 
         const response = await request(app).post('/delegation/1').send(invalidGraphqlQuery);
 
-        expect(response.status).toBe(200);
-        expect(response.body).toHaveProperty('errors');
-        expect(Array.isArray(response.body.errors)).toBe(true);
-        expect(response.body.errors.length).toBeGreaterThan(0);
-
-        // Validate the error structure
-        const error = response.body.errors[0];
-        expect(error).toHaveProperty('message');
-        expect(typeof error.message).toBe('string');
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({
+          errors: [
+            {
+              message: 'Type `Query` has no field `invalidField`'
+            }
+          ]
+        });
       });
     });
 
@@ -107,7 +106,7 @@ describe('Delegation Endpoints', () => {
         const response = await request(app).post('/delegation/1').expect(400);
 
         expect(response.body).toEqual({
-          error: 'Invalid request'
+          errors: [{ message: 'No query provided' }]
         });
       });
 
@@ -117,6 +116,25 @@ describe('Delegation Endpoints', () => {
           .set('Content-Type', 'application/json')
           .send('invalid json')
           .expect(400);
+      });
+
+      it('should return 400 for invalid JSON query string', async () => {
+        const invalidQueryRequest = {
+          query: '{ invalid json syntax here'
+        };
+
+        const response = await request(app)
+          .post('/delegation/1')
+          .send(invalidQueryRequest)
+          .expect(400);
+
+        expect(response.body).toEqual({
+          errors: [
+            {
+              message: expect.stringMatching(/Query parse error:/)
+            }
+          ]
+        });
       });
     });
   });

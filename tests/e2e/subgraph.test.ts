@@ -13,7 +13,7 @@ describe('Subgraph Endpoints', () => {
 
   describe('POST /subgraph/:network/:subgraph', () => {
     describe('when network parameter is invalid', () => {
-      it('should return 400 "Invalid url" for non-existent network', async () => {
+      it('should return 400 "Invalid network" for non-existent network', async () => {
         const response = await request(app)
           .post('/subgraph/invalid-network/test-subgraph-id')
           .send({
@@ -22,7 +22,7 @@ describe('Subgraph Endpoints', () => {
           .expect(400);
 
         expect(response.body).toEqual({
-          errors: [{ message: 'Invalid url' }]
+          errors: [{ message: 'Invalid network' }]
         });
       });
     });
@@ -70,15 +70,14 @@ describe('Subgraph Endpoints', () => {
           .post('/subgraph/arbitrum/A6EEuSAB7mFrWvLBnL1HZXwfiGfqFYnFJjc14REtMNkd')
           .send(invalidGraphqlQuery);
 
-        expect(response.status).toBe(200);
-        expect(response.body).toHaveProperty('errors');
-        expect(Array.isArray(response.body.errors)).toBe(true);
-        expect(response.body.errors.length).toBeGreaterThan(0);
-
-        // Validate the error structure
-        const error = response.body.errors[0];
-        expect(error).toHaveProperty('message');
-        expect(typeof error.message).toBe('string');
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({
+          errors: [
+            {
+              message: 'Type `Query` has no field `invalidField`'
+            }
+          ]
+        });
       });
     });
 
@@ -100,7 +99,7 @@ describe('Subgraph Endpoints', () => {
         const response = await request(app).post('/subgraph/mainnet/test-id').expect(400);
 
         expect(response.body).toEqual({
-          error: 'Invalid request'
+          errors: [{ message: 'No query provided' }]
         });
       });
 
@@ -110,6 +109,25 @@ describe('Subgraph Endpoints', () => {
           .set('Content-Type', 'application/json')
           .send('invalid json')
           .expect(400);
+      });
+
+      it('should return 400 for invalid JSON query string', async () => {
+        const invalidQueryRequest = {
+          query: '{ invalid json syntax here'
+        };
+
+        const response = await request(app)
+          .post('/subgraph/mainnet/test-id')
+          .send(invalidQueryRequest)
+          .expect(400);
+
+        expect(response.body).toEqual({
+          errors: [
+            {
+              message: expect.stringMatching(/Query parse error:/)
+            }
+          ]
+        });
       });
     });
   });

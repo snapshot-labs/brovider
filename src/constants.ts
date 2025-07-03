@@ -4,6 +4,9 @@ const NON_RESTRICTED_SUBGRAPH_KEY = process.env.NON_RESTRICTED_SUBGRAPH_KEY;
 // Create one from https://thegraph.com/studio/apikeys
 const SUBGRAPH_KEY = process.env.SUBGRAPH_KEY;
 
+// Timeout configuration
+export const REQUEST_TIMEOUT = 30e3; // 30 seconds
+
 export const subgraphs = {
   subgraph: {
     mainnet: `https://gateway.network.thegraph.com/api/${NON_RESTRICTED_SUBGRAPH_KEY}/subgraphs/id/`,
