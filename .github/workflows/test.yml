@@ -1,0 +1,15 @@
+name: Test
+
+on: [push]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        target: ['18']
+    uses: snapshot-labs/actions/.github/workflows/test.yml@main
+    secrets: inherit
+    with:
+      target: ${{ matrix.target }}
+      postgres_database_name: brovider_test
+      postgres_schema_path: 'src/helpers/schema.sql'
