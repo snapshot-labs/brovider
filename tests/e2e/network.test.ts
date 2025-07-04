@@ -163,7 +163,6 @@ describe('Network Endpoint E2E Tests', () => {
         });
       });
     });
-
     it('should return 500 "Invalid node URL configuration" for network with invalid database URL', async () => {
       const response = await request(app)
         .post('/11001100')
