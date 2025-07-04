@@ -18,7 +18,8 @@ export default function setNode(req: Request, res: Response, next: NextFunction)
 
   let path: string;
   try {
-    path = new URL(url).pathname || '/';
+    const { pathname, search } = new URL(url);
+    path = pathname + search;
   } catch (err) {
     capture(err, {
       contexts: {
