@@ -5,7 +5,7 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { config } from 'dotenv';
 
-// Load environment variables for tests
+// Load environment variables for globalSetup context
 config({ path: 'tests/.env.test' });
 
 // Insert test data into database

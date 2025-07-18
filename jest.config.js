@@ -11,6 +11,7 @@ module.exports = {
   coverageProvider: 'v8',
   coveragePathIgnorePatterns: ['/node_modules/', '<rootDir>/dist/', '<rootDir>/tests'],
   globalSetup: '<rootDir>/tests/setup.ts',
-  setupFilesAfterEnv: ['<rootDir>/tests/env-setup.ts'],
-  testTimeout: 10000
+  testTimeout: 10000,
+  setupFiles: ['<rootDir>/tests/env-config.ts'],
+  setupFilesAfterEnv: ['<rootDir>/tests/env-setup.ts']
 };

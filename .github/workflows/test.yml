@@ -4,12 +4,36 @@ on: [push]
 
 jobs:
   test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
     strategy:
       matrix:
         target: ['18']
-    uses: snapshot-labs/actions/.github/workflows/test.yml@main
-    secrets: inherit
-    with:
-      target: ${{ matrix.target }}
-      postgres_database_name: brovider_test
-      postgres_schema_path: 'src/helpers/schema.sql'
+    
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.target }}
+        cache: 'yarn'
+
+    - name: Set up PostgreSQL
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y postgresql postgresql-contrib
+        sudo systemctl start postgresql.service
+        sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
+        sudo -u postgres createdb brovider_test
+        sudo -u postgres psql -d brovider_test -f src/helpers/schema.sql
+
+    - name: Setup custom environment variables
+      run: |
+        echo "NON_RESTRICTED_SUBGRAPH_KEY=${{ secrets.NON_RESTRICTED_SUBGRAPH_KEY }}" >> $GITHUB_ENV
+        echo "SUBGRAPH_KEY=${{ secrets.SUBGRAPH_KEY }}" >> $GITHUB_ENV
+
+    - name: Install dependencies
+      run: yarn install
+
+    - name: Test
+      run: yarn test
