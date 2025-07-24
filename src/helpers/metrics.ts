@@ -4,7 +4,14 @@ import { Express } from 'express';
 
 export default function initMetrics(app: Express) {
   init(app, {
-    whitelistedPath: [/^\/$/, /^\/.*$/],
+    whitelistedPath: [
+      /^\/$/,
+      /^\/\d+$/,
+      /^\/sn$/,
+      /^\/sn-sep$/,
+      /^\/delegation\/[a-zA-Z0-9]+$/,
+      /^\/subgraph\/[a-zA-Z]+\/.*$/
+    ],
     errorHandler: capture
   });
 }
