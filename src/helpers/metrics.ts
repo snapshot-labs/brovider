@@ -10,7 +10,7 @@ export default function initMetrics(app: Express) {
       /^\/sn$/,
       /^\/sn-sep$/,
       /^\/delegation\/[a-zA-Z0-9]+$/,
-      /^\/subgraph\/[a-zA-Z]+\/.*$/
+      /^\/subgraph\/[a-zA-Z]+\/[^\/]+$/
     ],
     errorHandler: capture
   });
