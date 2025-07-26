@@ -12,6 +12,7 @@ export default function initMetrics(app: Express) {
       /^\/delegation\/[a-zA-Z0-9]+$/,
       /^\/subgraph\/[a-zA-Z]+\/[^\/]+$/
     ],
+    normalizedPath: (req: any) => req.originalUrl,
     errorHandler: capture
   });
 }
