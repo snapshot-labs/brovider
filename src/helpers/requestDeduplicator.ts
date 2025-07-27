@@ -1,8 +1,24 @@
-const ongoingRequests = new Map();
+import { REQUEST_TIMEOUT } from '../constants';
 
-export default function serve(key, action, args) {
+const ongoingRequests = new Map<string, Promise<any>>();
+
+function createTimeoutPromise(timeoutMs: number): Promise<never> {
+  return new Promise((_, reject) => {
+    setTimeout(() => {
+      const timeoutError = new Error('Request timeout') as any;
+      timeoutError.code = 408; // HTTP 408 Request Timeout
+      reject(timeoutError);
+    }, timeoutMs);
+  });
+}
+
+export default function serve<T>(
+  key: string,
+  action: (...args: any[]) => Promise<T>,
+  args: any[]
+): Promise<T> {
   if (!ongoingRequests.has(key)) {
-    const requestPromise = action(...args)
+    const requestPromise = Promise.race([action(...args), createTimeoutPromise(REQUEST_TIMEOUT)])
       .then(result => result)
       .catch(error => {
         console.log('[requestDeduplicator] request error', error);
@@ -15,5 +31,5 @@ export default function serve(key, action, args) {
     ongoingRequests.set(key, requestPromise);
   }
 
-  return ongoingRequests.get(key);
+  return ongoingRequests.get(key)!;
 }
