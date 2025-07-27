@@ -1,5 +1,6 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { REQUEST_TIMEOUT } from '../constants';
+import { requestDeduplicatorSize } from './metrics';
 
 const ongoingRequests = new Map<string, Promise<any>>();
 
@@ -43,9 +44,11 @@ export default function serve<T>(
       .finally(() => {
         cancelTimeout(); // Cancel timeout regardless of outcome
         ongoingRequests.delete(key);
+        requestDeduplicatorSize.set(ongoingRequests.size);
       });
 
     ongoingRequests.set(key, requestPromise);
+    requestDeduplicatorSize.set(ongoingRequests.size);
   }
 
   const request = ongoingRequests.get(key);
