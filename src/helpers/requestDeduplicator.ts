@@ -1,6 +1,6 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
-import { REQUEST_TIMEOUT } from '../constants';
 import { requestDeduplicatorSize } from './metrics';
+import { REQUEST_TIMEOUT } from '../constants';
 
 const ongoingRequests = new Map<string, Promise<any>>();
 
