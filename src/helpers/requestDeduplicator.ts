@@ -1,15 +1,29 @@
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import { REQUEST_TIMEOUT } from '../constants';
 
 const ongoingRequests = new Map<string, Promise<any>>();
 
-function createTimeoutPromise(timeoutMs: number): Promise<never> {
-  return new Promise((_, reject) => {
-    setTimeout(() => {
-      const timeoutError = new Error('Request timeout') as any;
-      timeoutError.code = 408; // HTTP 408 Request Timeout
+interface TimeoutError extends Error {
+  code: number;
+}
+
+function createTimeoutPromise(timeoutMs: number): { promise: Promise<never>; cancel: () => void } {
+  let timeoutId: NodeJS.Timeout;
+
+  const promise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      const timeoutError: TimeoutError = Object.assign(new Error('Request timeout'), {
+        code: 408 // HTTP 408 Request Timeout
+      });
       reject(timeoutError);
     }, timeoutMs);
   });
+
+  const cancel = () => {
+    clearTimeout(timeoutId);
+  };
+
+  return { promise, cancel };
 }
 
 export default function serve<T>(
@@ -18,18 +32,27 @@ export default function serve<T>(
   args: any[]
 ): Promise<T> {
   if (!ongoingRequests.has(key)) {
-    const requestPromise = Promise.race([action(...args), createTimeoutPromise(REQUEST_TIMEOUT)])
+    const { promise: timeoutPromise, cancel: cancelTimeout } =
+      createTimeoutPromise(REQUEST_TIMEOUT);
+    const requestPromise = Promise.race([action(...args), timeoutPromise])
       .then(result => result)
       .catch(error => {
         console.log('[requestDeduplicator] request error', error);
-        throw { errors: [{ message: error.message }] };
+        throw error;
       })
       .finally(() => {
+        cancelTimeout(); // Cancel timeout regardless of outcome
         ongoingRequests.delete(key);
       });
 
     ongoingRequests.set(key, requestPromise);
   }
 
-  return ongoingRequests.get(key)!;
+  const request = ongoingRequests.get(key);
+  if (!request) {
+    const error = new Error('Internal server error');
+    capture(error, { context: 'requestDeduplicator', key });
+    return Promise.reject(error);
+  }
+  return request;
 }
