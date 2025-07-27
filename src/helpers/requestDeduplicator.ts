@@ -1,3 +1,5 @@
+import { requestDeduplicatorSize } from './metrics';
+
 const ongoingRequests = new Map();
 
 export default function serve(key, action, args) {
@@ -10,9 +12,11 @@ export default function serve(key, action, args) {
       })
       .finally(() => {
         ongoingRequests.delete(key);
+        requestDeduplicatorSize.set(ongoingRequests.size);
       });
 
     ongoingRequests.set(key, requestPromise);
+    requestDeduplicatorSize.set(ongoingRequests.size);
   }
 
   return ongoingRequests.get(key);
