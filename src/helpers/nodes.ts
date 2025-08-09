@@ -19,12 +19,15 @@ async function getNodes() {
 }
 
 export async function run() {
+  console.log('[nodes] Starting nodes refresh');
   while (!shouldStop) {
+    console.log('[nodes] Refreshing nodes');
     nodes = await getNodes();
     await sleep(10e3);
   }
 }
 
 export function stop() {
+  console.log('[nodes] Stopping nodes refresh');
   shouldStop = true;
 }
