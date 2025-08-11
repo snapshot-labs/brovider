@@ -26,6 +26,7 @@ export async function run() {
     try {
       nodes = await getNodes();
     } catch (err) {
+      console.error('[nodes] Error refreshing nodes:', err);
       capture(err);
     }
     await sleep(10e3);
