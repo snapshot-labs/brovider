@@ -1,3 +1,4 @@
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import db from './db';
 import { nodesRefreshCount } from './metrics';
 import { sleep } from './utils';
@@ -23,9 +24,14 @@ async function getNodes() {
 export async function run() {
   console.log('[nodes] Starting nodes refresh');
   while (!shouldStop) {
-    nodesRefreshCount.inc();
-    nodes = await getNodes();
-    await sleep(REFRESH_INTERVAL);
+    try {
+      nodesRefreshCount.inc();
+      nodes = await getNodes();
+    } catch (err) {
+      console.error('[nodes] Error refreshing nodes:', err);
+      capture(err);
+    }
+    await sleep(10e3);
   }
 }
 
