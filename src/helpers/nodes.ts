@@ -1,8 +1,10 @@
 import db from './db';
+import { nodesRefreshCount } from './metrics';
 import { sleep } from './utils';
 
 export let nodes = {};
 
+const REFRESH_INTERVAL = 10e3; // 10 seconds
 let shouldStop = false;
 
 async function getNodes() {
@@ -21,9 +23,9 @@ async function getNodes() {
 export async function run() {
   console.log('[nodes] Starting nodes refresh');
   while (!shouldStop) {
-    console.log('[nodes] Refreshing nodes');
+    nodesRefreshCount.inc();
     nodes = await getNodes();
-    await sleep(10e3);
+    await sleep(REFRESH_INTERVAL);
   }
 }
 
