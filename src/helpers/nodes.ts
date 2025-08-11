@@ -1,3 +1,4 @@
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import db from './db';
 import { sleep } from './utils';
 
@@ -22,7 +23,11 @@ export async function run() {
   console.log('[nodes] Starting nodes refresh');
   while (!shouldStop) {
     console.log('[nodes] Refreshing nodes');
-    nodes = await getNodes();
+    try {
+      nodes = await getNodes();
+    } catch (err) {
+      capture(err);
+    }
     await sleep(10e3);
   }
 }
