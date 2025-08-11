@@ -27,3 +27,8 @@ export const requestDeduplicatorSize = new client.Gauge({
   name: 'request_deduplicator_size',
   help: 'Total number of items in the deduplicator queue'
 });
+
+export const nodesRefreshCount = new client.Counter({
+  name: 'node_refresh_count',
+  help: 'Number of node refreshes'
+});
