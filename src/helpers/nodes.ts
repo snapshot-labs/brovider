@@ -31,7 +31,7 @@ export async function run() {
       console.error('[nodes] Error refreshing nodes:', err);
       capture(err);
     }
-    await sleep(10e3);
+    await sleep(REFRESH_INTERVAL);
   }
 }
 
