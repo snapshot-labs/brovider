@@ -1,16 +1,48 @@
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import { requestDeduplicatorSize } from './metrics';
+import { REQUEST_TIMEOUT } from '../constants';
 
-const ongoingRequests = new Map();
+const ongoingRequests = new Map<string, Promise<any>>();
 
-export default function serve(key, action, args) {
+interface TimeoutError extends Error {
+  code: number;
+}
+
+function createTimeoutPromise(timeoutMs: number): { promise: Promise<never>; cancel: () => void } {
+  let timeoutId: NodeJS.Timeout;
+
+  const promise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      const timeoutError: TimeoutError = Object.assign(new Error('Request timeout'), {
+        code: 408 // HTTP 408 Request Timeout
+      });
+      reject(timeoutError);
+    }, timeoutMs);
+  });
+
+  const cancel = () => {
+    clearTimeout(timeoutId);
+  };
+
+  return { promise, cancel };
+}
+
+export default function serve<T>(
+  key: string,
+  action: (...args: any[]) => Promise<T>,
+  args: any[]
+): Promise<T> {
   if (!ongoingRequests.has(key)) {
-    const requestPromise = action(...args)
+    const { promise: timeoutPromise, cancel: cancelTimeout } =
+      createTimeoutPromise(REQUEST_TIMEOUT);
+    const requestPromise = Promise.race([action(...args), timeoutPromise])
       .then(result => result)
       .catch(error => {
         console.log('[requestDeduplicator] request error', error);
-        throw { errors: [{ message: error.message }] };
+        throw error;
       })
       .finally(() => {
+        cancelTimeout(); // Cancel timeout regardless of outcome
         ongoingRequests.delete(key);
         requestDeduplicatorSize.set(ongoingRequests.size);
       });
@@ -19,5 +51,11 @@ export default function serve(key, action, args) {
     requestDeduplicatorSize.set(ongoingRequests.size);
   }
 
-  return ongoingRequests.get(key);
+  const request = ongoingRequests.get(key);
+  if (!request) {
+    const error = new Error('Internal server error');
+    capture(error, { context: 'requestDeduplicator', key });
+    return Promise.reject(error);
+  }
+  return request;
 }
