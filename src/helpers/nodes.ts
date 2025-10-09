@@ -10,7 +10,9 @@ let shouldStop = false;
 
 async function getNodes() {
   const providers = await db.query('SELECT * FROM providers');
-  const nodes = await db.query('SELECT * FROM nodes WHERE main = 1');
+  const nodes = await db.query(
+    'SELECT DISTINCT ON (network) * FROM nodes ORDER BY network, main DESC'
+  );
 
   return nodes.reduce((result, node) => {
     result[node.network] = providers.reduce(
