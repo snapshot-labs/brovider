@@ -2,6 +2,12 @@ import { capture } from '@snapshot-labs/snapshot-sentry';
 import { NextFunction, Request, Response } from 'express';
 import { nodes } from '../helpers/nodes';
 
+const NODE_HEADERS: Record<string, Record<string, string>> = {
+  'https://internal-archive.storyrpc.io': {
+    'x-snapshot-partner-key': process.env.STORY_PARTNER_KEY || ''
+  }
+};
+
 export default function setNode(req: Request, res: Response, next: NextFunction) {
   const network = req.params[0];
   const body = req.body || {};
@@ -35,7 +41,8 @@ export default function setNode(req: Request, res: Response, next: NextFunction)
   (req as any)._node = {
     url,
     path,
-    network
+    network,
+    headers: NODE_HEADERS[url] || {}
   };
 
   next();
