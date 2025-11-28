@@ -23,7 +23,11 @@ router.use(
   proxy((req: any) => req._node.url, {
     timeout: REQUEST_TIMEOUT,
     memoizeHost: false,
-    proxyReqPathResolver: (req: any) => req._node.path
+    proxyReqPathResolver: (req: any) => req._node.path,
+    proxyReqOptDecorator: (proxyReqOpts: any, srcReq: any) => ({
+      ...proxyReqOpts,
+      headers: { ...proxyReqOpts.headers, ...srcReq._node.headers }
+    })
   })
 );
 
