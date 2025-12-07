@@ -5,6 +5,9 @@ import { nodes } from '../helpers/nodes';
 const NODE_HEADERS: Record<string, Record<string, string>> = {
   'https://internal-archive.storyrpc.io': {
     'x-snapshot-partner-key': process.env.STORY_PARTNER_KEY || ''
+  },
+  'https://internal-archive.aeneid.storyrpc.io': {
+    'x-snapshot-partner-key': process.env.STORY_PARTNER_KEY_TESTNET || ''
   }
 };
 
