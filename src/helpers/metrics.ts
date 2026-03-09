@@ -6,15 +6,16 @@ export default function initMetrics(app: Express) {
   init(app, {
     whitelistedPath: [
       /^\/$/,
-      /^\/\d+$/,
-      /^\/sn$/,
-      /^\/sn-sep$/,
-      /^\/delegation\/[a-zA-Z0-9]+$/,
-      /^\/subgraph\/[a-zA-Z]+\/[^\/]+$/
+      /^\/\d+\/?$/,
+      /^\/sn\/?$/,
+      /^\/sn-sep\/?$/,
+      /^\/delegation\/[a-zA-Z0-9]+\/?$/,
+      /^\/subgraph\/[a-zA-Z]+\/[^\/]+\/?$/
     ],
     normalizedPath: (req: Request) => {
-      const url = (req.baseUrl || '') + (req.path || '');
-      const subgraphMatch = url.match(/^\/subgraph\/([a-zA-Z]+)\//);
+      const raw = (req.baseUrl || '') + (req.path || '');
+      const url = raw.length > 1 && raw.endsWith('/') ? raw.slice(0, -1) : raw;
+      const subgraphMatch = url.match(/^\/subgraph\/([a-zA-Z]+)$/);
       if (subgraphMatch) return `/subgraph/${subgraphMatch[1]}`;
       return url;
     },
