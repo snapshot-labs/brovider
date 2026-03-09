@@ -1,6 +1,6 @@
 import init, { client } from '@snapshot-labs/snapshot-metrics';
 import { capture } from '@snapshot-labs/snapshot-sentry';
-import { Express } from 'express';
+import { Express, Request } from 'express';
 
 export default function initMetrics(app: Express) {
   init(app, {
@@ -12,8 +12,8 @@ export default function initMetrics(app: Express) {
       /^\/delegation\/[a-zA-Z0-9]+$/,
       /^\/subgraph\/[a-zA-Z]+\/[^\/]+$/
     ],
-    normalizedPath: (req: any) => {
-      const url = req.originalUrl.split('?')[0];
+    normalizedPath: (req: Request) => {
+      const url = (req.baseUrl || '') + (req.path || '');
       const subgraphMatch = url.match(/^\/subgraph\/([a-zA-Z]+)\//);
       if (subgraphMatch) return `/subgraph/${subgraphMatch[1]}`;
       const delegationMatch = url.match(/^\/delegation\//);
