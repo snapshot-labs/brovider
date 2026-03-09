@@ -12,7 +12,14 @@ export default function initMetrics(app: Express) {
       /^\/delegation\/[a-zA-Z0-9]+$/,
       /^\/subgraph\/[a-zA-Z]+\/[^\/]+$/
     ],
-    normalizedPath: (req: any) => req.originalUrl,
+    normalizedPath: (req: any) => {
+      const url = req.originalUrl.split('?')[0];
+      const subgraphMatch = url.match(/^\/subgraph\/([a-zA-Z]+)\//);
+      if (subgraphMatch) return `/subgraph/${subgraphMatch[1]}`;
+      const delegationMatch = url.match(/^\/delegation\//);
+      if (delegationMatch) return '/delegation';
+      return url;
+    },
     errorHandler: capture,
     promBundleOptions: {
       buckets: [0.03, 0.3, 1.5, 3, 5, 7, 10]
