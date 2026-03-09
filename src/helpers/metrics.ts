@@ -16,8 +16,6 @@ export default function initMetrics(app: Express) {
       const url = (req.baseUrl || '') + (req.path || '');
       const subgraphMatch = url.match(/^\/subgraph\/([a-zA-Z]+)\//);
       if (subgraphMatch) return `/subgraph/${subgraphMatch[1]}`;
-      const delegationMatch = url.match(/^\/delegation\//);
-      if (delegationMatch) return '/delegation';
       return url;
     },
     errorHandler: capture,
