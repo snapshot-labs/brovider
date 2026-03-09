@@ -13,7 +13,10 @@ export default function initMetrics(app: Express) {
       /^\/subgraph\/[a-zA-Z]+\/[^\/]+$/
     ],
     normalizedPath: (req: any) => req.originalUrl,
-    errorHandler: capture
+    errorHandler: capture,
+    promBundleOptions: {
+      buckets: [0.03, 0.3, 1.5, 3, 5, 7, 10]
+    }
   });
 }
 
