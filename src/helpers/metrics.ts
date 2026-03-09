@@ -13,7 +13,8 @@ export default function initMetrics(app: Express) {
       /^\/subgraph\/[a-zA-Z]+\/[^\/]+\/?$/
     ],
     normalizedPath: (req: Request) => {
-      const url = ((req.baseUrl || '') + (req.path || '')).replace(/\/+$/, '') || '/';
+      const raw = (req.baseUrl || '') + (req.path || '');
+      const url = raw.length > 1 ? raw.replace(/\/+$/, '') : raw;
       const subgraphMatch = url.match(/^\/subgraph\/([a-zA-Z]+)(\/|$)/);
       if (subgraphMatch) return `/subgraph/${subgraphMatch[1]}`;
       const delegationMatch = url.match(/^\/delegation(\/|$)/);
