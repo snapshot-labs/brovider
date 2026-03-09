@@ -14,8 +14,8 @@ export default function initMetrics(app: Express) {
     ],
     normalizedPath: (req: Request) => {
       const raw = (req.baseUrl || '') + (req.path || '');
-      const url = raw.length > 1 ? raw.replace(/\/+$/, '') : raw;
-      const subgraphMatch = url.match(/^\/subgraph\/([a-zA-Z]+)(\/|$)/);
+      const url = raw.length > 1 && raw.endsWith('/') ? raw.slice(0, -1) : raw;
+      const subgraphMatch = url.match(/^\/subgraph\/([a-zA-Z]+)$/);
       if (subgraphMatch) return `/subgraph/${subgraphMatch[1]}`;
       return url;
     },
