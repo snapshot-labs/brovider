@@ -24,8 +24,6 @@ export async function graphqlQuery(url: string, query: string, variables = {}) {
   try {
     responseData = JSON.parse(responseData);
   } catch (e) {
-    capture({ error: { code: res.status, message: res.statusText } }, { url });
-
     if (!res.ok) {
       throw new Error(`Unable to connect to ${url}, code: ${res.status}`);
     } else {
@@ -110,7 +108,6 @@ export default async function processGraphql(req: Request, res: Response, next: 
       shouldCache
     ]);
     if (result.errors) {
-      capture(new Error('GraphQl error'), result.errors);
       return next(SubgraphError.fromGraphQLResult(result, 400));
     }
     return res.json(result);
