@@ -18,7 +18,7 @@ async function insertTestData() {
 
     // Insert nodes data
     const nodeData = [
-      { network: '1', url: 'https://eth.llamarpc.com', main: 1 },
+      { network: '1', url: 'https://ethereum-rpc.publicnode.com', main: 1 },
       { network: '10', url: 'https://mainnet.optimism.io', main: 1 },
       { network: '56', url: 'https://bsc-dataseed.binance.org', main: 1 },
       { network: '137', url: 'https://polygon-rpc.com', main: 1 },
