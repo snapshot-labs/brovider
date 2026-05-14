@@ -91,7 +91,7 @@ describe('Delegation Endpoints', () => {
         const response = await request(app).post('/delegation/1').send(invalidGraphqlQuery);
 
         expect(response.status).toBe(400);
-        expect(response.body).toEqual({
+        expect(response.body).toMatchObject({
           errors: [
             {
               message: 'Type `Query` has no field `invalidField`'

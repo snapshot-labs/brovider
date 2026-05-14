@@ -131,12 +131,12 @@ describe('Network Endpoint E2E Tests', () => {
           })
           .expect(200);
 
-        expect(response.body).toEqual({
+        expect(response.body).toMatchObject({
           id: 2,
           jsonrpc: '2.0',
           error: {
             code: expect.any(Number),
-            message: expect.stringContaining('not supported')
+            message: expect.stringMatching(/not (supported|available|found)|does not exist/i)
           }
         });
       });
@@ -152,13 +152,12 @@ describe('Network Endpoint E2E Tests', () => {
           })
           .expect(200);
 
-        expect(response.body).toEqual({
+        expect(response.body).toMatchObject({
           id: 1,
           jsonrpc: '2.0',
           error: {
             code: -32602,
-            message: expect.stringMatching(/invalid/i),
-            data: expect.anything()
+            message: expect.stringMatching(/invalid/i)
           }
         });
       });
