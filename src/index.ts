@@ -4,6 +4,7 @@ import cors from 'cors';
 import express from 'express';
 import initMetrics from './helpers/metrics';
 import { run as loadData } from './helpers/nodes';
+import { initSentryFilters } from './helpers/sentry';
 import rpc from './rpc';
 import pkg from '../package.json';
 
@@ -11,6 +12,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 initLogger(app);
+initSentryFilters();
 initMetrics(app);
 loadData();
 
