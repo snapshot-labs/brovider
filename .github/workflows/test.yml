@@ -9,7 +9,7 @@ jobs:
     timeout-minutes: 2
     strategy:
       matrix:
-        target: ['18']
+        target: ['22']
     
     steps:
     - uses: actions/checkout@v3
