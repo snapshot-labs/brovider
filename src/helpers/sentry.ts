@@ -24,14 +24,17 @@ function isTransientUpstreamError(err: any): boolean {
   return false;
 }
 
-// Without this, every upstream network blip becomes a brovider issue. The handled
-// check keeps that to the proxied node calls, which reach Sentry unhandled through
-// the express error handler. Anything brovider captures deliberately is its own
-// infrastructure failing and still has to be reported.
+// Without this, every upstream network blip becomes a brovider issue. The mechanism type
+// keeps that to the proxied node calls, which reach Sentry through the express error
+// handler. `handled: false` alone also matches uncaught exceptions and unhandled
+// rejections, and would silence those as the process dies.
 export function initSentryFilters() {
   Sentry.getGlobalScope().addEventProcessor((event, hint) => {
-    const handled = event.exception?.values?.[0]?.mechanism?.handled;
-    if (handled === false && isTransientUpstreamError(hint?.originalException)) {
+    const mechanismType = event.exception?.values?.[0]?.mechanism?.type;
+    if (
+      mechanismType === 'auto.middleware.express' &&
+      isTransientUpstreamError(hint?.originalException)
+    ) {
       return null;
     }
     return event;
