@@ -11,7 +11,7 @@ import pkg from '../package.json';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-initLogger(app);
+initLogger();
 initSentryFilters();
 initMetrics(app);
 loadData();

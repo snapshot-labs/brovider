@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/node';
+import { Sentry } from '@snapshot-labs/snapshot-sentry';
 
 const TRANSIENT_UPSTREAM_CODES = new Set([
   'ECONNREFUSED',
@@ -24,9 +24,9 @@ function isTransientUpstreamError(err: any): boolean {
   return false;
 }
 
-// Drop unfixable upstream RPC failures before Sentry — third-party network conditions, not brovider bugs.
+// Without this, every upstream network blip becomes a brovider issue.
 export function initSentryFilters() {
-  Sentry.addGlobalEventProcessor((event, hint) => {
+  Sentry.getGlobalScope().addEventProcessor((event, hint) => {
     if (isTransientUpstreamError(hint?.originalException)) return null;
     return event;
   });
