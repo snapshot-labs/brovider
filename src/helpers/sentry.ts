@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/node';
+import { Sentry } from '@snapshot-labs/snapshot-sentry';
 
 const TRANSIENT_UPSTREAM_CODES = new Set([
   'ECONNREFUSED',
@@ -24,10 +24,19 @@ function isTransientUpstreamError(err: any): boolean {
   return false;
 }
 
-// Drop unfixable upstream RPC failures before Sentry — third-party network conditions, not brovider bugs.
+// Without this, every upstream network blip becomes a brovider issue. The mechanism type
+// keeps that to the proxied node calls, which reach Sentry through the express error
+// handler. `handled: false` alone also matches uncaught exceptions and unhandled
+// rejections, and would silence those as the process dies.
 export function initSentryFilters() {
-  Sentry.addGlobalEventProcessor((event, hint) => {
-    if (isTransientUpstreamError(hint?.originalException)) return null;
+  Sentry.getGlobalScope().addEventProcessor((event, hint) => {
+    const mechanismType = event.exception?.values?.[0]?.mechanism?.type;
+    if (
+      mechanismType === 'auto.middleware.express' &&
+      isTransientUpstreamError(hint?.originalException)
+    ) {
+      return null;
+    }
     return event;
   });
 }
