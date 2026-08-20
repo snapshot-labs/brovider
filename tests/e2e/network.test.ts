@@ -126,7 +126,6 @@ describe('Network Endpoint E2E Tests', () => {
           id: 2,
           result: 'upstream-chain-id'
         });
-        expect(upstreamBodies).toHaveLength(1);
         expect(upstreamBodies).toEqual([body]);
       });
 
@@ -145,7 +144,6 @@ describe('Network Endpoint E2E Tests', () => {
           id: 3,
           result: 'upstream-chain-id'
         });
-        expect(upstreamBodies).toHaveLength(1);
         expect(upstreamBodies).toEqual([body]);
       });
 
@@ -179,7 +177,6 @@ describe('Network Endpoint E2E Tests', () => {
       ])('should proxy a request with $type', async ({ body }) => {
         const response = await request(app).post('/1').send(body).expect(200);
 
-        expect(upstreamBodies).toHaveLength(1);
         expect(upstreamBodies).toEqual([body]);
         expect(response.body).toEqual({
           jsonrpc: '2.0',
@@ -197,7 +194,6 @@ describe('Network Endpoint E2E Tests', () => {
 
         await request(app).post('/1').send(body).expect(204);
 
-        expect(upstreamBodies).toHaveLength(1);
         expect(upstreamBodies).toEqual([body]);
       });
     });
@@ -254,7 +250,6 @@ describe('Network Endpoint E2E Tests', () => {
           response.body.map((item: { id: string; result: unknown }) => [item.id, item.result])
         );
 
-        expect(upstreamBodies).toHaveLength(1);
         expect(upstreamBodies).toEqual([body]);
         expect(responses.chain).toBe('upstream-chain-id');
       });
