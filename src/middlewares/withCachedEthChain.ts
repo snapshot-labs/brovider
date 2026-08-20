@@ -5,7 +5,7 @@ export default function withCachedEthChain(req: Request, res: Response, next: Ne
   const network = req.params[0];
   const { method, jsonrpc, id } = req.body || {};
 
-  if (method === 'eth_chainId') {
+  if (method === 'eth_chainId' && /^\d+$/.test(network)) {
     // Check if network exists before returning cached response
     if (!nodes[network]) {
       return res.status(404).json({ jsonrpc, id, error: 'Invalid network' });
