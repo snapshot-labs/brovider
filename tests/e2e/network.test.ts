@@ -291,12 +291,12 @@ describe('Network Endpoint E2E Tests', () => {
         });
       });
 
-      it('should preserve the ID of an invalid single request', async () => {
+      it('should preserve the ID of an invalid single chain ID request', async () => {
         const response = await request(app)
           .post('/1')
           .send({
             jsonrpc: '1.0',
-            method: 'eth_blockNumber',
+            method: 'eth_chainId',
             params: [],
             id: 'invalid-version'
           })
