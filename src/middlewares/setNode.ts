@@ -14,8 +14,8 @@ const NODE_HEADERS: Record<string, Record<string, string>> = {
 export default function setNode(req: Request, res: Response, next: NextFunction) {
   const network = req.params[0];
   const body = req.body;
-  const requests = Array.isArray(body) ? body : [body];
   const isBatch = Array.isArray(body);
+  const requests = isBatch ? body : [body];
   const id =
     !isBatch &&
     body &&

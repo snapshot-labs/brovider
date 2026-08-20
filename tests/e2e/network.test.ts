@@ -15,10 +15,10 @@ describe('Network Endpoint E2E Tests', () => {
   });
 
   describe('Cached Methods', () => {
+    const configuredNetworks = ['1', '10', 'sn', '0x1'];
     let configuredNodes: Record<string, string>;
     let originalNodes: Record<string, string | undefined>;
     let upstream: Server;
-    let upstreamRequests = 0;
     let upstreamBodies: unknown[] = [];
 
     beforeAll(async () => {
@@ -26,7 +26,6 @@ describe('Network Endpoint E2E Tests', () => {
       const upstreamApp = express();
       upstreamApp.use(express.json());
       upstreamApp.post('/', (req, res) => {
-        upstreamRequests += 1;
         upstreamBodies.push(req.body);
 
         const getResponse = (body: { jsonrpc: unknown; id: unknown; method: string }) => ({
@@ -56,20 +55,15 @@ describe('Network Endpoint E2E Tests', () => {
       const { port } = upstream.address() as AddressInfo;
       const upstreamUrl = `http://127.0.0.1:${port}`;
       configuredNodes = nodes as Record<string, string>;
-      originalNodes = {
-        '1': configuredNodes['1'],
-        '10': configuredNodes['10'],
-        sn: configuredNodes.sn,
-        '0x1': configuredNodes['0x1']
-      };
-      configuredNodes['1'] = upstreamUrl;
-      configuredNodes['10'] = upstreamUrl;
-      configuredNodes.sn = upstreamUrl;
-      configuredNodes['0x1'] = upstreamUrl;
+      originalNodes = Object.fromEntries(
+        configuredNetworks.map(network => [network, configuredNodes[network]])
+      );
+      for (const network of configuredNetworks) {
+        configuredNodes[network] = upstreamUrl;
+      }
     });
 
     beforeEach(() => {
-      upstreamRequests = 0;
       upstreamBodies = [];
     });
 
@@ -112,7 +106,7 @@ describe('Network Endpoint E2E Tests', () => {
             result: testCase.expected
           });
         }
-        expect(upstreamRequests).toBe(0);
+        expect(upstreamBodies).toHaveLength(0);
       });
 
       it.each([
@@ -132,7 +126,7 @@ describe('Network Endpoint E2E Tests', () => {
           id: 2,
           result: 'upstream-chain-id'
         });
-        expect(upstreamRequests).toBe(1);
+        expect(upstreamBodies).toHaveLength(1);
         expect(upstreamBodies).toEqual([body]);
       });
 
@@ -151,7 +145,7 @@ describe('Network Endpoint E2E Tests', () => {
           id: 3,
           result: '0x1'
         });
-        expect(upstreamRequests).toBe(0);
+        expect(upstreamBodies).toHaveLength(0);
       });
 
       it.each([
@@ -166,7 +160,7 @@ describe('Network Endpoint E2E Tests', () => {
       ])('should proxy a request with $type', async ({ body }) => {
         const response = await request(app).post('/1').send(body).expect(200);
 
-        expect(upstreamRequests).toBe(1);
+        expect(upstreamBodies).toHaveLength(1);
         expect(upstreamBodies).toEqual([body]);
         expect(response.body).toEqual({
           jsonrpc: '2.0',
@@ -184,7 +178,7 @@ describe('Network Endpoint E2E Tests', () => {
 
         await request(app).post('/1').send(body).expect(204);
 
-        expect(upstreamRequests).toBe(1);
+        expect(upstreamBodies).toHaveLength(1);
         expect(upstreamBodies).toEqual([body]);
       });
     });
@@ -241,7 +235,7 @@ describe('Network Endpoint E2E Tests', () => {
           response.body.map((item: { id: string; result: unknown }) => [item.id, item.result])
         );
 
-        expect(upstreamRequests).toBe(1);
+        expect(upstreamBodies).toHaveLength(1);
         expect(upstreamBodies).toEqual([body]);
         expect(responses.chain).toBe('upstream-chain-id');
       });
@@ -296,7 +290,7 @@ describe('Network Endpoint E2E Tests', () => {
       it('should return a JSON-RPC error for a missing request body', async () => {
         const response = await request(app).post('/1').expect(400);
 
-        expect(upstreamRequests).toBe(0);
+        expect(upstreamBodies).toHaveLength(0);
         expect(response.body).toEqual({
           jsonrpc: '2.0',
           id: null,
@@ -310,7 +304,7 @@ describe('Network Endpoint E2E Tests', () => {
       it('should reject an empty batch', async () => {
         const response = await request(app).post('/1').send([]).expect(400);
 
-        expect(upstreamRequests).toBe(0);
+        expect(upstreamBodies).toHaveLength(0);
         expect(response.body).toEqual({
           jsonrpc: '2.0',
           id: null,
@@ -336,7 +330,7 @@ describe('Network Endpoint E2E Tests', () => {
           .send([{ jsonrpc: '2.0', method: 'eth_blockNumber', params: [], id: 1 }, invalidRequest])
           .expect(400);
 
-        expect(upstreamRequests).toBe(0);
+        expect(upstreamBodies).toHaveLength(0);
         expect(response.body).toEqual({
           jsonrpc: '2.0',
           id: null,
@@ -358,7 +352,7 @@ describe('Network Endpoint E2E Tests', () => {
           })
           .expect(400);
 
-        expect(upstreamRequests).toBe(0);
+        expect(upstreamBodies).toHaveLength(0);
         expect(response.body).toEqual({
           jsonrpc: '2.0',
           id: 'invalid-version',
