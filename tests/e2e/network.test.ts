@@ -2,7 +2,7 @@ import { Server } from 'http';
 import { AddressInfo } from 'net';
 import express from 'express';
 import request from 'supertest';
-import { nodes } from '../../src/helpers/nodes';
+import { nodes, stop } from '../../src/helpers/nodes';
 import rpc from '../../src/rpc';
 
 describe('Network Endpoint E2E Tests', () => {
@@ -21,6 +21,7 @@ describe('Network Endpoint E2E Tests', () => {
     let upstreamRequests = 0;
 
     beforeAll(async () => {
+      stop();
       const upstreamApp = express();
       upstreamApp.use(express.json());
       upstreamApp.post('/', (req, res) => {
