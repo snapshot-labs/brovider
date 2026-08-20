@@ -44,6 +44,10 @@ describe('Network Endpoint E2E Tests', () => {
           );
         }
 
+        if (!Object.hasOwn(req.body, 'id')) {
+          return res.status(204).end();
+        }
+
         return res.json(getResponse(req.body));
       });
       upstream = await new Promise(resolve => {
@@ -128,6 +132,58 @@ describe('Network Endpoint E2E Tests', () => {
           id: 2,
           result: 'upstream-chain-id'
         });
+        expect(upstreamRequests).toBe(1);
+        expect(upstreamBodies).toEqual([body]);
+      });
+
+      it('should answer a valid request without params locally', async () => {
+        const response = await request(app)
+          .post('/1')
+          .send({
+            jsonrpc: '2.0',
+            method: 'eth_chainId',
+            id: 3
+          })
+          .expect(200);
+
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 3,
+          result: '0x1'
+        });
+        expect(upstreamRequests).toBe(0);
+      });
+
+      it.each([
+        {
+          type: 'string params',
+          body: { jsonrpc: '2.0', method: 'eth_chainId', params: 'bad', id: 3 }
+        },
+        {
+          type: 'boolean ID',
+          body: { jsonrpc: '2.0', method: 'eth_chainId', params: [], id: false }
+        }
+      ])('should proxy a request with $type', async ({ body }) => {
+        const response = await request(app).post('/1').send(body).expect(200);
+
+        expect(upstreamRequests).toBe(1);
+        expect(upstreamBodies).toEqual([body]);
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: body.id,
+          result: 'upstream-chain-id'
+        });
+      });
+
+      it('should proxy a notification without returning a local response', async () => {
+        const body = {
+          jsonrpc: '2.0',
+          method: 'eth_chainId',
+          params: []
+        };
+
+        await request(app).post('/1').send(body).expect(204);
+
         expect(upstreamRequests).toBe(1);
         expect(upstreamBodies).toEqual([body]);
       });
