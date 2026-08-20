@@ -19,6 +19,7 @@ describe('Network Endpoint E2E Tests', () => {
     let originalNodes: Record<string, string | undefined>;
     let upstream: Server;
     let upstreamRequests = 0;
+    let upstreamBody: unknown;
 
     beforeAll(async () => {
       stop();
@@ -26,6 +27,7 @@ describe('Network Endpoint E2E Tests', () => {
       upstreamApp.use(express.json());
       upstreamApp.post('/', (req, res) => {
         upstreamRequests += 1;
+        upstreamBody = req.body;
         res.json({ jsonrpc: req.body.jsonrpc, id: req.body.id, result: 'upstream-chain-id' });
       });
       upstream = await new Promise(resolve => {
@@ -36,16 +38,19 @@ describe('Network Endpoint E2E Tests', () => {
       configuredNodes = nodes as Record<string, string>;
       originalNodes = {
         '1': configuredNodes['1'],
+        '10': configuredNodes['10'],
         sn: configuredNodes.sn,
         '0x1': configuredNodes['0x1']
       };
       configuredNodes['1'] = upstreamUrl;
+      configuredNodes['10'] = upstreamUrl;
       configuredNodes.sn = upstreamUrl;
       configuredNodes['0x1'] = upstreamUrl;
     });
 
     beforeEach(() => {
       upstreamRequests = 0;
+      upstreamBody = undefined;
     });
 
     afterAll(async () => {
@@ -94,15 +99,13 @@ describe('Network Endpoint E2E Tests', () => {
         { network: 'sn', type: 'nonnumeric' },
         { network: '0x1', type: 'coercible non-decimal' }
       ])('should proxy eth_chainId for a $type network', async ({ network }) => {
-        const response = await request(app)
-          .post(`/${network}`)
-          .send({
-            jsonrpc: '2.0',
-            method: 'eth_chainId',
-            params: [],
-            id: 2
-          })
-          .expect(200);
+        const body = {
+          jsonrpc: '2.0',
+          method: 'eth_chainId',
+          params: [network, { nested: ['value'] }],
+          id: 2
+        };
+        const response = await request(app).post(`/${network}`).send(body).expect(200);
 
         expect(response.body).toEqual({
           jsonrpc: '2.0',
@@ -110,6 +113,7 @@ describe('Network Endpoint E2E Tests', () => {
           result: 'upstream-chain-id'
         });
         expect(upstreamRequests).toBe(1);
+        expect(upstreamBody).toEqual(body);
       });
     });
   });
@@ -168,6 +172,31 @@ describe('Network Endpoint E2E Tests', () => {
           id: 1,
           error: 'Invalid network'
         });
+      });
+
+      it('should return 404 for an inherited numeric network key', async () => {
+        Object.defineProperty(Object.prototype, '12345', {
+          configurable: true,
+          value: 'inherited-node'
+        });
+
+        try {
+          const response = await request(app).post('/12345').send({
+            jsonrpc: '2.0',
+            method: 'eth_chainId',
+            params: [],
+            id: 1
+          });
+
+          expect(response.body).toEqual({
+            jsonrpc: '2.0',
+            id: 1,
+            error: 'Invalid network'
+          });
+          expect(response.status).toBe(404);
+        } finally {
+          delete (Object.prototype as Record<string, unknown>)['12345'];
+        }
       });
 
       it.each(['doesnotexist', '__proto__'])(
