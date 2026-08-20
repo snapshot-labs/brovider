@@ -97,6 +97,27 @@ export default async function processGraphql(req: Request, res: Response, next: 
   const operation = parsedQuery.definitions.find(
     definition => definition.kind === Kind.OPERATION_DEFINITION
   );
+  const getVariable = name =>
+    variables !== null && typeof variables === 'object' && Object.hasOwn(variables, name)
+      ? variables[name]
+      : undefined;
+  const hasValue = value =>
+    value.kind === Kind.VARIABLE ? getVariable(value.name.value) != null : value.kind !== Kind.NULL;
+  const isPinnedBlock = value => {
+    if (value.kind === Kind.VARIABLE) {
+      const block = getVariable(value.name.value);
+      return (
+        block !== null && typeof block === 'object' && (block.number != null || block.hash != null)
+      );
+    }
+    return (
+      value.kind === Kind.OBJECT &&
+      value.fields.some(
+        field =>
+          (field.name.value === 'number' || field.name.value === 'hash') && hasValue(field.value)
+      )
+    );
+  };
   const shouldCache =
     isCacheConfigured &&
     !!operation &&
@@ -104,12 +125,7 @@ export default async function processGraphql(req: Request, res: Response, next: 
       selection =>
         selection.kind === Kind.FIELD &&
         (selection.arguments ?? []).some(
-          argument =>
-            argument.name.value === 'block' &&
-            argument.value.kind === Kind.OBJECT &&
-            argument.value.fields.some(
-              field => field.name.value === 'number' || field.name.value === 'hash'
-            )
+          argument => argument.name.value === 'block' && isPinnedBlock(argument.value)
         )
     );
   try {
