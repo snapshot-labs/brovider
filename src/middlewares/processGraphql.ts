@@ -124,7 +124,7 @@ export default async function processGraphql(req: Request, res: Response, next: 
     operation.selectionSet.selections.every(
       selection =>
         selection.kind === Kind.FIELD &&
-        (selection.arguments ?? []).some(
+        selection.arguments.some(
           argument => argument.name.value === 'block' && isPinnedBlock(argument.value)
         )
     );
