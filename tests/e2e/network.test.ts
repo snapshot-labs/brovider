@@ -130,6 +130,25 @@ describe('Network Endpoint E2E Tests', () => {
         expect(upstreamBodies).toEqual([body]);
       });
 
+      it('should proxy a valid request for a non-decimal network', async () => {
+        const body = {
+          jsonrpc: '2.0',
+          method: 'eth_chainId',
+          params: [],
+          id: 3
+        };
+
+        const response = await request(app).post('/sn').send(body).expect(200);
+
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 3,
+          result: 'upstream-chain-id'
+        });
+        expect(upstreamBodies).toHaveLength(1);
+        expect(upstreamBodies).toEqual([body]);
+      });
+
       it('should answer a valid request without params locally', async () => {
         const response = await request(app)
           .post('/1')
