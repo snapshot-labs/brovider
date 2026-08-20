@@ -13,12 +13,34 @@ const NODE_HEADERS: Record<string, Record<string, string>> = {
 
 export default function setNode(req: Request, res: Response, next: NextFunction) {
   const network = req.params[0];
-  const body = req.body || {};
-  const { jsonrpc, id } = body;
+  const body = req.body;
+  const requests = Array.isArray(body) ? body : [body];
+  const isBatch = Array.isArray(body);
+  const id =
+    !isBatch &&
+    body &&
+    typeof body === 'object' &&
+    (typeof body.id === 'string' || typeof body.id === 'number' || body.id === null)
+      ? body.id
+      : null;
+  const jsonrpc = isBatch ? '2.0' : body?.jsonrpc;
   const url = Object.hasOwn(nodes, network) ? nodes[network] : undefined;
 
-  if (!req.body || !jsonrpc) {
-    return res.status(400).json({ error: 'Invalid request' });
+  if (
+    requests.length === 0 ||
+    requests.some(
+      request =>
+        !request ||
+        typeof request !== 'object' ||
+        Array.isArray(request) ||
+        request.jsonrpc !== '2.0'
+    )
+  ) {
+    return res.status(400).json({
+      jsonrpc: '2.0',
+      id,
+      error: { code: -32600, message: 'Invalid Request' }
+    });
   }
 
   if (!url) {

@@ -19,7 +19,7 @@ describe('Network Endpoint E2E Tests', () => {
     let originalNodes: Record<string, string | undefined>;
     let upstream: Server;
     let upstreamRequests = 0;
-    let upstreamBody: unknown;
+    let upstreamBodies: unknown[] = [];
 
     beforeAll(async () => {
       stop();
@@ -27,8 +27,24 @@ describe('Network Endpoint E2E Tests', () => {
       upstreamApp.use(express.json());
       upstreamApp.post('/', (req, res) => {
         upstreamRequests += 1;
-        upstreamBody = req.body;
-        res.json({ jsonrpc: req.body.jsonrpc, id: req.body.id, result: 'upstream-chain-id' });
+        upstreamBodies.push(req.body);
+
+        const getResponse = (body: { jsonrpc: unknown; id: unknown; method: string }) => ({
+          jsonrpc: body.jsonrpc,
+          id: body.id,
+          result: body.method === 'eth_chainId' ? 'upstream-chain-id' : `upstream-${body.method}`
+        });
+
+        if (Array.isArray(req.body)) {
+          return res.json(
+            req.body
+              .filter(item => Object.hasOwn(item, 'id'))
+              .map(getResponse)
+              .reverse()
+          );
+        }
+
+        return res.json(getResponse(req.body));
       });
       upstream = await new Promise(resolve => {
         const server = upstreamApp.listen(0, '127.0.0.1', () => resolve(server));
@@ -50,7 +66,7 @@ describe('Network Endpoint E2E Tests', () => {
 
     beforeEach(() => {
       upstreamRequests = 0;
-      upstreamBody = undefined;
+      upstreamBodies = [];
     });
 
     afterAll(async () => {
@@ -113,7 +129,188 @@ describe('Network Endpoint E2E Tests', () => {
           result: 'upstream-chain-id'
         });
         expect(upstreamRequests).toBe(1);
-        expect(upstreamBody).toEqual(body);
+        expect(upstreamBodies).toEqual([body]);
+      });
+    });
+
+    describe('Batch Requests', () => {
+      it('should forward batch arrays unchanged and correlate reordered responses by ID', async () => {
+        const body = [
+          {
+            jsonrpc: '2.0',
+            method: 'eth_blockNumber',
+            params: [],
+            id: 'block'
+          },
+          {
+            jsonrpc: '2.0',
+            method: 'eth_getBalance',
+            params: ['0x0000000000000000000000000000000000000000', 'latest'],
+            id: 'balance'
+          }
+        ];
+
+        const response = await request(app).post('/1').send(body).expect(200);
+
+        expect(upstreamBodies).toEqual([body]);
+        expect(response.body.map((item: { id: unknown }) => item.id)).toEqual(['balance', 'block']);
+        expect(
+          Object.fromEntries(
+            response.body.map((item: { id: string; result: unknown }) => [item.id, item.result])
+          )
+        ).toEqual({
+          block: 'upstream-eth_blockNumber',
+          balance: 'upstream-eth_getBalance'
+        });
+      });
+
+      it('should proxy batch eth_chainId instead of answering it locally', async () => {
+        const body = [
+          {
+            jsonrpc: '2.0',
+            method: 'eth_chainId',
+            params: [],
+            id: 'chain'
+          },
+          {
+            jsonrpc: '2.0',
+            method: 'eth_blockNumber',
+            params: [],
+            id: 'block'
+          }
+        ];
+
+        const response = await request(app).post('/1').send(body).expect(200);
+        const responses = Object.fromEntries(
+          response.body.map((item: { id: string; result: unknown }) => [item.id, item.result])
+        );
+
+        expect(upstreamRequests).toBe(1);
+        expect(upstreamBodies).toEqual([body]);
+        expect(responses.chain).toBe('upstream-chain-id');
+      });
+
+      it('should allow notification members without an ID', async () => {
+        const body = [
+          {
+            jsonrpc: '2.0',
+            method: 'eth_blockNumber',
+            params: []
+          },
+          {
+            jsonrpc: '2.0',
+            method: 'eth_getBalance',
+            params: ['0x0000000000000000000000000000000000000000', 'latest'],
+            id: 7
+          }
+        ];
+
+        const response = await request(app).post('/1').send(body).expect(200);
+
+        expect(upstreamBodies).toEqual([body]);
+        expect(response.body).toEqual([
+          {
+            jsonrpc: '2.0',
+            id: 7,
+            result: 'upstream-eth_getBalance'
+          }
+        ]);
+      });
+    });
+
+    it('should keep forwarding valid single requests unchanged', async () => {
+      const body = {
+        jsonrpc: '2.0',
+        method: 'eth_blockNumber',
+        params: [],
+        id: 'single'
+      };
+
+      const response = await request(app).post('/1').send(body).expect(200);
+
+      expect(upstreamBodies).toEqual([body]);
+      expect(response.body).toEqual({
+        jsonrpc: '2.0',
+        id: 'single',
+        result: 'upstream-eth_blockNumber'
+      });
+    });
+
+    describe('Request Validation Errors', () => {
+      it('should return a JSON-RPC error for a missing request body', async () => {
+        const response = await request(app).post('/1').expect(400);
+
+        expect(upstreamRequests).toBe(0);
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: null,
+          error: {
+            code: -32600,
+            message: 'Invalid Request'
+          }
+        });
+      });
+
+      it('should reject an empty batch', async () => {
+        const response = await request(app).post('/1').send([]).expect(400);
+
+        expect(upstreamRequests).toBe(0);
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: null,
+          error: {
+            code: -32600,
+            message: 'Invalid Request'
+          }
+        });
+      });
+
+      it.each([
+        {
+          type: 'missing jsonrpc',
+          invalidRequest: { method: 'eth_blockNumber', params: [], id: 2 }
+        },
+        {
+          type: 'invalid jsonrpc',
+          invalidRequest: { jsonrpc: '1.0', method: 'eth_blockNumber', params: [], id: 2 }
+        }
+      ])('should reject a batch member with $type', async ({ invalidRequest }) => {
+        const response = await request(app)
+          .post('/1')
+          .send([{ jsonrpc: '2.0', method: 'eth_blockNumber', params: [], id: 1 }, invalidRequest])
+          .expect(400);
+
+        expect(upstreamRequests).toBe(0);
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: null,
+          error: {
+            code: -32600,
+            message: 'Invalid Request'
+          }
+        });
+      });
+
+      it('should preserve the ID of an invalid single request', async () => {
+        const response = await request(app)
+          .post('/1')
+          .send({
+            jsonrpc: '1.0',
+            method: 'eth_blockNumber',
+            params: [],
+            id: 'invalid-version'
+          })
+          .expect(400);
+
+        expect(upstreamRequests).toBe(0);
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 'invalid-version',
+          error: {
+            code: -32600,
+            message: 'Invalid Request'
+          }
+        });
       });
     });
   });
@@ -140,14 +337,6 @@ describe('Network Endpoint E2E Tests', () => {
 
   describe('Error Handling', () => {
     describe('Request Validation Errors', () => {
-      it('should return 400 for missing request body', async () => {
-        const response = await request(app).post('/1').expect(400);
-
-        expect(response.body).toEqual({
-          error: 'Invalid request'
-        });
-      });
-
       it('should return 400 for malformed JSON', async () => {
         await request(app)
           .post('/1')
