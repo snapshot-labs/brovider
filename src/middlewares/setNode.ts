@@ -15,7 +15,7 @@ export default function setNode(req: Request, res: Response, next: NextFunction)
   const network = req.params[0];
   const body = req.body || {};
   const { jsonrpc, id } = body;
-  const url = nodes[network];
+  const url = Object.hasOwn(nodes, network) ? nodes[network] : undefined;
 
   if (!req.body || !jsonrpc) {
     return res.status(400).json({ error: 'Invalid request' });

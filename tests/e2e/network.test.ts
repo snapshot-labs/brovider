@@ -1,5 +1,8 @@
+import { Server } from 'http';
+import { AddressInfo } from 'net';
 import express from 'express';
 import request from 'supertest';
+import { nodes, stop } from '../../src/helpers/nodes';
 import rpc from '../../src/rpc';
 
 describe('Network Endpoint E2E Tests', () => {
@@ -12,8 +15,54 @@ describe('Network Endpoint E2E Tests', () => {
   });
 
   describe('Cached Methods', () => {
+    let configuredNodes: Record<string, string>;
+    let originalNodes: Record<string, string | undefined>;
+    let upstream: Server;
+    let upstreamRequests = 0;
+
+    beforeAll(async () => {
+      stop();
+      const upstreamApp = express();
+      upstreamApp.use(express.json());
+      upstreamApp.post('/', (req, res) => {
+        upstreamRequests += 1;
+        res.json({ jsonrpc: req.body.jsonrpc, id: req.body.id, result: 'upstream-chain-id' });
+      });
+      upstream = await new Promise(resolve => {
+        const server = upstreamApp.listen(0, '127.0.0.1', () => resolve(server));
+      });
+      const { port } = upstream.address() as AddressInfo;
+      const upstreamUrl = `http://127.0.0.1:${port}`;
+      configuredNodes = nodes as Record<string, string>;
+      originalNodes = {
+        '1': configuredNodes['1'],
+        sn: configuredNodes.sn,
+        '0x1': configuredNodes['0x1']
+      };
+      configuredNodes['1'] = upstreamUrl;
+      configuredNodes.sn = upstreamUrl;
+      configuredNodes['0x1'] = upstreamUrl;
+    });
+
+    beforeEach(() => {
+      upstreamRequests = 0;
+    });
+
+    afterAll(async () => {
+      for (const [network, url] of Object.entries(originalNodes)) {
+        if (url === undefined) {
+          delete configuredNodes[network];
+        } else {
+          configuredNodes[network] = url;
+        }
+      }
+      await new Promise<void>((resolve, reject) => {
+        upstream.close(error => (error ? reject(error) : resolve()));
+      });
+    });
+
     describe('eth_chainId', () => {
-      it('should convert decimal network IDs to hex chainId', async () => {
+      it('should convert decimal network IDs to hex chainId without an upstream request', async () => {
         const testCases = [
           { network: '1', expected: '0x1' },
           { network: '10', expected: '0xa' },
@@ -38,6 +87,29 @@ describe('Network Endpoint E2E Tests', () => {
             result: testCase.expected
           });
         }
+        expect(upstreamRequests).toBe(0);
+      });
+
+      it.each([
+        { network: 'sn', type: 'nonnumeric' },
+        { network: '0x1', type: 'coercible non-decimal' }
+      ])('should proxy eth_chainId for a $type network', async ({ network }) => {
+        const response = await request(app)
+          .post(`/${network}`)
+          .send({
+            jsonrpc: '2.0',
+            method: 'eth_chainId',
+            params: [],
+            id: 2
+          })
+          .expect(200);
+
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 2,
+          result: 'upstream-chain-id'
+        });
+        expect(upstreamRequests).toBe(1);
       });
     });
   });
@@ -97,6 +169,27 @@ describe('Network Endpoint E2E Tests', () => {
           error: 'Invalid network'
         });
       });
+
+      it.each(['doesnotexist', '__proto__'])(
+        'should return 404 for unknown nonnumeric network %s',
+        async network => {
+          const response = await request(app)
+            .post(`/${network}`)
+            .send({
+              jsonrpc: '2.0',
+              method: 'eth_chainId',
+              params: [],
+              id: 2
+            })
+            .expect(404);
+
+          expect(response.body).toEqual({
+            jsonrpc: '2.0',
+            id: 2,
+            error: 'Invalid network'
+          });
+        }
+      );
     });
 
     describe('JSON-RPC Errors', () => {
