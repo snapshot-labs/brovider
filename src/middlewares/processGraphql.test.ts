@@ -28,11 +28,11 @@ function response() {
   } as any;
 }
 
-async function execute(query: string) {
+async function execute(query: string, variables: Record<string, unknown> = {}) {
   const json = jest.fn();
   const next = jest.fn();
   const req = {
-    body: { query },
+    body: { query, variables },
     _subgraph_url: { url: 'https://example.com/graphql' }
   } as unknown as Request;
   const res = { json } as unknown as Response;
@@ -43,9 +43,9 @@ async function execute(query: string) {
   expect(json).toHaveBeenCalledWith(upstreamResponse);
 }
 
-async function expectNoPersistentCache(query: string) {
-  await execute(query);
-  await execute(query);
+async function expectNoPersistentCache(query: string, variables: Record<string, unknown> = {}) {
+  await execute(query, variables);
+  await execute(query, variables);
   expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(2);
   expect(mockGet).not.toHaveBeenCalled();
   expect(mockSet).not.toHaveBeenCalled();
@@ -89,6 +89,70 @@ describe('processGraphql caching', () => {
 
     expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(2);
     expect(mockSet).toHaveBeenCalledTimes(2);
+  });
+
+  it('caches queries pinned by block variables', async () => {
+    const query = 'query Items($block: Block_height) { items(block: $block) { id } }';
+    const variableSets = [{ block: { number: 123 } }, { block: { hash: '0x123' } }];
+
+    for (const variables of variableSets) {
+      await execute(query, variables);
+      await execute(query, variables);
+    }
+
+    expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(2);
+    expect(mockSet).toHaveBeenCalledTimes(2);
+  });
+
+  it('caches queries pinned by variables inside block objects', async () => {
+    const query = 'query Items($number: Int) { items(block: { number: $number }) { id } }';
+    const variables = { number: 123 };
+
+    await execute(query, variables);
+    await execute(query, variables);
+
+    expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(1);
+    expect(mockSet).toHaveBeenCalledTimes(1);
+  });
+
+  it('bypasses persistent caching when an inline block pin variable is unresolved', async () => {
+    const query = `
+      query Items($number: Int, $minimum: Int!) {
+        items(block: { number: $number, number_gte: $minimum }) { id }
+      }
+    `;
+
+    await expectNoPersistentCache(query, { minimum: 123 });
+  });
+
+  it('ignores inherited names when resolving inline block variables', async () => {
+    const query = `
+      query Items($toString: Int, $minimum: Int!) {
+        items(block: { number: $toString, number_gte: $minimum }) { id }
+      }
+    `;
+
+    await expectNoPersistentCache(query, { minimum: 123 });
+  });
+
+  it('bypasses persistent caching for unpinned block variables', async () => {
+    const query = 'query Items($block: Block_height) { items(block: $block) { id } }';
+    const variableSets = [
+      { block: { number_gte: 123 } },
+      { block: { number: null } },
+      { block: { hash: null } },
+      { block: null },
+      {}
+    ];
+
+    for (const variables of variableSets) {
+      await execute(query, variables);
+      await execute(query, variables);
+    }
+
+    expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(variableSets.length * 2);
+    expect(mockGet).not.toHaveBeenCalled();
+    expect(mockSet).not.toHaveBeenCalled();
   });
 
   it('bypasses persistent caching for block number_gte while deduplicating in-flight requests', async () => {
