@@ -1,6 +1,6 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { NextFunction, Request, Response } from 'express';
-import { parse, print } from 'graphql';
+import { Kind, parse, print } from 'graphql';
 import { REQUEST_TIMEOUT } from '../constants';
 import { SubgraphError } from '../errors/SubgraphError';
 import { get, set } from '../helpers/aws';
@@ -94,10 +94,39 @@ export default async function processGraphql(req: Request, res: Response, next: 
       ? sha256(`${subgraphUrl}:${normalizedQuery}:${JSON.stringify(variables)}`)
       : sha256(`${subgraphUrl}:${normalizedQuery}`);
 
+  const operation = parsedQuery.definitions.find(
+    definition => definition.kind === Kind.OPERATION_DEFINITION
+  );
+  const getVariable = name =>
+    variables !== null && typeof variables === 'object' && Object.hasOwn(variables, name)
+      ? variables[name]
+      : undefined;
+  const hasValue = value =>
+    value.kind === Kind.VARIABLE ? getVariable(value.name.value) != null : value.kind !== Kind.NULL;
+  const isPinnedBlock = value => {
+    if (value.kind === Kind.VARIABLE) {
+      const block = getVariable(value.name.value);
+      return (
+        block !== null && typeof block === 'object' && (block.number != null || block.hash != null)
+      );
+    }
+    return (
+      value.kind === Kind.OBJECT &&
+      value.fields.some(
+        field =>
+          (field.name.value === 'number' || field.name.value === 'hash') && hasValue(field.value)
+      )
+    );
+  };
   const shouldCache =
     isCacheConfigured &&
-    parsedQuery.definitions[0].selectionSet.selections.every(selection =>
-      selection.arguments.some(argument => argument.name.value === 'block')
+    !!operation &&
+    operation.selectionSet.selections.every(
+      selection =>
+        selection.kind === Kind.FIELD &&
+        selection.arguments.some(
+          argument => argument.name.value === 'block' && isPinnedBlock(argument.value)
+        )
     );
   try {
     const result: any = await serve(cacheKey, getData, [
