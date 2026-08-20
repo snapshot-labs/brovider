@@ -89,9 +89,12 @@ describe('Network Endpoint E2E Tests', () => {
         expect(upstreamRequests).toBe(0);
       });
 
-      it('should proxy eth_chainId for a nonnumeric network', async () => {
+      it.each([
+        { network: 'sn', type: 'nonnumeric' },
+        { network: '0x1', type: 'coercible non-decimal' }
+      ])('should proxy eth_chainId for a $type network', async ({ network }) => {
         const response = await request(app)
-          .post('/sn')
+          .post(`/${network}`)
           .send({
             jsonrpc: '2.0',
             method: 'eth_chainId',
@@ -103,26 +106,6 @@ describe('Network Endpoint E2E Tests', () => {
         expect(response.body).toEqual({
           jsonrpc: '2.0',
           id: 2,
-          result: 'upstream-chain-id'
-        });
-        expect(response.body.result).not.toBe('0xNaN');
-        expect(upstreamRequests).toBe(1);
-      });
-
-      it('should proxy eth_chainId for a coercible non-decimal network', async () => {
-        const response = await request(app)
-          .post('/0x1')
-          .send({
-            jsonrpc: '2.0',
-            method: 'eth_chainId',
-            params: [],
-            id: 3
-          })
-          .expect(200);
-
-        expect(response.body).toEqual({
-          jsonrpc: '2.0',
-          id: 3,
           result: 'upstream-chain-id'
         });
         expect(upstreamRequests).toBe(1);
@@ -186,23 +169,26 @@ describe('Network Endpoint E2E Tests', () => {
         });
       });
 
-      it('should return 404 for an unknown nonnumeric network', async () => {
-        const response = await request(app)
-          .post('/doesnotexist')
-          .send({
-            jsonrpc: '2.0',
-            method: 'eth_chainId',
-            params: [],
-            id: 2
-          })
-          .expect(404);
+      it.each(['doesnotexist', '__proto__'])(
+        'should return 404 for unknown nonnumeric network %s',
+        async network => {
+          const response = await request(app)
+            .post(`/${network}`)
+            .send({
+              jsonrpc: '2.0',
+              method: 'eth_chainId',
+              params: [],
+              id: 2
+            })
+            .expect(404);
 
-        expect(response.body).toEqual({
-          jsonrpc: '2.0',
-          id: 2,
-          error: 'Invalid network'
-        });
-      });
+          expect(response.body).toEqual({
+            jsonrpc: '2.0',
+            id: 2,
+            error: 'Invalid network'
+          });
+        }
+      );
     });
 
     describe('JSON-RPC Errors', () => {
