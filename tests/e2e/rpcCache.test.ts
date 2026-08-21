@@ -268,6 +268,32 @@ describe('RPC cache E2E Tests', () => {
     configuredNodes['10'] = upstreamUrl;
   });
 
+  it('should keep the node url out of the logs when the upstream fails', async () => {
+    configuredNodes['10'] = 'http://127.0.0.1:1/?apikey=SUPERSECRETKEY';
+    const logged: string[] = [];
+    const spy = jest.spyOn(console, 'log').mockImplementation((...args) => {
+      logged.push(args.map(a => (typeof a === 'string' ? a : JSON.stringify(a))).join(' '));
+    });
+
+    try {
+      await request(app).post('/10').send(call('0xcc09', DEEP_BLOCK));
+    } finally {
+      spy.mockRestore();
+      configuredNodes['10'] = upstreamUrl;
+    }
+
+    expect(logged.join('\n')).not.toContain('SUPERSECRETKEY');
+  });
+
+  it('should not store a result that is not a string', async () => {
+    responses.set('0xcc0a', { body: { result: [['a'], ['b']] } });
+
+    await request(app).post('/1').send(call('0xcc0a', DEEP_BLOCK, 1));
+    await request(app).post('/1').send(call('0xcc0a', DEEP_BLOCK, 2));
+
+    expect(countOf('eth_call')).toBe(2);
+  });
+
   it('should answer with jsonrpc 2.0 on both a miss and a hit', async () => {
     const body = { jsonrpc: '1.0', method: 'eth_getCode', params: ['0xcc03', DEEP_BLOCK], id: 1 };
 
