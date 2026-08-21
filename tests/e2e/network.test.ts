@@ -2,7 +2,7 @@ import { Server } from 'http';
 import { AddressInfo } from 'net';
 import express from 'express';
 import request from 'supertest';
-import { rpcRequestCount } from '../../src/helpers/metrics';
+import { rpcRejectedRequestCount, rpcRequestCount } from '../../src/helpers/metrics';
 import { nodes, stop } from '../../src/helpers/nodes';
 import rpc from '../../src/rpc';
 
@@ -356,6 +356,24 @@ describe('Network Endpoint E2E Tests', () => {
         });
       });
 
+      it.each([
+        { type: 'a missing method', body: { jsonrpc: '2.0', params: [], id: 2 } },
+        { type: 'a non-string method', body: { jsonrpc: '2.0', method: 42, params: [], id: 2 } },
+        { type: 'an empty method', body: { jsonrpc: '2.0', method: '', params: [], id: 2 } }
+      ])('should reject a request with $type', async ({ body }) => {
+        const response = await request(app).post('/1').send(body).expect(400);
+
+        expect(upstreamBodies).toHaveLength(0);
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 2,
+          error: {
+            code: -32600,
+            message: 'Invalid Request'
+          }
+        });
+      });
+
       it('should preserve the ID of an invalid single chain ID request', async () => {
         const response = await request(app)
           .post('/1')
@@ -376,6 +394,112 @@ describe('Network Endpoint E2E Tests', () => {
             message: 'Invalid Request'
           }
         });
+      });
+    });
+
+    describe('Unknown Methods', () => {
+      const methodNotFound = { code: -32601, message: 'Method not found' };
+
+      it('should answer an unknown method locally', async () => {
+        const response = await request(app)
+          .post('/1')
+          .send({ jsonrpc: '2.0', method: 'foobar_x', params: [], id: 1 })
+          .expect(200);
+
+        expect(upstreamBodies).toHaveLength(0);
+        expect(response.body).toEqual({ jsonrpc: '2.0', id: 1, error: methodNotFound });
+      });
+
+      it('should answer an unknown method without an ID locally', async () => {
+        const response = await request(app)
+          .post('/1')
+          .send({ jsonrpc: '2.0', method: 'foobar_x' })
+          .expect(200);
+
+        expect(upstreamBodies).toHaveLength(0);
+        expect(response.body).toEqual({ jsonrpc: '2.0', id: null, error: methodNotFound });
+      });
+
+      it('should answer every member of a fully unknown batch locally', async () => {
+        const response = await request(app)
+          .post('/1')
+          .send([
+            { jsonrpc: '2.0', method: 'foobar_x', params: [], id: 1 },
+            { jsonrpc: '2.0', method: 'debug_traceTransaction', params: [], id: 2 }
+          ])
+          .expect(200);
+
+        expect(upstreamBodies).toHaveLength(0);
+        expect(response.body).toEqual([
+          { jsonrpc: '2.0', id: 1, error: methodNotFound },
+          { jsonrpc: '2.0', id: 2, error: methodNotFound }
+        ]);
+      });
+
+      it('should proxy a batch mixing known and unknown methods', async () => {
+        const body = [
+          { jsonrpc: '2.0', method: 'eth_call', params: [], id: 1 },
+          { jsonrpc: '2.0', method: 'foobar_x', params: [], id: 2 }
+        ];
+
+        await request(app).post('/1').send(body).expect(200);
+
+        expect(upstreamBodies).toEqual([body]);
+      });
+    });
+
+    describe('Rejected Request Metrics', () => {
+      const collectRejectedCounts = async () =>
+        (await rpcRejectedRequestCount.get()).values
+          .map(({ labels, value }) => ({ ...labels, value }))
+          .sort((a, b) => String(a.method).localeCompare(String(b.method)));
+
+      beforeEach(() => {
+        rpcRejectedRequestCount.reset();
+      });
+
+      it('should count a rejected request by network, client and method name', async () => {
+        await request(app)
+          .post('/1?client=ui')
+          .send({ jsonrpc: '2.0', method: 'debug_traceCall', params: [], id: 1 })
+          .expect(200);
+
+        expect(await collectRejectedCounts()).toEqual([
+          { network: '1', client: 'ui', method: 'debug_traceCall', value: 1 }
+        ]);
+      });
+
+      it('should not count a proxied request', async () => {
+        await request(app)
+          .post('/1?client=ui')
+          .send({ jsonrpc: '2.0', method: 'eth_call', params: [], id: 1 })
+          .expect(200);
+
+        expect(await collectRejectedCounts()).toEqual([]);
+      });
+
+      it('should label an over-long method name as other', async () => {
+        await request(app)
+          .post('/1?client=ui')
+          .send({ jsonrpc: '2.0', method: `x_${'y'.repeat(64)}`, params: [], id: 1 })
+          .expect(200);
+
+        expect(await collectRejectedCounts()).toEqual([
+          { network: '1', client: 'ui', method: 'other', value: 1 }
+        ]);
+      });
+
+      it('should label rejected methods as other once the label limit is reached', async () => {
+        const methods = Array.from({ length: 101 }, (_, index) => `overflow_${index}`);
+
+        for (const method of methods) {
+          await request(app).post('/1').send({ jsonrpc: '2.0', method, id: 1 }).expect(200);
+        }
+
+        const counts = await collectRejectedCounts();
+
+        expect(counts.filter(count => count.method === 'other')).toHaveLength(1);
+        expect(counts.length).toBeLessThan(methods.length);
       });
     });
 
@@ -418,10 +542,14 @@ describe('Network Endpoint E2E Tests', () => {
       it('should label an unknown method as other', async () => {
         await request(app)
           .post('/1?client=ui')
-          .send({ jsonrpc: '2.0', method: 'eth_notAMethod', params: [], id: 1 })
+          .send([
+            { jsonrpc: '2.0', method: 'eth_call', params: [], id: 1 },
+            { jsonrpc: '2.0', method: 'eth_notAMethod', params: [], id: 2 }
+          ])
           .expect(200);
 
         expect(await collectCounts()).toEqual([
+          { network: '1', client: 'ui', method: 'eth_call', value: 1 },
           { network: '1', client: 'ui', method: 'other', value: 1 }
         ]);
       });
@@ -466,6 +594,12 @@ describe('Network Endpoint E2E Tests', () => {
           path: '/11001100?client=ui',
           body: { jsonrpc: '2.0', method: 'eth_call', params: [], id: 1 },
           status: 500
+        },
+        {
+          type: 'an unknown method',
+          path: '/1?client=ui',
+          body: { jsonrpc: '2.0', method: 'foobar_x', params: [], id: 1 },
+          status: 200
         }
       ])('should not count $type', async ({ path, body, status }) => {
         await request(app).post(path).send(body).expect(status);
@@ -571,47 +705,6 @@ describe('Network Endpoint E2E Tests', () => {
     });
 
     describe('JSON-RPC Errors', () => {
-      it('should return error when method is missing', async () => {
-        const response = await request(app)
-          .post('/1')
-          .send({
-            jsonrpc: '2.0',
-            params: [],
-            id: 1
-          })
-          .expect(200);
-
-        expect(response.body).toEqual({
-          id: 1,
-          jsonrpc: '2.0',
-          error: {
-            code: expect.any(Number),
-            message: expect.any(String)
-          }
-        });
-      });
-
-      it('should return error for invalid method', async () => {
-        const response = await request(app)
-          .post('/1')
-          .send({
-            jsonrpc: '2.0',
-            method: 'invalid_method_name',
-            params: [],
-            id: 2
-          })
-          .expect(200);
-
-        expect(response.body).toMatchObject({
-          id: 2,
-          jsonrpc: '2.0',
-          error: {
-            code: expect.any(Number),
-            message: expect.stringMatching(/not (supported|available|found)|does not exist/i)
-          }
-        });
-      });
-
       it('should return error -32602 for invalid parameters', async () => {
         const response = await request(app)
           .post('/1')
