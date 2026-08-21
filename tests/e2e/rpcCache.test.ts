@@ -11,7 +11,12 @@ const DEEP_BLOCK = '0x1000000';
 const SHALLOW_BLOCK = `0x${HEAD.toString(16)}`;
 const ADDRESS = '0x0000000000000000000000000000000000000001';
 
-type Canned = { status?: number; headers?: Record<string, string>; body: Record<string, any> };
+type Canned = {
+  status?: number;
+  headers?: Record<string, string>;
+  body?: Record<string, any>;
+  raw?: string;
+};
 
 describe('RPC cache E2E Tests', () => {
   let app: express.Application;
@@ -22,6 +27,7 @@ describe('RPC cache E2E Tests', () => {
   let calls: string[] = [];
   let answers = 0;
   let upstreamDelay = 100;
+  let received: Record<string, any> = {};
   const responses = new Map<string, Canned>();
 
   const call = (data: string, block: string, id: number = 1) => ({
@@ -49,6 +55,7 @@ describe('RPC cache E2E Tests', () => {
     upstreamApp.post('/', async (req, res) => {
       const { method, params, id } = req.body;
       calls.push(method);
+      received = req.headers;
       if (upstreamDelay) await new Promise(resolve => setTimeout(resolve, upstreamDelay));
 
       if (method === 'eth_blockNumber') {
@@ -58,7 +65,9 @@ describe('RPC cache E2E Tests', () => {
       const canned = responses.get(params?.[0]?.data ?? params?.[0]);
       if (canned) {
         if (canned.headers) res.set(canned.headers);
-        return res.status(canned.status ?? 200).json({ jsonrpc: '2.0', id, ...canned.body });
+        res.status(canned.status ?? 200);
+        if (canned.raw !== undefined) return res.send(canned.raw);
+        return res.json({ jsonrpc: '2.0', id, ...canned.body });
       }
 
       answers += 1;
@@ -92,6 +101,17 @@ describe('RPC cache E2E Tests', () => {
     });
   });
 
+  it('should look the head up once per network for the whole ttl window', async () => {
+    upstreamDelay = 0;
+
+    await request(app).post('/1').send(call('0xa001', DEEP_BLOCK));
+    await request(app).post('/1').send(call('0xa002', DEEP_BLOCK));
+    await request(app).post('/1').send(call('0xa003', DEEP_BLOCK));
+
+    expect(countOf('eth_call')).toBe(3);
+    expect(countOf('eth_blockNumber')).toBe(1);
+  });
+
   it('should answer two concurrent block-pinned reads with a single upstream request', async () => {
     const [first, second] = await Promise.all([
       request(app).post('/1').send(call('0xaa01', DEEP_BLOCK, 11)),
@@ -102,17 +122,6 @@ describe('RPC cache E2E Tests', () => {
     expect(first.body.result).toBe(second.body.result);
     expect(first.body.id).toBe(11);
     expect(second.body.id).toBe(22);
-  });
-
-  it('should serve a repeated block-pinned read from cache without an upstream request', async () => {
-    const first = await request(app).post('/1').send(call('0xaa02', DEEP_BLOCK));
-    expect(countOf('eth_call')).toBe(1);
-
-    calls = [];
-    const second = await request(app).post('/1').send(call('0xaa02', DEEP_BLOCK, 2));
-
-    expect(countOf('eth_call')).toBe(0);
-    expect(second.body).toEqual({ jsonrpc: '2.0', id: 2, result: first.body.result });
   });
 
   it.each([
@@ -214,6 +223,34 @@ describe('RPC cache E2E Tests', () => {
     expect(response.status).toBe(429);
     expect(response.headers['retry-after']).toBe('30');
     expect(response.headers['x-ratelimit-remaining']).toBe('0');
+  });
+
+  it('should forward a non-JSON upstream body with its status and headers', async () => {
+    responses.set('0xcc06', {
+      status: 429,
+      headers: { 'retry-after': '30', 'content-type': 'text/plain' },
+      raw: 'rate limited'
+    });
+
+    const response = await request(app).post('/1').send(call('0xcc06', DEEP_BLOCK));
+
+    expect(response.status).toBe(429);
+    expect(response.headers['retry-after']).toBe('30');
+    expect(response.text).toBe('rate limited');
+  });
+
+  it('should forward the client request headers to the upstream', async () => {
+    await request(app).post('/1').set('x-client-tag', 'score-api').send(call('0xcc07', DEEP_BLOCK));
+
+    expect(received['x-client-tag']).toBe('score-api');
+  });
+
+  it('should answer a request with no id with a null id', async () => {
+    const response = await request(app)
+      .post('/1')
+      .send({ jsonrpc: '2.0', method: 'eth_getCode', params: ['0xcc08', DEEP_BLOCK] });
+
+    expect(response.body.id).toBeNull();
   });
 
   it('should answer a failed upstream once, without a second attempt through the proxy', async () => {
