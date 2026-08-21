@@ -452,18 +452,37 @@ describe('Network Endpoint E2E Tests', () => {
         expect(await collectUnknownCounts()).toEqual([{ method: 'other', value: 1 }]);
       });
 
-      it('should drop the least recently seen name once the label limit is reached', async () => {
-        const methods = Array.from({ length: 101 }, (_, index) => `overflow_${index}`);
+      const sendUnknown = (method: string) =>
+        request(app).post('/1').send({ jsonrpc: '2.0', method, id: 1 }).expect(200);
 
-        for (const method of methods) {
-          await request(app).post('/1').send({ jsonrpc: '2.0', method, id: 1 }).expect(200);
+      const fillLabels = async (prefix: string, count: number) => {
+        for (let index = 0; index < count; index++) {
+          await sendUnknown(`${prefix}_${index}`);
         }
+      };
+
+      it('should drop the least recently seen name once the label limit is reached', async () => {
+        await fillLabels('overflow', 101);
 
         const names = (await collectUnknownCounts()).map(count => count.method);
 
         expect(names).toHaveLength(100);
         expect(names).not.toContain('overflow_0');
         expect(names).toContain('overflow_100');
+      });
+
+      it('should keep a name that is still arriving and drop one that stopped', async () => {
+        await fillLabels('flush', 100);
+
+        await sendUnknown('still_arriving');
+        await fillLabels('filler', 99);
+        await sendUnknown('still_arriving');
+        await sendUnknown('one_more');
+
+        const names = (await collectUnknownCounts()).map(count => count.method);
+
+        expect(names).toContain('still_arriving');
+        expect(names).not.toContain('filler_0');
       });
     });
 
