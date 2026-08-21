@@ -15,7 +15,7 @@ describe('Network Endpoint E2E Tests', () => {
   });
 
   describe('Cached Methods', () => {
-    const configuredNetworks = ['1', '10', 'sn', '0x1'];
+    const configuredNetworks = ['1', '10', 'sn', 'sn-sep', '0x1'];
     let configuredNodes: Record<string, string>;
     let originalNodes: Record<string, string | undefined>;
     let upstream: Server;
@@ -194,6 +194,69 @@ describe('Network Endpoint E2E Tests', () => {
 
         await request(app).post('/1').send(body).expect(204);
 
+        expect(upstreamBodies).toEqual([body]);
+      });
+    });
+
+    describe('starknet_chainId', () => {
+      it.each([
+        { network: 'sn', expected: '0x534e5f4d41494e' },
+        { network: 'sn-sep', expected: '0x534e5f5345504f4c4941' }
+      ])(
+        'should answer $network locally without an upstream request',
+        async ({ network, expected }) => {
+          const response = await request(app)
+            .post(`/${network}`)
+            .send({
+              jsonrpc: '2.0',
+              method: 'starknet_chainId',
+              params: [],
+              id: 4
+            })
+            .expect(200);
+
+          expect(response.body).toEqual({
+            jsonrpc: '2.0',
+            id: 4,
+            result: expected
+          });
+          expect(upstreamBodies).toHaveLength(0);
+        }
+      );
+
+      it('should proxy starknet_chainId for a decimal network', async () => {
+        const body = {
+          jsonrpc: '2.0',
+          method: 'starknet_chainId',
+          params: [],
+          id: 5
+        };
+
+        const response = await request(app).post('/1').send(body).expect(200);
+
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 5,
+          result: 'upstream-starknet_chainId'
+        });
+        expect(upstreamBodies).toEqual([body]);
+      });
+
+      it.each(['sn', 'sn-sep'])('should proxy other methods for %s', async network => {
+        const body = {
+          jsonrpc: '2.0',
+          method: 'starknet_blockNumber',
+          params: [],
+          id: 6
+        };
+
+        const response = await request(app).post(`/${network}`).send(body).expect(200);
+
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 6,
+          result: 'upstream-starknet_blockNumber'
+        });
         expect(upstreamBodies).toEqual([body]);
       });
     });
