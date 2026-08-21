@@ -5,6 +5,7 @@ import serve from '../helpers/requestDeduplicator';
 import { fetchWithKeepAlive, sha256 } from '../helpers/utils';
 
 type Node = { url: string; network: string; headers: Record<string, string> };
+type Entry = { value: any; size: number; expiresAt: number };
 
 const BLOCK_PARAM_INDEX = new Map([
   ['eth_call', 1],
@@ -13,13 +14,29 @@ const BLOCK_PARAM_INDEX = new Map([
   ['eth_getStorageAt', 2]
 ]);
 
+const SKIPPED_HEADERS = new Set([
+  'connection',
+  'content-encoding',
+  'content-length',
+  'etag',
+  'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'te',
+  'trailer',
+  'transfer-encoding',
+  'upgrade'
+]);
+
 const HEX_BLOCK = /^0x[0-9a-f]+$/i;
 const CONFIRMATIONS = 128;
 const HEAD_TTL = 10e3;
+const ENTRY_TTL = 3600e3;
 const MAX_VALUE_SIZE = 100e3;
-const MAX_CACHE_SIZE = 64e6;
+const MAX_CACHE_SIZE = 16e6;
+const ENTRY_OVERHEAD = 128;
 
-const cache = new Map<string, { value: any; size: number }>();
+const cache = new Map<string, Entry>();
 let cacheSize = 0;
 const heads = new Map<string, { number: number | null; expiresAt: number }>();
 
@@ -41,7 +58,7 @@ async function rpcCall(node: Node, body: any) {
     body: JSON.stringify(body)
   });
 
-  return { status: res.status, body: await res.json() };
+  return { status: res.status, headers: res.headers.raw(), body: await res.json() };
 }
 
 async function headOf(node: Node): Promise<number | null> {
@@ -58,7 +75,7 @@ async function headOf(node: Node): Promise<number | null> {
       number = parseInt(body.result, 16);
     }
   } catch (e: any) {
-    console.log('[withRpcCache] head lookup failed', node.network, e.message || e);
+    console.log('[withRpcCache] head lookup failed', node.network, e?.errors?.[0]?.message ?? e);
   }
 
   heads.set(node.network, { number, expiresAt: Date.now() + HEAD_TTL });
@@ -70,19 +87,25 @@ function readCache(key: string) {
   if (entry === undefined) return undefined;
 
   cache.delete(key);
+  if (entry.expiresAt <= Date.now()) {
+    cacheSize -= entry.size;
+    return undefined;
+  }
+
   cache.set(key, entry);
   return entry.value;
 }
 
 function writeCache(key: string, value: any) {
-  const size = JSON.stringify(value).length;
-  if (size > MAX_VALUE_SIZE) return;
+  const chars = JSON.stringify(value).length;
+  if (cache.has(key) || chars > MAX_VALUE_SIZE) return;
 
-  cacheSize += size - (cache.get(key)?.size ?? 0);
-  cache.set(key, { value, size });
+  const size = 2 * (chars + key.length) + ENTRY_OVERHEAD;
+  cache.set(key, { value, size, expiresAt: Date.now() + ENTRY_TTL });
+  cacheSize += size;
 
   while (cacheSize > MAX_CACHE_SIZE && cache.size > 1) {
-    const [oldest, entry] = cache.entries().next().value as [string, { size: number }];
+    const [oldest, entry] = cache.entries().next().value as [string, Entry];
     cache.delete(oldest);
     cacheSize -= entry.size;
   }
@@ -98,27 +121,38 @@ export default async function withRpcCache(req: Request, res: Response, next: Ne
     return next();
   }
 
-  const key = sha256(`${node.network}:${body.method}:${JSON.stringify(body.params)}`);
+  const key = sha256(`${node.url}:${body.method}:${JSON.stringify(body.params)}`);
   const cached = readCache(key);
   if (cached !== undefined) {
     rpcCacheCount.inc({ status: 'HIT' });
-    return res.json({ jsonrpc: body.jsonrpc, id: body.id, result: cached });
+    return res.json({ jsonrpc: '2.0', id: body.id, result: cached });
   }
 
   rpcCacheCount.inc({ status: 'MISS' });
-  const [head, response] = await Promise.all([
-    headOf(node),
-    serve(key, rpcCall, [node, body]).catch(() => null)
-  ]);
-  if (!response) return next();
+  const pendingHead = headOf(node);
+
+  let response: { status: number; headers: Record<string, string[]>; body: any };
+  try {
+    response = await serve(key, rpcCall, [node, body]);
+  } catch (e) {
+    await pendingHead;
+    return res.status(502).json({
+      jsonrpc: '2.0',
+      id: body.id,
+      error: { code: -32603, message: 'Upstream request failed' }
+    });
+  }
+
+  for (const [name, values] of Object.entries(response.headers)) {
+    if (!SKIPPED_HEADERS.has(name)) res.setHeader(name, values);
+  }
 
   const payload = response.body;
   const isEnvelope = !!payload && typeof payload === 'object' && !Array.isArray(payload);
-  const isFinal = head !== null && block <= head - CONFIRMATIONS;
+  res.status(response.status).json(isEnvelope ? { ...payload, id: body.id } : payload);
 
-  if (isEnvelope && isFinal && payload.error == null && payload.result != null) {
-    writeCache(key, payload.result);
+  const head = await pendingHead;
+  if (isEnvelope && head !== null && block <= head - CONFIRMATIONS) {
+    if (payload.error == null && payload.result != null) writeCache(key, payload.result);
   }
-
-  return res.status(response.status).json(isEnvelope ? { ...payload, id: body.id } : payload);
 }
