@@ -1,5 +1,7 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { NextFunction, Request, Response } from 'express';
+import { RPC_CLIENTS, RPC_METHODS } from '../constants';
+import { rpcRequestCount } from '../helpers/metrics';
 import { nodes } from '../helpers/nodes';
 
 const NODE_HEADERS: Record<string, Record<string, string>> = {
@@ -61,6 +63,19 @@ export default function setNode(req: Request, res: Response, next: NextFunction)
       }
     });
     return res.status(500).json({ jsonrpc, id, error: 'Invalid node URL configuration' });
+  }
+
+  const client =
+    typeof req.query.client === 'string' && RPC_CLIENTS.has(req.query.client)
+      ? req.query.client
+      : 'other';
+
+  for (const request of requests) {
+    rpcRequestCount.inc({
+      network,
+      client,
+      method: RPC_METHODS.has(request.method) ? request.method : 'other'
+    });
   }
 
   (req as any)._node = {

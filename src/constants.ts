@@ -7,6 +7,73 @@ const SUBGRAPH_KEY = process.env.SUBGRAPH_KEY;
 // Timeout configuration
 export const REQUEST_TIMEOUT = 30e3; // 30 seconds
 
+export const RPC_CLIENTS = new Set([
+  'api',
+  'auction',
+  'delegates-api',
+  'highlight',
+  'mana',
+  'mcp',
+  'sequencer',
+  'sx.js',
+  'ui'
+]);
+
+export const RPC_METHODS = new Set([
+  'eth_blockNumber',
+  'eth_call',
+  'eth_chainId',
+  'eth_estimateGas',
+  'eth_feeHistory',
+  'eth_gasPrice',
+  'eth_getBalance',
+  'eth_getBlockByHash',
+  'eth_getBlockByNumber',
+  'eth_getBlockReceipts',
+  'eth_getCode',
+  'eth_getFilterChanges',
+  'eth_getLogs',
+  'eth_getProof',
+  'eth_getStorageAt',
+  'eth_getTransactionByHash',
+  'eth_getTransactionCount',
+  'eth_getTransactionReceipt',
+  'eth_maxPriorityFeePerGas',
+  'eth_newPendingTransactionFilter',
+  'eth_sendRawTransaction',
+  'eth_syncing',
+  'eth_uninstallFilter',
+  'net_version',
+  'starknet_addDeclareTransaction',
+  'starknet_addDeployAccountTransaction',
+  'starknet_addInvokeTransaction',
+  'starknet_blockHashAndNumber',
+  'starknet_blockNumber',
+  'starknet_call',
+  'starknet_chainId',
+  'starknet_estimateFee',
+  'starknet_estimateMessageFee',
+  'starknet_getBlockTransactionCount',
+  'starknet_getBlockWithReceipts',
+  'starknet_getBlockWithTxHashes',
+  'starknet_getBlockWithTxs',
+  'starknet_getClass',
+  'starknet_getClassAt',
+  'starknet_getClassHashAt',
+  'starknet_getEvents',
+  'starknet_getNonce',
+  'starknet_getStateUpdate',
+  'starknet_getStorageAt',
+  'starknet_getTransactionByBlockIdAndIndex',
+  'starknet_getTransactionByHash',
+  'starknet_getTransactionReceipt',
+  'starknet_getTransactionStatus',
+  'starknet_simulateTransactions',
+  'starknet_specVersion',
+  'starknet_syncing',
+  'web3_clientVersion'
+]);
+
 export const subgraphs = {
   subgraph: {
     mainnet: `https://gateway.network.thegraph.com/api/${NON_RESTRICTED_SUBGRAPH_KEY}/subgraphs/id/`,
