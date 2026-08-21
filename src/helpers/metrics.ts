@@ -43,6 +43,12 @@ export const rpcRequestCount = new client.Counter({
   labelNames: ['network', 'client', 'method']
 });
 
+export const rpcUnknownMethodCount = new client.Counter({
+  name: 'rpc_unknown_method_count',
+  help: 'Number of proxied RPC requests whose method is outside the known set',
+  labelNames: ['namespace']
+});
+
 export const nodesRefreshCount = new client.Counter({
   name: 'node_refresh_count',
   help: 'Number of node refreshes'

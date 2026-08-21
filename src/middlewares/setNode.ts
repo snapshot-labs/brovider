@@ -1,7 +1,7 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { NextFunction, Request, Response } from 'express';
-import { RPC_CLIENTS, RPC_METHODS } from '../constants';
-import { rpcRequestCount } from '../helpers/metrics';
+import { RPC_CLIENTS, RPC_METHODS, RPC_NAMESPACES } from '../constants';
+import { rpcRequestCount, rpcUnknownMethodCount } from '../helpers/metrics';
 import { nodes } from '../helpers/nodes';
 
 const NODE_HEADERS: Record<string, Record<string, string>> = {
@@ -15,6 +15,12 @@ const NODE_HEADERS: Record<string, Record<string, string>> = {
 
 function metricLabel(value: unknown, allowed: Set<string>) {
   return typeof value === 'string' && allowed.has(value) ? value : 'other';
+}
+
+function namespaceLabel(method: unknown) {
+  if (typeof method !== 'string') return 'other';
+
+  return metricLabel(method.split('_')[0], RPC_NAMESPACES);
 }
 
 export default function setNode(req: Request, res: Response, next: NextFunction) {
@@ -32,8 +38,11 @@ export default function setNode(req: Request, res: Response, next: NextFunction)
   const jsonrpc = isBatch ? '2.0' : body?.jsonrpc;
   const url = Object.hasOwn(nodes, network) ? nodes[network] : undefined;
 
+  const hasUnusableMethod = !isBatch && (typeof body?.method !== 'string' || body.method === '');
+
   if (
     requests.length === 0 ||
+    hasUnusableMethod ||
     requests.some(
       request =>
         !request ||
@@ -73,6 +82,10 @@ export default function setNode(req: Request, res: Response, next: NextFunction)
 
   for (const request of requests) {
     rpcRequestCount.inc({ network, client, method: metricLabel(request.method, RPC_METHODS) });
+
+    if (!RPC_METHODS.has(request.method)) {
+      rpcUnknownMethodCount.inc({ namespace: namespaceLabel(request.method) });
+    }
   }
 
   (req as any)._node = {

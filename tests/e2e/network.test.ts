@@ -2,7 +2,7 @@ import { Server } from 'http';
 import { AddressInfo } from 'net';
 import express from 'express';
 import request from 'supertest';
-import { rpcRequestCount } from '../../src/helpers/metrics';
+import { rpcRequestCount, rpcUnknownMethodCount } from '../../src/helpers/metrics';
 import { nodes, stop } from '../../src/helpers/nodes';
 import rpc from '../../src/rpc';
 
@@ -356,6 +356,24 @@ describe('Network Endpoint E2E Tests', () => {
         });
       });
 
+      it.each([
+        { type: 'a missing method', body: { jsonrpc: '2.0', params: [], id: 2 } },
+        { type: 'a non-string method', body: { jsonrpc: '2.0', method: 42, params: [], id: 2 } },
+        { type: 'an empty method', body: { jsonrpc: '2.0', method: '', params: [], id: 2 } }
+      ])('should reject a request with $type', async ({ body }) => {
+        const response = await request(app).post('/1').send(body).expect(400);
+
+        expect(upstreamBodies).toHaveLength(0);
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 2,
+          error: {
+            code: -32600,
+            message: 'Invalid Request'
+          }
+        });
+      });
+
       it('should preserve the ID of an invalid single chain ID request', async () => {
         const response = await request(app)
           .post('/1')
@@ -376,6 +394,72 @@ describe('Network Endpoint E2E Tests', () => {
             message: 'Invalid Request'
           }
         });
+      });
+    });
+
+    describe('Unknown Methods', () => {
+      const collectUnknownCounts = async () =>
+        (await rpcUnknownMethodCount.get()).values
+          .map(({ labels, value }) => ({ ...labels, value }))
+          .sort((a, b) => String(a.namespace).localeCompare(String(b.namespace)));
+
+      beforeEach(() => {
+        rpcUnknownMethodCount.reset();
+      });
+
+      it.each([
+        { type: 'a namespace a node serves', method: 'erigon_blockNumber', namespace: 'erigon' },
+        { type: 'a namespace no node serves', method: 'foobar_x', namespace: 'other' },
+        { type: 'a method name with no namespace', method: 'foobar', namespace: 'other' }
+      ])('should proxy $type and count it', async ({ method, namespace }) => {
+        const body = { jsonrpc: '2.0', method, params: [], id: 1 };
+
+        await request(app).post('/1').send(body).expect(200);
+
+        expect(upstreamBodies).toEqual([body]);
+        expect(await collectUnknownCounts()).toEqual([{ namespace, value: 1 }]);
+      });
+
+      it.each([
+        { method: 'chain_getBlockHash' },
+        { method: 'state_getStorage' },
+        { method: 'hmyv2_getValidatorsStakeByBlockNumber' }
+      ])('should not count $method, which a score-api strategy sends', async ({ method }) => {
+        await request(app)
+          .post('/1')
+          .send({ jsonrpc: '2.0', method, params: [], id: 1 })
+          .expect(200);
+
+        expect(upstreamBodies).toHaveLength(1);
+        expect(await collectUnknownCounts()).toEqual([]);
+      });
+
+      it('should count every unknown member of a batch', async () => {
+        await request(app)
+          .post('/1')
+          .send([
+            { jsonrpc: '2.0', method: 'eth_call', params: [], id: 1 },
+            { jsonrpc: '2.0', method: 'trace_block', params: [], id: 2 },
+            { jsonrpc: '2.0', method: 'foobar_x', params: [], id: 3 }
+          ])
+          .expect(200);
+
+        expect(await collectUnknownCounts()).toEqual([
+          { namespace: 'other', value: 1 },
+          { namespace: 'trace', value: 1 }
+        ]);
+      });
+
+      it('should forward a batch carrying a member with no method', async () => {
+        const body = [
+          { jsonrpc: '2.0', method: 'eth_blockNumber', params: [], id: 1 },
+          { jsonrpc: '2.0', id: 2 }
+        ];
+
+        await request(app).post('/1').send(body).expect(200);
+
+        expect(upstreamBodies).toEqual([body]);
+        expect(await collectUnknownCounts()).toEqual([{ namespace: 'other', value: 1 }]);
       });
     });
 
@@ -571,26 +655,6 @@ describe('Network Endpoint E2E Tests', () => {
     });
 
     describe('JSON-RPC Errors', () => {
-      it('should return error when method is missing', async () => {
-        const response = await request(app)
-          .post('/1')
-          .send({
-            jsonrpc: '2.0',
-            params: [],
-            id: 1
-          })
-          .expect(200);
-
-        expect(response.body).toEqual({
-          id: 1,
-          jsonrpc: '2.0',
-          error: {
-            code: expect.any(Number),
-            message: expect.any(String)
-          }
-        });
-      });
-
       it('should return error for invalid method', async () => {
         const response = await request(app)
           .post('/1')
