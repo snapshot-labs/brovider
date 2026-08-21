@@ -1,7 +1,7 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { NextFunction, Request, Response } from 'express';
 import { RPC_CLIENTS, RPC_METHODS } from '../constants';
-import { rpcRejectedRequestCount, rpcRequestCount } from '../helpers/metrics';
+import { rpcRequestCount, rpcUnknownMethodCount } from '../helpers/metrics';
 import { nodes } from '../helpers/nodes';
 
 const NODE_HEADERS: Record<string, Record<string, string>> = {
@@ -13,31 +13,27 @@ const NODE_HEADERS: Record<string, Record<string, string>> = {
   }
 };
 
-const REJECTED_METHOD_LABEL_LIMIT = 100;
-const REJECTED_METHOD_LABEL_MAX_LENGTH = 64;
-const rejectedMethodLabels = new Set<string>();
+const UNKNOWN_METHOD_LABEL_LIMIT = 100;
+const UNKNOWN_METHOD_LABEL_MAX_LENGTH = 64;
+const unknownMethodLabels = new Set<string>();
 
 function metricLabel(value: unknown, allowed: Set<string>) {
   return typeof value === 'string' && allowed.has(value) ? value : 'other';
 }
 
-function rejectedMethodLabel(method: string) {
-  if (!rejectedMethodLabels.has(method)) {
-    if (
-      method.length > REJECTED_METHOD_LABEL_MAX_LENGTH ||
-      rejectedMethodLabels.size >= REJECTED_METHOD_LABEL_LIMIT
-    ) {
-      return 'other';
-    }
-    rejectedMethodLabels.add(method);
+function countUnknownMethod(method: string) {
+  const label = method.length > UNKNOWN_METHOD_LABEL_MAX_LENGTH ? 'other' : method;
+
+  unknownMethodLabels.delete(label);
+  unknownMethodLabels.add(label);
+
+  if (unknownMethodLabels.size > UNKNOWN_METHOD_LABEL_LIMIT) {
+    const [leastRecent] = unknownMethodLabels;
+    unknownMethodLabels.delete(leastRecent);
+    rpcUnknownMethodCount.remove(leastRecent);
   }
 
-  return method;
-}
-
-function requestId(request: any) {
-  const id = request?.id;
-  return typeof id === 'string' || typeof id === 'number' || id === null ? id : null;
+  rpcUnknownMethodCount.inc({ method: label });
 }
 
 export default function setNode(req: Request, res: Response, next: NextFunction) {
@@ -45,7 +41,13 @@ export default function setNode(req: Request, res: Response, next: NextFunction)
   const body = req.body;
   const isBatch = Array.isArray(body);
   const requests = isBatch ? body : [body];
-  const id = isBatch ? null : requestId(body);
+  const id =
+    !isBatch &&
+    body &&
+    typeof body === 'object' &&
+    (typeof body.id === 'string' || typeof body.id === 'number' || body.id === null)
+      ? body.id
+      : null;
   const jsonrpc = isBatch ? '2.0' : body?.jsonrpc;
   const url = Object.hasOwn(nodes, network) ? nodes[network] : undefined;
 
@@ -90,26 +92,12 @@ export default function setNode(req: Request, res: Response, next: NextFunction)
 
   const client = metricLabel(req.query.client, RPC_CLIENTS);
 
-  if (requests.every(request => !RPC_METHODS.has(request.method))) {
-    const error = { code: -32601, message: 'Method not found' };
-
-    for (const request of requests) {
-      rpcRejectedRequestCount.inc({
-        network,
-        client,
-        method: rejectedMethodLabel(request.method)
-      });
-    }
-
-    return res.json(
-      isBatch
-        ? requests.map(request => ({ jsonrpc: '2.0', id: requestId(request), error }))
-        : { jsonrpc: '2.0', id, error }
-    );
-  }
-
   for (const request of requests) {
     rpcRequestCount.inc({ network, client, method: metricLabel(request.method, RPC_METHODS) });
+
+    if (!RPC_METHODS.has(request.method)) {
+      countUnknownMethod(request.method);
+    }
   }
 
   (req as any)._node = {

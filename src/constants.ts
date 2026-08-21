@@ -20,6 +20,7 @@ export const RPC_CLIENTS = new Set([
 ]);
 
 export const RPC_METHODS = new Set([
+  'chain_getBlockHash',
   'eth_accounts',
   'eth_blobBaseFee',
   'eth_blockNumber',
@@ -55,6 +56,7 @@ export const RPC_METHODS = new Set([
   'eth_simulateV1',
   'eth_syncing',
   'eth_uninstallFilter',
+  'hmyv2_getValidatorsStakeByBlockNumber',
   'net_listening',
   'net_peerCount',
   'net_version',
@@ -90,6 +92,7 @@ export const RPC_METHODS = new Set([
   'starknet_syncing',
   'starknet_traceBlockTransactions',
   'starknet_traceTransaction',
+  'state_getStorage',
   'web3_clientVersion',
   'web3_sha3'
 ]);
