@@ -32,6 +32,12 @@ export const cacheHitCount = new client.Counter({
   labelNames: ['status']
 });
 
+export const rpcCacheCount = new client.Counter({
+  name: 'rpc_cache_count',
+  help: 'Number of hit/miss/bypass of the RPC cache layer',
+  labelNames: ['status']
+});
+
 export const requestDeduplicatorSize = new client.Gauge({
   name: 'request_deduplicator_size',
   help: 'Total number of items in the deduplicator queue'
