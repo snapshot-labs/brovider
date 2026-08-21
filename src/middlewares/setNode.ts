@@ -1,6 +1,6 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { NextFunction, Request, Response } from 'express';
-import { RPC_CLIENTS, RPC_METHODS } from '../constants';
+import { RPC_CLIENTS, RPC_METHODS, RPC_NAMESPACES } from '../constants';
 import { rpcRequestCount, rpcUnknownMethodCount } from '../helpers/metrics';
 import { nodes } from '../helpers/nodes';
 
@@ -13,27 +13,14 @@ const NODE_HEADERS: Record<string, Record<string, string>> = {
   }
 };
 
-const UNKNOWN_METHOD_LABEL_LIMIT = 100;
-const UNKNOWN_METHOD_LABEL_MAX_LENGTH = 64;
-const unknownMethodLabels = new Set<string>();
-
 function metricLabel(value: unknown, allowed: Set<string>) {
   return typeof value === 'string' && allowed.has(value) ? value : 'other';
 }
 
-function countUnknownMethod(method: string) {
-  const label = method.length > UNKNOWN_METHOD_LABEL_MAX_LENGTH ? 'other' : method;
+function namespaceLabel(method: unknown) {
+  if (typeof method !== 'string') return 'other';
 
-  unknownMethodLabels.delete(label);
-  unknownMethodLabels.add(label);
-
-  if (unknownMethodLabels.size > UNKNOWN_METHOD_LABEL_LIMIT) {
-    const [leastRecent] = unknownMethodLabels;
-    unknownMethodLabels.delete(leastRecent);
-    rpcUnknownMethodCount.remove(leastRecent);
-  }
-
-  rpcUnknownMethodCount.inc({ method: label });
+  return metricLabel(method.split('_')[0], RPC_NAMESPACES);
 }
 
 export default function setNode(req: Request, res: Response, next: NextFunction) {
@@ -51,16 +38,17 @@ export default function setNode(req: Request, res: Response, next: NextFunction)
   const jsonrpc = isBatch ? '2.0' : body?.jsonrpc;
   const url = Object.hasOwn(nodes, network) ? nodes[network] : undefined;
 
+  const hasUnusableMethod = !isBatch && (typeof body?.method !== 'string' || body.method === '');
+
   if (
     requests.length === 0 ||
+    hasUnusableMethod ||
     requests.some(
       request =>
         !request ||
         typeof request !== 'object' ||
         Array.isArray(request) ||
-        request.jsonrpc !== '2.0' ||
-        typeof request.method !== 'string' ||
-        request.method === ''
+        request.jsonrpc !== '2.0'
     )
   ) {
     return res.status(400).json({
@@ -96,7 +84,7 @@ export default function setNode(req: Request, res: Response, next: NextFunction)
     rpcRequestCount.inc({ network, client, method: metricLabel(request.method, RPC_METHODS) });
 
     if (!RPC_METHODS.has(request.method)) {
-      countUnknownMethod(request.method);
+      rpcUnknownMethodCount.inc({ namespace: namespaceLabel(request.method) });
     }
   }
 

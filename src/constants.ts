@@ -19,6 +19,42 @@ export const RPC_CLIENTS = new Set([
   'ui'
 ]);
 
+export const RPC_NAMESPACES = new Set([
+  'account',
+  'admin',
+  'archive',
+  'author',
+  'chain',
+  'chainHead',
+  'chainSpec',
+  'childstate',
+  'debug',
+  'erigon',
+  'eth',
+  'evm',
+  'hardhat',
+  'hmy',
+  'hmyv2',
+  'moon',
+  'net',
+  'offchain',
+  'ots',
+  'parity',
+  'payment',
+  'personal',
+  'rpc',
+  'starknet',
+  'state',
+  'subscribe',
+  'system',
+  'trace',
+  'transaction',
+  'transactionWatch',
+  'txpool',
+  'unsubscribe',
+  'web3'
+]);
+
 export const RPC_METHODS = new Set([
   'chain_getBlockHash',
   'eth_accounts',

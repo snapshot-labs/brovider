@@ -401,19 +401,23 @@ describe('Network Endpoint E2E Tests', () => {
       const collectUnknownCounts = async () =>
         (await rpcUnknownMethodCount.get()).values
           .map(({ labels, value }) => ({ ...labels, value }))
-          .sort((a, b) => String(a.method).localeCompare(String(b.method)));
+          .sort((a, b) => String(a.namespace).localeCompare(String(b.namespace)));
 
       beforeEach(() => {
         rpcUnknownMethodCount.reset();
       });
 
-      it('should proxy an unknown method and count it by name', async () => {
-        const body = { jsonrpc: '2.0', method: 'foobar_x', params: [], id: 1 };
+      it.each([
+        { type: 'a namespace a node serves', method: 'erigon_blockNumber', namespace: 'erigon' },
+        { type: 'a namespace no node serves', method: 'foobar_x', namespace: 'other' },
+        { type: 'a method name with no namespace', method: 'foobar', namespace: 'other' }
+      ])('should proxy $type and count it', async ({ method, namespace }) => {
+        const body = { jsonrpc: '2.0', method, params: [], id: 1 };
 
         await request(app).post('/1').send(body).expect(200);
 
         expect(upstreamBodies).toEqual([body]);
-        expect(await collectUnknownCounts()).toEqual([{ method: 'foobar_x', value: 1 }]);
+        expect(await collectUnknownCounts()).toEqual([{ namespace, value: 1 }]);
       });
 
       it.each([
@@ -435,54 +439,27 @@ describe('Network Endpoint E2E Tests', () => {
           .post('/1')
           .send([
             { jsonrpc: '2.0', method: 'eth_call', params: [], id: 1 },
-            { jsonrpc: '2.0', method: 'foobar_x', params: [], id: 2 },
+            { jsonrpc: '2.0', method: 'trace_block', params: [], id: 2 },
             { jsonrpc: '2.0', method: 'foobar_x', params: [], id: 3 }
           ])
           .expect(200);
 
-        expect(await collectUnknownCounts()).toEqual([{ method: 'foobar_x', value: 2 }]);
+        expect(await collectUnknownCounts()).toEqual([
+          { namespace: 'other', value: 1 },
+          { namespace: 'trace', value: 1 }
+        ]);
       });
 
-      it('should label an over-long method name as other', async () => {
-        await request(app)
-          .post('/1')
-          .send({ jsonrpc: '2.0', method: `x_${'y'.repeat(64)}`, params: [], id: 1 })
-          .expect(200);
+      it('should forward a batch carrying a member with no method', async () => {
+        const body = [
+          { jsonrpc: '2.0', method: 'eth_blockNumber', params: [], id: 1 },
+          { jsonrpc: '2.0', id: 2 }
+        ];
 
-        expect(await collectUnknownCounts()).toEqual([{ method: 'other', value: 1 }]);
-      });
+        await request(app).post('/1').send(body).expect(200);
 
-      const sendUnknown = (method: string) =>
-        request(app).post('/1').send({ jsonrpc: '2.0', method, id: 1 }).expect(200);
-
-      const fillLabels = async (prefix: string, count: number) => {
-        for (let index = 0; index < count; index++) {
-          await sendUnknown(`${prefix}_${index}`);
-        }
-      };
-
-      it('should drop the least recently seen name once the label limit is reached', async () => {
-        await fillLabels('overflow', 101);
-
-        const names = (await collectUnknownCounts()).map(count => count.method);
-
-        expect(names).toHaveLength(100);
-        expect(names).not.toContain('overflow_0');
-        expect(names).toContain('overflow_100');
-      });
-
-      it('should keep a name that is still arriving and drop one that stopped', async () => {
-        await fillLabels('flush', 100);
-
-        await sendUnknown('still_arriving');
-        await fillLabels('filler', 99);
-        await sendUnknown('still_arriving');
-        await sendUnknown('one_more');
-
-        const names = (await collectUnknownCounts()).map(count => count.method);
-
-        expect(names).toContain('still_arriving');
-        expect(names).not.toContain('filler_0');
+        expect(upstreamBodies).toEqual([body]);
+        expect(await collectUnknownCounts()).toEqual([{ namespace: 'other', value: 1 }]);
       });
     });
 
