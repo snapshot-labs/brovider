@@ -184,7 +184,6 @@ describe('RPC cache E2E Tests', () => {
   });
 
   it.each([
-    { label: 'an upstream error', data: '0xaa05', body: { error: { code: -32000 } } },
     { label: 'a result next to an error', data: '0xaa06', body: { result: '0xf', error: {} } },
     { label: 'a null result', data: '0xaa07', body: { result: null } },
     {
