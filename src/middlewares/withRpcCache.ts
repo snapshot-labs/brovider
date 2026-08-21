@@ -16,10 +16,11 @@ const BLOCK_PARAM_INDEX = new Map([
 const HEX_BLOCK = /^0x[0-9a-f]+$/i;
 const CONFIRMATIONS = 128;
 const HEAD_TTL = 10e3;
-const MAX_ENTRIES = 5000;
 const MAX_VALUE_SIZE = 100e3;
+const MAX_CACHE_SIZE = 64e6;
 
-const cache = new Map<string, any>();
+const cache = new Map<string, { value: any; size: number }>();
+let cacheSize = 0;
 const heads = new Map<string, { number: number | null; expiresAt: number }>();
 
 function pinnedBlock(body: any): number | undefined {
@@ -65,19 +66,26 @@ async function headOf(node: Node): Promise<number | null> {
 }
 
 function readCache(key: string) {
-  const value = cache.get(key);
-  if (value === undefined) return undefined;
+  const entry = cache.get(key);
+  if (entry === undefined) return undefined;
 
   cache.delete(key);
-  cache.set(key, value);
-  return value;
+  cache.set(key, entry);
+  return entry.value;
 }
 
 function writeCache(key: string, value: any) {
-  if (JSON.stringify(value).length > MAX_VALUE_SIZE) return;
+  const size = JSON.stringify(value).length;
+  if (size > MAX_VALUE_SIZE) return;
 
-  cache.set(key, value);
-  if (cache.size > MAX_ENTRIES) cache.delete(cache.keys().next().value as string);
+  cacheSize += size - (cache.get(key)?.size ?? 0);
+  cache.set(key, { value, size });
+
+  while (cacheSize > MAX_CACHE_SIZE && cache.size > 1) {
+    const [oldest, entry] = cache.entries().next().value as [string, { size: number }];
+    cache.delete(oldest);
+    cacheSize -= entry.size;
+  }
 }
 
 export default async function withRpcCache(req: Request, res: Response, next: NextFunction) {
