@@ -1,8 +1,10 @@
 import { createHash } from 'crypto';
+import http from 'node:http';
 import https from 'node:https';
 import fetch, { RequestInit, Response } from 'node-fetch';
 
 const DEFAULT_FETCH_TIMEOUT = 30000;
+const httpAgent = new http.Agent({ keepAlive: true });
 const httpsAgent = new https.Agent({ keepAlive: true });
 
 export async function sleep(ms: number): Promise<void> {
@@ -28,7 +30,7 @@ export const fetchWithKeepAlive = async (
 
   try {
     const response = await fetch(uri, {
-      agent: httpsAgent,
+      agent: ({ protocol }) => (protocol === 'http:' ? httpAgent : httpsAgent),
       signal: controller.signal,
       ...fetchOptions
     });
