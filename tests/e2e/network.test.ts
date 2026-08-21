@@ -259,6 +259,60 @@ describe('Network Endpoint E2E Tests', () => {
         });
         expect(upstreamBodies).toEqual([body]);
       });
+
+      it.each([
+        {
+          type: 'string params',
+          body: { jsonrpc: '2.0', method: 'starknet_chainId', params: 'bad', id: 7 }
+        },
+        {
+          type: 'boolean ID',
+          body: { jsonrpc: '2.0', method: 'starknet_chainId', params: [], id: false }
+        }
+      ])('should proxy a request with $type', async ({ body }) => {
+        const response = await request(app).post('/sn').send(body).expect(200);
+
+        expect(upstreamBodies).toEqual([body]);
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: body.id,
+          result: 'upstream-starknet_chainId'
+        });
+      });
+
+      it('should proxy a notification without returning a local response', async () => {
+        const body = {
+          jsonrpc: '2.0',
+          method: 'starknet_chainId',
+          params: []
+        };
+
+        await request(app).post('/sn').send(body).expect(204);
+
+        expect(upstreamBodies).toEqual([body]);
+      });
+
+      it('should reject a request with an invalid jsonrpc version', async () => {
+        const response = await request(app)
+          .post('/sn')
+          .send({
+            jsonrpc: '1.0',
+            method: 'starknet_chainId',
+            params: [],
+            id: 'invalid-version'
+          })
+          .expect(400);
+
+        expect(upstreamBodies).toHaveLength(0);
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 'invalid-version',
+          error: {
+            code: -32600,
+            message: 'Invalid Request'
+          }
+        });
+      });
     });
 
     describe('Batch Requests', () => {
