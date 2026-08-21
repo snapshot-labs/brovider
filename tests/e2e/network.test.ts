@@ -442,16 +442,13 @@ describe('Network Endpoint E2E Tests', () => {
         ]);
       });
 
-      it('should not count a request answered locally', async () => {
-        await request(app)
-          .post('/1?client=ui')
-          .send({ jsonrpc: '2.0', method: 'eth_chainId', params: [], id: 1 })
-          .expect(200);
-
-        expect(await collectCounts()).toEqual([]);
-      });
-
       it.each([
+        {
+          type: 'a request answered locally',
+          path: '/1?client=ui',
+          body: { jsonrpc: '2.0', method: 'eth_chainId', params: [], id: 1 },
+          status: 200
+        },
         {
           type: 'an unknown network',
           path: '/999999?client=ui',
@@ -463,6 +460,12 @@ describe('Network Endpoint E2E Tests', () => {
           path: '/1?client=ui',
           body: { method: 'eth_call', params: [], id: 1 },
           status: 400
+        },
+        {
+          type: 'an unusable node URL',
+          path: '/11001100?client=ui',
+          body: { jsonrpc: '2.0', method: 'eth_call', params: [], id: 1 },
+          status: 500
         }
       ])('should not count $type', async ({ path, body, status }) => {
         await request(app).post(path).send(body).expect(status);

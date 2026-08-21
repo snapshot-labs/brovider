@@ -13,6 +13,10 @@ const NODE_HEADERS: Record<string, Record<string, string>> = {
   }
 };
 
+function metricLabel(value: unknown, allowed: Set<string>) {
+  return typeof value === 'string' && allowed.has(value) ? value : 'other';
+}
+
 export default function setNode(req: Request, res: Response, next: NextFunction) {
   const network = req.params[0];
   const body = req.body;
@@ -65,17 +69,10 @@ export default function setNode(req: Request, res: Response, next: NextFunction)
     return res.status(500).json({ jsonrpc, id, error: 'Invalid node URL configuration' });
   }
 
-  const client =
-    typeof req.query.client === 'string' && RPC_CLIENTS.has(req.query.client)
-      ? req.query.client
-      : 'other';
+  const client = metricLabel(req.query.client, RPC_CLIENTS);
 
   for (const request of requests) {
-    rpcRequestCount.inc({
-      network,
-      client,
-      method: RPC_METHODS.has(request.method) ? request.method : 'other'
-    });
+    rpcRequestCount.inc({ network, client, method: metricLabel(request.method, RPC_METHODS) });
   }
 
   (req as any)._node = {
