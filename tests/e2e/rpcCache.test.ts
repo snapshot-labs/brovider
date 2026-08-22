@@ -339,7 +339,7 @@ describe('RPC cache E2E Tests', () => {
     }
   });
 
-  it('should evict the oldest entries once the byte budget is exceeded', async () => {
+  it('should evict the least recently used entries once the byte budget is exceeded', async () => {
     upstreamDelay = 0;
     const big = '0x'.padEnd(90e3, 'f');
     const tagOf = (i: number) => `0xdd${i.toString(16).padStart(4, '0')}`;
@@ -348,17 +348,31 @@ describe('RPC cache E2E Tests', () => {
         .post('/1')
         .send({ jsonrpc: '2.0', method: 'eth_getCode', params: [tag, DEEP_BLOCK], id: 1 });
 
-    for (let i = 0; i < 96; i++) {
-      responses.set(tagOf(i), { body: { result: big } });
-      await send(tagOf(i));
-    }
+    const fill = async (from: number, to: number) => {
+      for (let i = from; i < to; i++) {
+        responses.set(tagOf(i), { body: { result: big } });
+        await send(tagOf(i));
+      }
+    };
+
+    await fill(0, 60);
 
     calls = [];
     await send(tagOf(0));
+    expect(countOf('eth_getCode')).toBe(0);
+
+    await fill(60, 100);
+
+    calls = [];
+    await send(tagOf(0));
+    expect(countOf('eth_getCode')).toBe(0);
+
+    calls = [];
+    await send(tagOf(1));
     expect(countOf('eth_getCode')).toBe(1);
 
     calls = [];
-    await send(tagOf(95));
+    await send(tagOf(99));
     expect(countOf('eth_getCode')).toBe(0);
   }, 120e3);
 
