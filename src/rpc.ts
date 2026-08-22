@@ -6,6 +6,7 @@ import setGraphqlUrl from './middlewares/setGraphqlUrl';
 import setNode from './middlewares/setNode';
 import subgraphErrorHandler from './middlewares/subgraphErrorHandler';
 import withCachedEthChain from './middlewares/withCachedEthChain';
+import withRpcCache from './middlewares/withRpcCache';
 
 const router = express.Router();
 
@@ -20,6 +21,7 @@ router.use(
   /^\/([^\/]+)$/,
   withCachedEthChain,
   setNode,
+  withRpcCache,
   proxy((req: any) => req._node.url, {
     timeout: REQUEST_TIMEOUT,
     memoizeHost: false,
