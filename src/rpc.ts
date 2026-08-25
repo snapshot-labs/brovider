@@ -5,7 +5,7 @@ import processGraphql from './middlewares/processGraphql';
 import setGraphqlUrl from './middlewares/setGraphqlUrl';
 import setNode from './middlewares/setNode';
 import subgraphErrorHandler from './middlewares/subgraphErrorHandler';
-import withCachedEthChain from './middlewares/withCachedEthChain';
+import withCachedChainId from './middlewares/withCachedChainId';
 
 const router = express.Router();
 
@@ -18,7 +18,7 @@ router.post(
 
 router.use(
   /^\/([^\/]+)$/,
-  withCachedEthChain,
+  withCachedChainId,
   setNode,
   proxy((req: any) => req._node.url, {
     timeout: REQUEST_TIMEOUT,

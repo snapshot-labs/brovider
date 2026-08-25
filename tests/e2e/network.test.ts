@@ -40,11 +40,13 @@ describe('Network Endpoint E2E Tests', () => {
         '1': configuredNodes['1'],
         '10': configuredNodes['10'],
         sn: configuredNodes.sn,
+        'sn-sep': configuredNodes['sn-sep'],
         '0x1': configuredNodes['0x1']
       };
       configuredNodes['1'] = upstreamUrl;
       configuredNodes['10'] = upstreamUrl;
       configuredNodes.sn = upstreamUrl;
+      configuredNodes['sn-sep'] = upstreamUrl;
       configuredNodes['0x1'] = upstreamUrl;
     });
 
@@ -112,6 +114,98 @@ describe('Network Endpoint E2E Tests', () => {
           id: 2,
           result: 'upstream-chain-id'
         });
+        expect(upstreamRequests).toBe(1);
+        expect(upstreamBody).toEqual(body);
+      });
+    });
+
+    describe('starknet_chainId', () => {
+      it.each([
+        { network: 'sn', expected: '0x534e5f4d41494e' },
+        { network: 'sn-sep', expected: '0x534e5f5345504f4c4941' }
+      ])(
+        'should answer $network locally without an upstream request',
+        async ({ network, expected }) => {
+          const response = await request(app)
+            .post(`/${network}`)
+            .send({
+              jsonrpc: '2.0',
+              method: 'starknet_chainId',
+              params: [],
+              id: 3
+            })
+            .expect(200);
+
+          expect(response.body).toEqual({
+            jsonrpc: '2.0',
+            id: 3,
+            result: expected
+          });
+          expect(upstreamRequests).toBe(0);
+        }
+      );
+
+      it('should proxy starknet_chainId for a decimal network', async () => {
+        const body = {
+          jsonrpc: '2.0',
+          method: 'starknet_chainId',
+          params: [],
+          id: 4
+        };
+        const response = await request(app).post('/1').send(body).expect(200);
+
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 4,
+          result: 'upstream-chain-id'
+        });
+        expect(upstreamRequests).toBe(1);
+        expect(upstreamBody).toEqual(body);
+      });
+
+      it.each(['sn', 'sn-sep'])('should proxy other methods for %s', async network => {
+        const body = {
+          jsonrpc: '2.0',
+          method: 'starknet_blockNumber',
+          params: [],
+          id: 5
+        };
+        const response = await request(app).post(`/${network}`).send(body).expect(200);
+
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 5,
+          result: 'upstream-chain-id'
+        });
+        expect(upstreamRequests).toBe(1);
+        expect(upstreamBody).toEqual(body);
+      });
+
+      it('should proxy a starknet_chainId request missing jsonrpc rather than answer it locally', async () => {
+        const body = { method: 'starknet_chainId', id: 6 };
+        const response = await request(app).post('/sn').send(body).expect(400);
+
+        expect(response.body).toEqual({ error: 'Invalid request' });
+        expect(upstreamRequests).toBe(0);
+      });
+
+      it('should proxy a starknet_chainId request with non-empty params rather than answer it locally', async () => {
+        const body = { jsonrpc: '2.0', method: 'starknet_chainId', params: ['bad'], id: 7 };
+        const response = await request(app).post('/sn').send(body).expect(200);
+
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 7,
+          result: 'upstream-chain-id'
+        });
+        expect(upstreamRequests).toBe(1);
+        expect(upstreamBody).toEqual(body);
+      });
+
+      it('should proxy a starknet_chainId notification (no id) rather than answer it locally', async () => {
+        const body = { jsonrpc: '2.0', method: 'starknet_chainId', params: [] };
+        await request(app).post('/sn').send(body);
+
         expect(upstreamRequests).toBe(1);
         expect(upstreamBody).toEqual(body);
       });
