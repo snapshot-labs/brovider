@@ -180,6 +180,35 @@ describe('Network Endpoint E2E Tests', () => {
         expect(upstreamRequests).toBe(1);
         expect(upstreamBody).toEqual(body);
       });
+
+      it('should proxy a starknet_chainId request missing jsonrpc rather than answer it locally', async () => {
+        const body = { method: 'starknet_chainId', id: 6 };
+        const response = await request(app).post('/sn').send(body).expect(400);
+
+        expect(response.body).toEqual({ error: 'Invalid request' });
+        expect(upstreamRequests).toBe(0);
+      });
+
+      it('should proxy a starknet_chainId request with non-empty params rather than answer it locally', async () => {
+        const body = { jsonrpc: '2.0', method: 'starknet_chainId', params: ['bad'], id: 7 };
+        const response = await request(app).post('/sn').send(body).expect(200);
+
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 7,
+          result: 'upstream-chain-id'
+        });
+        expect(upstreamRequests).toBe(1);
+        expect(upstreamBody).toEqual(body);
+      });
+
+      it('should proxy a starknet_chainId notification (no id) rather than answer it locally', async () => {
+        const body = { jsonrpc: '2.0', method: 'starknet_chainId', params: [] };
+        await request(app).post('/sn').send(body);
+
+        expect(upstreamRequests).toBe(1);
+        expect(upstreamBody).toEqual(body);
+      });
     });
   });
 

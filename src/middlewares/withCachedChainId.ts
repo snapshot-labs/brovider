@@ -18,11 +18,23 @@ function chainIdOf(network: string, method: unknown): string | undefined {
   return undefined;
 }
 
+function isValidChainIdRequest(body: Record<string, unknown>): boolean {
+  const { jsonrpc, id, params } = body;
+
+  return (
+    jsonrpc === '2.0' &&
+    Object.hasOwn(body, 'id') &&
+    (typeof id === 'string' || typeof id === 'number' || id === null) &&
+    (!Object.hasOwn(body, 'params') || (Array.isArray(params) && params.length === 0))
+  );
+}
+
 export default function withCachedChainId(req: Request, res: Response, next: NextFunction) {
   const network = req.params[0];
-  const { method, jsonrpc, id } = req.body || {};
+  const body = req.body || {};
+  const { method, jsonrpc, id } = body;
 
-  const result = chainIdOf(network, method);
+  const result = isValidChainIdRequest(body) ? chainIdOf(network, method) : undefined;
 
   if (result === undefined) return next();
 
