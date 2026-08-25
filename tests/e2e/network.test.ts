@@ -216,7 +216,7 @@ describe('Network Endpoint E2E Tests', () => {
       const collectCounts = async () =>
         (await rpcRequestCount.get()).values
           .map(({ labels, value }) => ({ ...labels, value }))
-          .sort((a, b) => String(a.method).localeCompare(String(b.method)));
+          .sort((a, b) => String(a.rpc_method).localeCompare(String(b.rpc_method)));
 
       beforeEach(() => {
         rpcRequestCount.reset();
@@ -229,13 +229,12 @@ describe('Network Endpoint E2E Tests', () => {
           .expect(200);
 
         expect(await collectCounts()).toEqual([
-          { network: '1', client: 'ui', method: 'eth_call', value: 1 }
+          { network: '1', client: 'ui', rpc_method: 'eth_call', value: 1 }
         ]);
       });
 
       it.each([
         { type: 'an unknown client', path: '/1?client=unknown-app' },
-        { type: 'a missing client', path: '/1' },
         { type: 'a repeated client', path: '/1?client=ui&client=api' }
       ])('should label $type as other', async ({ path }) => {
         await request(app)
@@ -244,7 +243,18 @@ describe('Network Endpoint E2E Tests', () => {
           .expect(200);
 
         expect(await collectCounts()).toEqual([
-          { network: '1', client: 'other', method: 'eth_call', value: 1 }
+          { network: '1', client: 'other', rpc_method: 'eth_call', value: 1 }
+        ]);
+      });
+
+      it('should label a missing client as none', async () => {
+        await request(app)
+          .post('/1')
+          .send({ jsonrpc: '2.0', method: 'eth_call', params: [], id: 1 })
+          .expect(200);
+
+        expect(await collectCounts()).toEqual([
+          { network: '1', client: 'none', rpc_method: 'eth_call', value: 1 }
         ]);
       });
 
@@ -255,7 +265,18 @@ describe('Network Endpoint E2E Tests', () => {
           .expect(200);
 
         expect(await collectCounts()).toEqual([
-          { network: '1', client: 'ui', method: 'other', value: 1 }
+          { network: '1', client: 'ui', rpc_method: 'other', value: 1 }
+        ]);
+      });
+
+      it('should label a missing method as none', async () => {
+        await request(app)
+          .post('/1?client=ui')
+          .send({ jsonrpc: '2.0', params: [], id: 1 })
+          .expect(200);
+
+        expect(await collectCounts()).toEqual([
+          { network: '1', client: 'ui', rpc_method: 'none', value: 1 }
         ]);
       });
 

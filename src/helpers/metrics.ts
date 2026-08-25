@@ -40,7 +40,7 @@ export const requestDeduplicatorSize = new client.Gauge({
 export const rpcRequestCount = new client.Counter({
   name: 'rpc_request_count',
   help: 'Number of proxied RPC requests',
-  labelNames: ['network', 'client', 'method']
+  labelNames: ['network', 'client', 'rpc_method']
 });
 
 export const nodesRefreshCount = new client.Counter({

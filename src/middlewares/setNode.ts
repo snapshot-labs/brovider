@@ -14,6 +14,7 @@ const NODE_HEADERS: Record<string, Record<string, string>> = {
 };
 
 function metricLabel(value: unknown, allowed: Set<string>) {
+  if (value === undefined) return 'none';
   return typeof value === 'string' && allowed.has(value) ? value : 'other';
 }
 
@@ -50,7 +51,7 @@ export default function setNode(req: Request, res: Response, next: NextFunction)
   rpcRequestCount.inc({
     network,
     client: metricLabel(req.query.client, RPC_CLIENTS),
-    method: metricLabel(body.method, RPC_METHODS)
+    rpc_method: metricLabel(body.method, RPC_METHODS)
   });
 
   (req as any)._node = {
