@@ -10,11 +10,15 @@ export const REQUEST_TIMEOUT = 30e3; // 30 seconds
 export const RPC_CLIENTS = new Set([
   'api',
   'auction',
+  'blockfinder',
   'delegates-api',
   'highlight',
   'mana',
   'mcp',
+  'score-api',
   'sequencer',
+  'snapshot-relayer',
+  'stamp',
   'sx.js',
   'ui'
 ]);
