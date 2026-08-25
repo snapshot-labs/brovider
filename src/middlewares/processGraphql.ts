@@ -94,9 +94,10 @@ export default async function processGraphql(req: Request, res: Response, next: 
       ? sha256(`${subgraphUrl}:${normalizedQuery}:${JSON.stringify(variables)}`)
       : sha256(`${subgraphUrl}:${normalizedQuery}`);
 
-  const operation = parsedQuery.definitions.find(
+  const operations = parsedQuery.definitions.filter(
     definition => definition.kind === Kind.OPERATION_DEFINITION
   );
+  const operation = operations.length === 1 ? operations[0] : undefined;
   const getVariable = name =>
     variables !== null && typeof variables === 'object' && Object.hasOwn(variables, name)
       ? variables[name]

@@ -220,6 +220,17 @@ describe('processGraphql caching', () => {
           }
         }
       `
+    ],
+    [
+      'a second operation definition',
+      `
+        query Pinned {
+          items(block: { number: 123 }) { id }
+        }
+        query Latest {
+          items(block: { number_gte: 123 }) { id }
+        }
+      `
     ]
   ])('does not persist documents with %s', async (_selection, query) => {
     await expectNoPersistentCache(query);
