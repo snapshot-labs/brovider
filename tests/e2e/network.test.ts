@@ -233,6 +233,20 @@ describe('Network Endpoint E2E Tests', () => {
         ]);
       });
 
+      it.each(['blockfinder', 'score-api', 'snapshot-relayer', 'stamp'])(
+        'should count %s as a recognized client',
+        async client => {
+          await request(app)
+            .post(`/1?client=${client}`)
+            .send({ jsonrpc: '2.0', method: 'eth_call', params: [], id: 1 })
+            .expect(200);
+
+          expect(await collectCounts()).toEqual([
+            { network: '1', client, rpc_method: 'eth_call', value: 1 }
+          ]);
+        }
+      );
+
       it.each([
         { type: 'an unknown client', path: '/1?client=unknown-app' },
         { type: 'a repeated client', path: '/1?client=ui&client=api' }
