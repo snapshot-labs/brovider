@@ -2,6 +2,7 @@ import { Server } from 'http';
 import { AddressInfo } from 'net';
 import express from 'express';
 import request from 'supertest';
+import { rpcRequestCount } from '../../src/helpers/metrics';
 import { nodes, stop } from '../../src/helpers/nodes';
 import rpc from '../../src/rpc';
 
@@ -208,6 +209,106 @@ describe('Network Endpoint E2E Tests', () => {
 
         expect(upstreamRequests).toBe(1);
         expect(upstreamBody).toEqual(body);
+      });
+    });
+
+    describe('Request Metrics', () => {
+      const collectCounts = async () =>
+        (await rpcRequestCount.get()).values
+          .map(({ labels, value }) => ({ ...labels, value }))
+          .sort((a, b) => String(a.rpc_method).localeCompare(String(b.rpc_method)));
+
+      beforeEach(() => {
+        rpcRequestCount.reset();
+      });
+
+      it('should count a proxied request by network, client and method', async () => {
+        await request(app)
+          .post('/1?client=ui')
+          .send({ jsonrpc: '2.0', method: 'eth_call', params: [], id: 1 })
+          .expect(200);
+
+        expect(await collectCounts()).toEqual([
+          { network: '1', client: 'ui', rpc_method: 'eth_call', value: 1 }
+        ]);
+      });
+
+      it.each([
+        { type: 'an unknown client', path: '/1?client=unknown-app' },
+        { type: 'a repeated client', path: '/1?client=ui&client=api' }
+      ])('should label $type as other', async ({ path }) => {
+        await request(app)
+          .post(path)
+          .send({ jsonrpc: '2.0', method: 'eth_call', params: [], id: 1 })
+          .expect(200);
+
+        expect(await collectCounts()).toEqual([
+          { network: '1', client: 'other', rpc_method: 'eth_call', value: 1 }
+        ]);
+      });
+
+      it('should label a missing client as none', async () => {
+        await request(app)
+          .post('/1')
+          .send({ jsonrpc: '2.0', method: 'eth_call', params: [], id: 1 })
+          .expect(200);
+
+        expect(await collectCounts()).toEqual([
+          { network: '1', client: 'none', rpc_method: 'eth_call', value: 1 }
+        ]);
+      });
+
+      it('should label an unknown method as other', async () => {
+        await request(app)
+          .post('/1?client=ui')
+          .send({ jsonrpc: '2.0', method: 'eth_notAMethod', params: [], id: 1 })
+          .expect(200);
+
+        expect(await collectCounts()).toEqual([
+          { network: '1', client: 'ui', rpc_method: 'other', value: 1 }
+        ]);
+      });
+
+      it('should label a missing method as none', async () => {
+        await request(app)
+          .post('/1?client=ui')
+          .send({ jsonrpc: '2.0', params: [], id: 1 })
+          .expect(200);
+
+        expect(await collectCounts()).toEqual([
+          { network: '1', client: 'ui', rpc_method: 'none', value: 1 }
+        ]);
+      });
+
+      it.each([
+        {
+          type: 'a request answered locally',
+          path: '/1?client=ui',
+          body: { jsonrpc: '2.0', method: 'eth_chainId', params: [], id: 1 },
+          status: 200
+        },
+        {
+          type: 'an unknown network',
+          path: '/999999?client=ui',
+          body: { jsonrpc: '2.0', method: 'eth_call', params: [], id: 1 },
+          status: 404
+        },
+        {
+          type: 'an invalid request',
+          path: '/1?client=ui',
+          body: { method: 'eth_call', params: [], id: 1 },
+          status: 400
+        },
+        {
+          type: 'an unusable node URL',
+          path: '/11001100?client=ui',
+          body: { jsonrpc: '2.0', method: 'eth_call', params: [], id: 1 },
+          status: 500
+        }
+      ])('should not count $type', async ({ path, body, status }) => {
+        await request(app).post(path).send(body).expect(status);
+
+        expect(await collectCounts()).toEqual([]);
       });
     });
   });
