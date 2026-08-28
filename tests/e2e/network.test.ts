@@ -292,89 +292,6 @@ describe('Network Endpoint E2E Tests', () => {
         expect(upstreamBodies).toEqual([body]);
       });
     });
-    describe('Batch Requests', () => {
-      it('should forward batch arrays unchanged and correlate reordered responses by ID', async () => {
-        const body = [
-          {
-            jsonrpc: '2.0',
-            method: 'eth_blockNumber',
-            params: [],
-            id: 'block'
-          },
-          {
-            jsonrpc: '2.0',
-            method: 'eth_getBalance',
-            params: ['0x0000000000000000000000000000000000000000', 'latest'],
-            id: 'balance'
-          }
-        ];
-
-        const response = await request(app).post('/1').send(body).expect(200);
-
-        expect(upstreamBodies).toEqual([body]);
-        expect(response.body.map((item: { id: unknown }) => item.id)).toEqual(['balance', 'block']);
-        expect(
-          Object.fromEntries(
-            response.body.map((item: { id: string; result: unknown }) => [item.id, item.result])
-          )
-        ).toEqual({
-          block: 'upstream-eth_blockNumber',
-          balance: 'upstream-eth_getBalance'
-        });
-      });
-
-      it('should proxy batch eth_chainId instead of answering it locally', async () => {
-        const body = [
-          {
-            jsonrpc: '2.0',
-            method: 'eth_chainId',
-            params: [],
-            id: 'chain'
-          },
-          {
-            jsonrpc: '2.0',
-            method: 'eth_blockNumber',
-            params: [],
-            id: 'block'
-          }
-        ];
-
-        const response = await request(app).post('/1').send(body).expect(200);
-        const responses = Object.fromEntries(
-          response.body.map((item: { id: string; result: unknown }) => [item.id, item.result])
-        );
-
-        expect(upstreamBodies).toEqual([body]);
-        expect(responses.chain).toBe('upstream-chain-id');
-      });
-
-      it('should allow notification members without an ID', async () => {
-        const body = [
-          {
-            jsonrpc: '2.0',
-            method: 'eth_blockNumber',
-            params: []
-          },
-          {
-            jsonrpc: '2.0',
-            method: 'eth_getBalance',
-            params: ['0x0000000000000000000000000000000000000000', 'latest'],
-            id: 7
-          }
-        ];
-
-        const response = await request(app).post('/1').send(body).expect(200);
-
-        expect(upstreamBodies).toEqual([body]);
-        expect(response.body).toEqual([
-          {
-            jsonrpc: '2.0',
-            id: 7,
-            result: 'upstream-eth_getBalance'
-          }
-        ]);
-      });
-    });
 
     it('should keep forwarding valid single requests unchanged', async () => {
       const body = {
@@ -409,33 +326,10 @@ describe('Network Endpoint E2E Tests', () => {
         });
       });
 
-      it('should reject an empty batch', async () => {
-        const response = await request(app).post('/1').send([]).expect(400);
-
-        expect(upstreamBodies).toHaveLength(0);
-        expect(response.body).toEqual({
-          jsonrpc: '2.0',
-          id: null,
-          error: {
-            code: -32600,
-            message: 'Invalid Request'
-          }
-        });
-      });
-
-      it.each([
-        {
-          type: 'missing jsonrpc',
-          invalidRequest: { method: 'eth_blockNumber', params: [], id: 2 }
-        },
-        {
-          type: 'invalid jsonrpc',
-          invalidRequest: { jsonrpc: '1.0', method: 'eth_blockNumber', params: [], id: 2 }
-        }
-      ])('should reject a batch member with $type', async ({ invalidRequest }) => {
+      it('should reject an array body', async () => {
         const response = await request(app)
           .post('/1')
-          .send([{ jsonrpc: '2.0', method: 'eth_blockNumber', params: [], id: 1 }, invalidRequest])
+          .send([{ jsonrpc: '2.0', method: 'eth_blockNumber', params: [], id: 1 }])
           .expect(400);
 
         expect(upstreamBodies).toHaveLength(0);
@@ -526,34 +420,6 @@ describe('Network Endpoint E2E Tests', () => {
         expect(upstreamBodies).toHaveLength(1);
         expect(await collectUnknownCounts()).toEqual([]);
       });
-
-      it('should count every unknown member of a batch', async () => {
-        await request(app)
-          .post('/1')
-          .send([
-            { jsonrpc: '2.0', method: 'eth_call', params: [], id: 1 },
-            { jsonrpc: '2.0', method: 'trace_block', params: [], id: 2 },
-            { jsonrpc: '2.0', method: 'foobar_x', params: [], id: 3 }
-          ])
-          .expect(200);
-
-        expect(await collectUnknownCounts()).toEqual([
-          { namespace: 'other', value: 1 },
-          { namespace: 'trace', value: 1 }
-        ]);
-      });
-
-      it('should forward a batch carrying a member with no method', async () => {
-        const body = [
-          { jsonrpc: '2.0', method: 'eth_blockNumber', params: [], id: 1 },
-          { jsonrpc: '2.0', id: 2 }
-        ];
-
-        await request(app).post('/1').send(body).expect(200);
-
-        expect(upstreamBodies).toEqual([body]);
-        expect(await collectUnknownCounts()).toEqual([{ namespace: 'other', value: 1 }]);
-      });
     });
     describe('Request Metrics', () => {
       const collectCounts = async () =>
@@ -623,33 +489,6 @@ describe('Network Endpoint E2E Tests', () => {
 
         expect(await collectCounts()).toEqual([
           { network: '1', client: 'ui', rpc_method: 'other', value: 1 }
-        ]);
-      });
-
-      it('should label a missing method as none', async () => {
-        await request(app)
-          .post('/1?client=ui')
-          .send([{ jsonrpc: '2.0', params: [], id: 1 }])
-          .expect(200);
-
-        expect(await collectCounts()).toEqual([
-          { network: '1', client: 'ui', rpc_method: 'none', value: 1 }
-        ]);
-      });
-
-      it('should count every member of a batch', async () => {
-        await request(app)
-          .post('/1?client=mana')
-          .send([
-            { jsonrpc: '2.0', method: 'eth_call', params: [], id: 1 },
-            { jsonrpc: '2.0', method: 'eth_call', params: [], id: 2 },
-            { jsonrpc: '2.0', method: 'eth_getBalance', params: [], id: 3 }
-          ])
-          .expect(200);
-
-        expect(await collectCounts()).toEqual([
-          { network: '1', client: 'mana', rpc_method: 'eth_call', value: 2 },
-          { network: '1', client: 'mana', rpc_method: 'eth_getBalance', value: 1 }
         ]);
       });
 

@@ -27,37 +27,21 @@ function namespaceLabel(method: unknown) {
 export default function setNode(req: Request, res: Response, next: NextFunction) {
   const network = req.params[0];
   const body = req.body;
-  const isBatch = Array.isArray(body);
-  const requests = isBatch ? body : [body];
   const id =
-    !isBatch &&
-    body &&
-    typeof body === 'object' &&
-    (typeof body.id === 'string' || typeof body.id === 'number' || body.id === null)
+    body && (typeof body.id === 'string' || typeof body.id === 'number' || body.id === null)
       ? body.id
       : null;
-  const jsonrpc = isBatch ? '2.0' : body?.jsonrpc;
   const url = Object.hasOwn(nodes, network) ? nodes[network] : undefined;
 
-  const hasUnusableMethod = !isBatch && (typeof body?.method !== 'string' || body.method === '');
-
-  if (
-    requests.length === 0 ||
-    hasUnusableMethod ||
-    requests.some(
-      request =>
-        !request ||
-        typeof request !== 'object' ||
-        Array.isArray(request) ||
-        request.jsonrpc !== '2.0'
-    )
-  ) {
+  if (!body || body.jsonrpc !== '2.0' || typeof body.method !== 'string' || body.method === '') {
     return res.status(400).json({
       jsonrpc: '2.0',
       id,
       error: { code: -32600, message: 'Invalid Request' }
     });
   }
+
+  const { jsonrpc, method } = body;
 
   if (!url) {
     return res.status(404).json({ jsonrpc, id, error: 'Invalid network' });
@@ -79,18 +63,14 @@ export default function setNode(req: Request, res: Response, next: NextFunction)
     return res.status(500).json({ jsonrpc, id, error: 'Invalid node URL configuration' });
   }
 
-  const client = metricLabel(req.query.client, RPC_CLIENTS);
+  rpcRequestCount.inc({
+    network,
+    client: metricLabel(req.query.client, RPC_CLIENTS),
+    rpc_method: metricLabel(method, RPC_METHODS)
+  });
 
-  for (const request of requests) {
-    rpcRequestCount.inc({
-      network,
-      client,
-      rpc_method: metricLabel(request.method, RPC_METHODS)
-    });
-
-    if (!RPC_METHODS.has(request.method)) {
-      rpcUnknownMethodCount.inc({ namespace: namespaceLabel(request.method) });
-    }
+  if (!RPC_METHODS.has(method)) {
+    rpcUnknownMethodCount.inc({ namespace: namespaceLabel(method) });
   }
 
   (req as any)._node = {
