@@ -16,33 +16,31 @@ function bodyStream(content: string) {
   return Readable.from([Buffer.from(content)]);
 }
 
+function s3Error(name: string, message: string, extra: Record<string, unknown> = {}) {
+  return Object.assign(new Error(message), { name, ...extra });
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
 });
 
 describe('aws get()', () => {
   it('returns undefined on a NoSuchKey miss', async () => {
-    mockGetObject.mockRejectedValue(
-      Object.assign(new Error('The specified key does not exist.'), { name: 'NoSuchKey' })
-    );
+    mockGetObject.mockRejectedValue(s3Error('NoSuchKey', 'The specified key does not exist.'));
 
     await expect(get('missing')).resolves.toBeUndefined();
   });
 
   it('returns undefined on a 404 without the NoSuchKey name', async () => {
     mockGetObject.mockRejectedValue(
-      Object.assign(new Error('Not Found'), {
-        name: 'NotFound',
-        $metadata: { httpStatusCode: 404 }
-      })
+      s3Error('NotFound', 'Not Found', { $metadata: { httpStatusCode: 404 } })
     );
 
     await expect(get('missing')).resolves.toBeUndefined();
   });
 
   it('rethrows a non-404 storage error instead of treating it as a miss', async () => {
-    const storageError = Object.assign(new Error('access denied'), {
-      name: 'AccessDenied',
+    const storageError = s3Error('AccessDenied', 'access denied', {
       $metadata: { httpStatusCode: 403 }
     });
     mockGetObject.mockRejectedValue(storageError);
