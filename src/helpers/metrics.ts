@@ -48,7 +48,7 @@ export const rpcCacheKeyRepeatCount = new client.Counter({
   help:
     'HIT/MISS of sha256(network+method+params) against a bounded per-rpc_method LRU of recently ' +
     'seen keys, not an actual cache; short window holds the 500 most recent keys, long window the ' +
-    '20000 most recent. Counts the request regardless of whether the upstream call it lead to ' +
+    '20000 most recent. Counts the request regardless of whether the upstream call it led to ' +
     'succeeded, so a retried failure inflates HIT. pinned reflects the request shape only, not ' +
     'confirmation depth or response validity, so it is a superset of what a real cache would store',
   labelNames: ['rpc_method', 'pinned', 'window', 'status']
