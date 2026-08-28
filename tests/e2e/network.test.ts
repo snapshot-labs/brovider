@@ -2,7 +2,7 @@ import { Server } from 'http';
 import { AddressInfo } from 'net';
 import express from 'express';
 import request from 'supertest';
-import { rpcRequestCount, rpcUnknownMethodCount } from '../../src/helpers/metrics';
+import { rpcRequestCount } from '../../src/helpers/metrics';
 import { nodes, stop } from '../../src/helpers/nodes';
 import rpc from '../../src/rpc';
 
@@ -384,43 +384,6 @@ describe('Network Endpoint E2E Tests', () => {
       });
     });
 
-    describe('Unknown Methods', () => {
-      const collectUnknownCounts = async () =>
-        (await rpcUnknownMethodCount.get()).values
-          .map(({ labels, value }) => ({ ...labels, value }))
-          .sort((a, b) => String(a.namespace).localeCompare(String(b.namespace)));
-
-      beforeEach(() => {
-        rpcUnknownMethodCount.reset();
-      });
-
-      it.each([
-        { type: 'a namespace a node serves', method: 'erigon_blockNumber', namespace: 'erigon' },
-        { type: 'a namespace no node serves', method: 'foobar_x', namespace: 'other' },
-        { type: 'a method name with no namespace', method: 'foobar', namespace: 'other' }
-      ])('should proxy $type and count it', async ({ method, namespace }) => {
-        const body = { jsonrpc: '2.0', method, params: [], id: 1 };
-
-        await request(app).post('/1').send(body).expect(200);
-
-        expect(upstreamBodies).toEqual([body]);
-        expect(await collectUnknownCounts()).toEqual([{ namespace, value: 1 }]);
-      });
-
-      it.each([
-        { method: 'chain_getBlockHash' },
-        { method: 'state_getStorage' },
-        { method: 'hmyv2_getValidatorsStakeByBlockNumber' }
-      ])('should not count $method, which a score-api strategy sends', async ({ method }) => {
-        await request(app)
-          .post('/1')
-          .send({ jsonrpc: '2.0', method, params: [], id: 1 })
-          .expect(200);
-
-        expect(upstreamBodies).toHaveLength(1);
-        expect(await collectUnknownCounts()).toEqual([]);
-      });
-    });
     describe('Request Metrics', () => {
       const collectCounts = async () =>
         (await rpcRequestCount.get()).values

@@ -1,7 +1,7 @@
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { NextFunction, Request, Response } from 'express';
-import { RPC_CLIENTS, RPC_METHODS, RPC_NAMESPACES } from '../constants';
-import { rpcRequestCount, rpcUnknownMethodCount } from '../helpers/metrics';
+import { RPC_CLIENTS, RPC_METHODS } from '../constants';
+import { rpcRequestCount } from '../helpers/metrics';
 import { nodes } from '../helpers/nodes';
 
 const NODE_HEADERS: Record<string, Record<string, string>> = {
@@ -16,12 +16,6 @@ const NODE_HEADERS: Record<string, Record<string, string>> = {
 function metricLabel(value: unknown, allowed: Set<string>) {
   if (value === undefined) return 'none';
   return typeof value === 'string' && allowed.has(value) ? value : 'other';
-}
-
-function namespaceLabel(method: unknown) {
-  if (typeof method !== 'string') return 'other';
-
-  return metricLabel(method.split('_', 1)[0], RPC_NAMESPACES);
 }
 
 export default function setNode(req: Request, res: Response, next: NextFunction) {
@@ -68,10 +62,6 @@ export default function setNode(req: Request, res: Response, next: NextFunction)
     client: metricLabel(req.query.client, RPC_CLIENTS),
     rpc_method: metricLabel(method, RPC_METHODS)
   });
-
-  if (!RPC_METHODS.has(method)) {
-    rpcUnknownMethodCount.inc({ namespace: namespaceLabel(method) });
-  }
 
   (req as any)._node = {
     url,
