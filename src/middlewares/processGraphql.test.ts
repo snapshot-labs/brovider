@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { get, set } from '../helpers/aws';
+import { cacheHitCount } from '../helpers/metrics';
 import { fetchWithKeepAlive } from '../helpers/utils';
 
 jest.mock('../helpers/aws', () => ({
@@ -51,6 +52,11 @@ async function expectNoPersistentCache(query: string, variables: Record<string, 
   expect(mockSet).not.toHaveBeenCalled();
 }
 
+async function cacheStatusCount(status: string) {
+  const metric = await cacheHitCount.get();
+  return metric.values.find(v => v.labels.status === status)?.value ?? 0;
+}
+
 beforeAll(async () => {
   process.env.AWS_REGION = 'test-region';
   processGraphql = (await import('./processGraphql')).default;
@@ -67,7 +73,7 @@ afterAll(() => {
 beforeEach(() => {
   cachedResponses.clear();
   jest.clearAllMocks();
-  mockGet.mockImplementation(async key => cachedResponses.get(key) ?? false);
+  mockGet.mockImplementation(async key => cachedResponses.get(key));
   mockSet.mockImplementation(async (key, value) => {
     cachedResponses.set(key, value);
     return {} as any;
@@ -234,5 +240,29 @@ describe('processGraphql caching', () => {
     ]
   ])('does not persist documents with %s', async (_selection, query) => {
     await expectNoPersistentCache(query);
+  });
+
+  it('falls through to upstream and counts ERROR, not MISS, when the cache read fails', async () => {
+    const query = '{ items(block: { number: 123 }) { id } }';
+    const errorBefore = await cacheStatusCount('ERROR');
+    const missBefore = await cacheStatusCount('MISS');
+    mockGet.mockRejectedValueOnce(new Error('cache read failed'));
+
+    await execute(query);
+
+    expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(1);
+    expect(await cacheStatusCount('ERROR')).toBe(errorBefore + 1);
+    expect(await cacheStatusCount('MISS')).toBe(missBefore);
+  });
+
+  it('counts a write failure as ERROR without rejecting the request', async () => {
+    const query = '{ items(block: { number: 456 }) { id } }';
+    const errorBefore = await cacheStatusCount('ERROR');
+    mockSet.mockRejectedValueOnce(new Error('write failed'));
+
+    await execute(query);
+    await new Promise(resolve => setImmediate(resolve));
+
+    expect(await cacheStatusCount('ERROR')).toBe(errorBefore + 1);
   });
 });

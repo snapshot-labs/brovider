@@ -32,15 +32,22 @@ export async function set(key, value) {
 }
 
 export async function get(key) {
+  let str: string;
   try {
     const { Body } = await client.getObject({
       Bucket: process.env.AWS_BUCKET_NAME,
       Key: `public/${dir}/${key}`
     });
     // @ts-ignore
-    const str = await streamToString(Body);
+    str = await streamToString(Body);
+  } catch (e: any) {
+    if (e?.name === 'NoSuchKey' || e?.$metadata?.httpStatusCode === 404) return undefined;
+    throw e;
+  }
+
+  try {
     return JSON.parse(str);
-  } catch (e) {
-    return false;
+  } catch {
+    throw new Error(`corrupt cache entry: ${key}`);
   }
 }
