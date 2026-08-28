@@ -15,6 +15,7 @@ export const RPC_CLIENTS = new Set([
   'highlight',
   'mana',
   'mcp',
+  'measure-rpc-cache',
   'score-api',
   'sequencer',
   'snapshot-relayer',

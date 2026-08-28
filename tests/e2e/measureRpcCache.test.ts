@@ -2,7 +2,11 @@ import { Server } from 'http';
 import { AddressInfo } from 'net';
 import express from 'express';
 import request from 'supertest';
-import { rpcCacheKeyRepeatCount, rpcResponseSizeBytes } from '../../src/helpers/metrics';
+import {
+  rpcCacheKeyRepeatCount,
+  rpcRequestCount,
+  rpcResponseSizeBytes
+} from '../../src/helpers/metrics';
 import { nodes, stop } from '../../src/helpers/nodes';
 import { reset as resetRpcCacheMeasurement } from '../../src/middlewares/measureRpcCache';
 import rpc from '../../src/rpc';
@@ -40,6 +44,7 @@ describe('measureRpcCache E2E Tests', () => {
     upstreamRequests = [];
     rpcCacheKeyRepeatCount.reset();
     rpcResponseSizeBytes.reset();
+    rpcRequestCount.reset();
     resetRpcCacheMeasurement();
   });
 
@@ -86,15 +91,15 @@ describe('measureRpcCache E2E Tests', () => {
     );
   });
 
-  it('samples a decoded response size once per twenty identical requests, as an extra upstream call the client never sees', async () => {
-    for (let i = 0; i < 20; i++) {
+  it('samples a decoded response size once per fifty identical requests, as an extra upstream call the client never sees, and it is counted separately', async () => {
+    for (let i = 0; i < 50; i++) {
       const response = await request(app).post('/1').send(getBlock('0x30', i)).expect(200);
       expect(response.body.id).toBe(i);
     }
 
     await new Promise(process.nextTick);
 
-    expect(upstreamRequests.length).toBe(21);
+    expect(upstreamRequests.length).toBe(51);
     const sizeMetric = await rpcResponseSizeBytes.get();
     const observed = sizeMetric.values.some(
       v =>
@@ -103,6 +108,30 @@ describe('measureRpcCache E2E Tests', () => {
         v.value === 1
     );
     expect(observed).toBe(true);
+
+    const requestCount = (await rpcRequestCount.get()).values.find(
+      v => v.labels.client === 'measure-rpc-cache' && v.labels.rpc_method === 'eth_getBlockByNumber'
+    );
+    expect(requestCount?.value).toBe(1);
+  });
+
+  it('classifies a named-object Starknet call the same way as its positional equivalent', async () => {
+    const named = {
+      jsonrpc: '2.0',
+      method: 'starknet_call',
+      params: { request: { contract_address: '0xc' }, block_id: { block_number: 5 } },
+      id: 1
+    };
+    await request(app).post('/1').send(named).expect(200);
+
+    const counts = (await rpcCacheKeyRepeatCount.get()).values
+      .filter(v => v.value > 0)
+      .map(({ labels, value }) => ({ ...labels, value }));
+    expect(counts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rpc_method: 'starknet_call', pinned: 'pinned' })
+      ])
+    );
   });
 
   it('does not measure a method outside the configured set, such as eth_call', async () => {

@@ -46,15 +46,19 @@ export const rpcRequestCount = new client.Counter({
 export const rpcCacheKeyRepeatCount = new client.Counter({
   name: 'rpc_cache_key_repeat_count',
   help:
-    'HIT/MISS of sha256(network+method+params) against a bounded LRU of recently seen keys, ' +
-    'not an actual cache; short window holds the 500 most recent keys per method, ' +
-    'long window the 20000 most recent per method',
+    'HIT/MISS of sha256(network+method+params) against a bounded per-rpc_method LRU of recently ' +
+    'seen keys, not an actual cache; short window holds the 500 most recent keys, long window the ' +
+    '20000 most recent. Counts the request regardless of whether the upstream call it lead to ' +
+    'succeeded, so a retried failure inflates HIT. pinned reflects the request shape only, not ' +
+    'confirmation depth or response validity, so it is a superset of what a real cache would store',
   labelNames: ['rpc_method', 'pinned', 'window', 'status']
 });
 
 export const rpcResponseSizeBytes = new client.Histogram({
   name: 'rpc_response_size_bytes',
-  help: 'Decoded response body size of a sampled (1-in-20 per method) RPC request, before any compression',
+  help:
+    'Decoded response body size in bytes of a sampled (1-in-50 per rpc_method+network) RPC ' +
+    'request, before any compression, observed only for a successful non-error result',
   labelNames: ['rpc_method', 'pinned'],
   buckets: [1e3, 5e3, 20e3, 50e3, 100e3, 250e3, 500e3, 1e6, 2e6, 5e6]
 });

@@ -1,15 +1,18 @@
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import { NextFunction, Request, Response } from 'express';
 import { REQUEST_TIMEOUT } from '../constants';
-import { rpcCacheKeyRepeatCount, rpcResponseSizeBytes } from '../helpers/metrics';
+import { rpcCacheKeyRepeatCount, rpcRequestCount, rpcResponseSizeBytes } from '../helpers/metrics';
 import { fetchWithKeepAlive, sha256 } from '../helpers/utils';
 
 type Node = { url: string; network: string; headers: Record<string, string> };
 
 const SHORT_WINDOW_SIZE = 500;
 const LONG_WINDOW_SIZE = 20000;
-const SAMPLE_RATE = 20;
+const SAMPLE_RATE = 50;
+const MEASUREMENT_CLIENT = 'measure-rpc-cache';
 
 const HEX_BLOCK = /^0x[0-9a-f]+$/i;
+const STARKNET_BLOCK_ID_KEY = 'block_id';
 
 const ETH_BLOCK_PARAM_INDEX = new Map([
   ['eth_getBlockByNumber', 0],
@@ -41,6 +44,13 @@ const MEASURED_METHODS = new Set<string>([
   ...STARKNET_BLOCK_PARAM_INDEX.keys()
 ]);
 
+function paramAt(params: unknown, index: number, name: string): unknown {
+  if (Array.isArray(params)) return params[index];
+  if (params !== null && typeof params === 'object')
+    return (params as Record<string, unknown>)[name];
+  return undefined;
+}
+
 function isEthBlockPinned(value: unknown): boolean {
   return typeof value === 'string' && HEX_BLOCK.test(value);
 }
@@ -62,7 +72,7 @@ function isEthGetLogsPinned(params: unknown): boolean {
 }
 
 function isStarknetGetEventsPinned(params: unknown): boolean {
-  const filter: any = Array.isArray(params) ? params[0] : undefined;
+  const filter: any = paramAt(params, 0, 'filter');
   if (!filter || typeof filter !== 'object') return false;
   return isStarknetBlockPinned(filter.from_block) && isStarknetBlockPinned(filter.to_block);
 }
@@ -77,19 +87,16 @@ function isPinned(method: string, params: unknown): boolean {
 
   const starknetIndex = STARKNET_BLOCK_PARAM_INDEX.get(method);
   if (starknetIndex !== undefined) {
-    return Array.isArray(params) && isStarknetBlockPinned(params[starknetIndex]);
+    return isStarknetBlockPinned(paramAt(params, starknetIndex, STARKNET_BLOCK_ID_KEY));
   }
 
   return false;
 }
 
 class KeyWindow {
-  private readonly maxSize: number;
   private readonly keys = new Set<string>();
 
-  constructor(maxSize: number) {
-    this.maxSize = maxSize;
-  }
+  constructor(private readonly maxSize: number) {}
 
   see(key: string): boolean {
     const seen = this.keys.delete(key);
@@ -106,22 +113,46 @@ class KeyWindow {
   }
 }
 
-const shortWindow = new KeyWindow(SHORT_WINDOW_SIZE);
-const longWindow = new KeyWindow(LONG_WINDOW_SIZE);
+class PerMethodWindow {
+  private readonly windows = new Map<string, KeyWindow>();
+
+  constructor(private readonly maxSize: number) {}
+
+  see(method: string, key: string): boolean {
+    let window = this.windows.get(method);
+    if (!window) {
+      window = new KeyWindow(this.maxSize);
+      this.windows.set(method, window);
+    }
+    return window.see(key);
+  }
+
+  clear() {
+    this.windows.clear();
+  }
+}
+
+const WINDOWS = [
+  { name: 'short', keys: new PerMethodWindow(SHORT_WINDOW_SIZE) },
+  { name: 'long', keys: new PerMethodWindow(LONG_WINDOW_SIZE) }
+];
 const sampleCounts = new Map<string, number>();
 
-function shouldSample(method: string): boolean {
-  const count = (sampleCounts.get(method) ?? 0) + 1;
-  sampleCounts.set(method, count);
+function shouldSample(method: string, network: string): boolean {
+  const sampleKey = `${method}:${network}`;
+  const count = (sampleCounts.get(sampleKey) ?? 0) + 1;
+  sampleCounts.set(sampleKey, count);
   return count % SAMPLE_RATE === 0;
 }
 
 async function sampleResponseSize(
   node: Node,
-  body: unknown,
+  body: Record<string, unknown>,
   rpcMethod: string,
   pinnedLabel: string
 ) {
+  rpcRequestCount.inc({ network: node.network, client: MEASUREMENT_CLIENT, rpc_method: rpcMethod });
+
   const res = await fetchWithKeepAlive(node.url, {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...node.headers },
@@ -129,7 +160,20 @@ async function sampleResponseSize(
     body: JSON.stringify(body)
   });
   const text = await res.text();
-  rpcResponseSizeBytes.observe({ rpc_method: rpcMethod, pinned: pinnedLabel }, text.length);
+  if (!res.ok) return;
+
+  let payload: any;
+  try {
+    payload = JSON.parse(text);
+  } catch {
+    return;
+  }
+  if (payload?.error != null || payload?.result == null) return;
+
+  rpcResponseSizeBytes.observe(
+    { rpc_method: rpcMethod, pinned: pinnedLabel },
+    Buffer.byteLength(text)
+  );
 }
 
 export default function measureRpcCache(req: Request, res: Response, next: NextFunction) {
@@ -144,31 +188,27 @@ export default function measureRpcCache(req: Request, res: Response, next: NextF
     const pinnedLabel = isPinned(method, body.params) ? 'pinned' : 'unpinned';
     const key = sha256(`${node.network}:${method}:${JSON.stringify(body.params)}`);
 
-    rpcCacheKeyRepeatCount.inc({
-      rpc_method: method,
-      pinned: pinnedLabel,
-      window: 'short',
-      status: shortWindow.see(key) ? 'HIT' : 'MISS'
-    });
-    rpcCacheKeyRepeatCount.inc({
-      rpc_method: method,
-      pinned: pinnedLabel,
-      window: 'long',
-      status: longWindow.see(key) ? 'HIT' : 'MISS'
-    });
+    for (const { name, keys } of WINDOWS) {
+      rpcCacheKeyRepeatCount.inc({
+        rpc_method: method,
+        pinned: pinnedLabel,
+        window: name,
+        status: keys.see(method, key) ? 'HIT' : 'MISS'
+      });
+    }
 
-    if (shouldSample(method)) {
+    if (shouldSample(method, node.network)) {
       sampleResponseSize(node, body, method, pinnedLabel).catch(e => {
         console.log('[measureRpcCache] size sample failed', method, e?.message ?? e);
       });
     }
   } catch (e: any) {
     console.log('[measureRpcCache] measurement error', e?.message ?? e);
+    capture(e);
   }
 }
 
 export function reset() {
-  shortWindow.clear();
-  longWindow.clear();
+  WINDOWS.forEach(({ keys }) => keys.clear());
   sampleCounts.clear();
 }
