@@ -23,7 +23,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y postgresql postgresql-contrib
         sudo systemctl start postgresql.service
-        sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
+        sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'password';"
         sudo -u postgres createdb brovider_test
         sudo -u postgres psql -d brovider_test -f src/helpers/schema.sql
 
