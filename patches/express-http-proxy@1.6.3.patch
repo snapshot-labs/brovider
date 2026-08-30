@@ -1,7 +1,7 @@
-diff --git a/node_modules/express-http-proxy/app/steps/sendProxyRequest.js b/node_modules/express-http-proxy/app/steps/sendProxyRequest.js
-index 6764ecf..c54502b 100644
---- a/node_modules/express-http-proxy/app/steps/sendProxyRequest.js
-+++ b/node_modules/express-http-proxy/app/steps/sendProxyRequest.js
+diff --git a/app/steps/sendProxyRequest.js b/app/steps/sendProxyRequest.js
+index 6764ecfb4c657db0391ef5636cd768edf2119447..169ef8b010164d0d95d3873ad561ab8a126bf5f0 100644
+--- a/app/steps/sendProxyRequest.js
++++ b/app/steps/sendProxyRequest.js
 @@ -1,7 +1,14 @@
  'use strict';
 -

@@ -1,20 +1,20 @@
+import { afterAll, beforeAll, beforeEach, describe, expect, it, mock } from 'bun:test';
 import { NextFunction, Request, Response } from 'express';
-import { get, set } from '../helpers/aws';
-import { fetchWithKeepAlive } from '../helpers/utils';
 
-jest.mock('../helpers/aws', () => ({
-  get: jest.fn(),
-  set: jest.fn()
+// Bound to the mock factories below rather than re-imported, so the references
+// hold regardless of module-registry timing.
+const mockGet = mock<(key: string) => Promise<any>>(async () => false);
+const mockSet = mock<(key: string, value: any) => Promise<any>>(async () => ({}));
+const mockFetchWithKeepAlive = mock<(...args: any[]) => Promise<any>>(async () => undefined);
+
+const actualUtils = await import('../src/helpers/utils');
+
+mock.module('../src/helpers/aws', () => ({ get: mockGet, set: mockSet }));
+mock.module('../src/helpers/utils', () => ({
+  ...actualUtils,
+  fetchWithKeepAlive: mockFetchWithKeepAlive
 }));
 
-jest.mock('../helpers/utils', () => ({
-  ...jest.requireActual('../helpers/utils'),
-  fetchWithKeepAlive: jest.fn()
-}));
-
-const mockGet = jest.mocked(get);
-const mockSet = jest.mocked(set);
-const mockFetchWithKeepAlive = jest.mocked(fetchWithKeepAlive);
 const cachedResponses = new Map<string, any>();
 const upstreamResponse = { data: { items: [] } };
 const awsRegion = process.env.AWS_REGION;
@@ -29,8 +29,8 @@ function response() {
 }
 
 async function execute(query: string, variables: Record<string, unknown> = {}) {
-  const json = jest.fn();
-  const next = jest.fn();
+  const json = mock();
+  const next = mock();
   const req = {
     body: { query, variables },
     _subgraph_url: { url: 'https://example.com/graphql' }
@@ -53,7 +53,7 @@ async function expectNoPersistentCache(query: string, variables: Record<string, 
 
 beforeAll(async () => {
   process.env.AWS_REGION = 'test-region';
-  processGraphql = (await import('./processGraphql')).default;
+  processGraphql = (await import('../src/middlewares/processGraphql')).default;
 });
 
 afterAll(() => {
@@ -66,13 +66,15 @@ afterAll(() => {
 
 beforeEach(() => {
   cachedResponses.clear();
-  jest.clearAllMocks();
+  mockGet.mockClear();
+  mockSet.mockClear();
+  mockFetchWithKeepAlive.mockClear();
   mockGet.mockImplementation(async key => cachedResponses.get(key) ?? false);
   mockSet.mockImplementation(async (key, value) => {
     cachedResponses.set(key, value);
     return {} as any;
   });
-  mockFetchWithKeepAlive.mockResolvedValue(response());
+  mockFetchWithKeepAlive.mockImplementation(async () => response());
 });
 
 describe('processGraphql caching', () => {

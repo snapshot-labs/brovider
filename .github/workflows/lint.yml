@@ -10,4 +10,5 @@ jobs:
     uses: snapshot-labs/actions/.github/workflows/lint.yml@main
     with:
       target: ${{ matrix.target }}
+      package_manager: bun
     secrets: inherit
