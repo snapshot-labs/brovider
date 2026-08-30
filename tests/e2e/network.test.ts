@@ -361,6 +361,23 @@ describe('Network Endpoint E2E Tests', () => {
         });
       });
 
+      it('should sanitize a non-spec id on an invalid envelope response', async () => {
+        const response = await request(app)
+          .post('/1')
+          .send({ jsonrpc: '1.0', method: 'eth_blockNumber', params: [], id: false })
+          .expect(400);
+
+        expect(upstreamBodies).toHaveLength(0);
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: null,
+          error: {
+            code: -32600,
+            message: 'Invalid Request'
+          }
+        });
+      });
+
       it('should preserve the ID of an invalid single chain ID request', async () => {
         const response = await request(app)
           .post('/1')

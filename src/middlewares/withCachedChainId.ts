@@ -30,7 +30,7 @@ function isValidChainIdRequest(body: Record<string, unknown>): boolean {
 
 export default function withCachedChainId(req: Request, res: Response, next: NextFunction) {
   const network = req.params[0];
-  const body = req.body || {};
+  const body = req.body;
   const { method, jsonrpc, id } = body;
 
   const result = isValidChainIdRequest(body) ? chainIdOf(network, method) : undefined;
