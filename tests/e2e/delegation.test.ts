@@ -1,5 +1,6 @@
 import express from 'express';
 import request from 'supertest';
+import mountMiddleware from '../../src/mountMiddleware';
 import rpc from '../../src/rpc';
 
 describe('Delegation Endpoints', () => {
@@ -7,7 +8,7 @@ describe('Delegation Endpoints', () => {
 
   beforeAll(() => {
     app = express();
-    app.use(express.json());
+    mountMiddleware(app);
     app.use('/', rpc);
   });
 
@@ -111,11 +112,15 @@ describe('Delegation Endpoints', () => {
       });
 
       it('should return 400 for malformed JSON in request body', async () => {
-        await request(app)
+        const response = await request(app)
           .post('/delegation/1')
           .set('Content-Type', 'application/json')
           .send('invalid json')
           .expect(400);
+
+        expect(response.body).toMatchObject({
+          errors: [{ message: 'Parse error' }]
+        });
       });
 
       it('should return 400 for invalid JSON query string', async () => {

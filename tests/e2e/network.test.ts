@@ -4,6 +4,7 @@ import express from 'express';
 import request from 'supertest';
 import { rpcRequestCount } from '../../src/helpers/metrics';
 import { nodes, stop } from '../../src/helpers/nodes';
+import mountMiddleware from '../../src/mountMiddleware';
 import rpc from '../../src/rpc';
 
 describe('Network Endpoint E2E Tests', () => {
@@ -11,7 +12,7 @@ describe('Network Endpoint E2E Tests', () => {
 
   beforeAll(() => {
     app = express();
-    app.use(express.json());
+    mountMiddleware(app);
     app.use('/', rpc);
   });
 
@@ -528,11 +529,17 @@ describe('Network Endpoint E2E Tests', () => {
   describe('Error Handling', () => {
     describe('Request Validation Errors', () => {
       it('should return 400 for malformed JSON', async () => {
-        await request(app)
+        const response = await request(app)
           .post('/1')
           .set('Content-Type', 'application/json')
           .send('invalid json')
           .expect(400);
+
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: null,
+          error: { code: -32700, message: 'Parse error' }
+        });
       });
 
       it('should return 404 for invalid network', async () => {
