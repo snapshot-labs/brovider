@@ -5,6 +5,11 @@ import { sleep } from './utils';
 
 export let nodes = {};
 
+// Own-property lookup only: inherited keys like `__proto__` are not networks.
+export function nodeUrl(network: string): string | undefined {
+  return (Object.hasOwn(nodes, network) && nodes[network]) || undefined;
+}
+
 const REFRESH_INTERVAL = 10e3; // 10 seconds
 let shouldStop = false;
 
