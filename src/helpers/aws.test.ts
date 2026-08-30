@@ -1,6 +1,7 @@
 import { Readable } from 'stream';
 import { S3 } from '@aws-sdk/client-s3';
-import { get } from './aws';
+import { get, set } from './aws';
+import { cacheHitCount } from './metrics';
 
 jest.mock('@aws-sdk/client-s3', () => ({
   S3: jest.fn().mockImplementation(() => ({
@@ -11,6 +12,7 @@ jest.mock('@aws-sdk/client-s3', () => ({
 
 const mockClient = (S3 as unknown as jest.Mock).mock.results[0].value;
 const mockGetObject = mockClient.getObject as jest.Mock;
+const mockPutObject = mockClient.putObject as jest.Mock;
 
 function bodyStream(content: string) {
   return Readable.from([Buffer.from(content)]);
@@ -18,6 +20,11 @@ function bodyStream(content: string) {
 
 function s3Error(name: string, message: string, extra: Record<string, unknown> = {}) {
   return Object.assign(new Error(message), { name, ...extra });
+}
+
+async function cacheStatusCount(status: string) {
+  const metric = await cacheHitCount.get();
+  return metric.values.find(v => v.labels.status === status)?.value ?? 0;
 }
 
 beforeEach(() => {
@@ -69,5 +76,48 @@ describe('aws get()', () => {
     });
 
     await expect(get('good-key')).resolves.toEqual({ data: { ok: true } });
+  });
+
+  it('counts MISS on a miss, READ_ERROR on a storage error, HIT on a hit', async () => {
+    const missBefore = await cacheStatusCount('MISS');
+    const errBefore = await cacheStatusCount('READ_ERROR');
+    const hitBefore = await cacheStatusCount('HIT');
+
+    mockGetObject.mockRejectedValueOnce(s3Error('NoSuchKey', 'no key'));
+    await get('a');
+    mockGetObject.mockRejectedValueOnce(s3Error('NoSuchBucket', 'no bucket'));
+    await expect(get('b')).rejects.toThrow();
+    mockGetObject.mockResolvedValueOnce({ Body: bodyStream(JSON.stringify({ data: 1 })) });
+    await get('c');
+    mockGetObject.mockResolvedValueOnce({ Body: bodyStream('nope') });
+    await expect(get('d')).rejects.toThrow(/corrupt/);
+
+    expect(await cacheStatusCount('MISS')).toBe(missBefore + 1);
+    expect(await cacheStatusCount('READ_ERROR')).toBe(errBefore + 2);
+    expect(await cacheStatusCount('HIT')).toBe(hitBefore + 1);
+  });
+});
+
+describe('aws set()', () => {
+  it('writes the value as JSON to the expected key', async () => {
+    mockPutObject.mockResolvedValue({});
+
+    await set('some-key', { data: { ok: true } });
+
+    expect(mockPutObject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        Key: 'public/subgrapher/some-key',
+        Body: JSON.stringify({ data: { ok: true } })
+      })
+    );
+  });
+
+  it('rethrows and counts WRITE_ERROR when the write fails', async () => {
+    const writeErrorBefore = await cacheStatusCount('WRITE_ERROR');
+    const storageError = s3Error('InternalError', 'write failed');
+    mockPutObject.mockRejectedValue(storageError);
+
+    await expect(set('some-key', { data: { ok: true } })).rejects.toBe(storageError);
+    expect(await cacheStatusCount('WRITE_ERROR')).toBe(writeErrorBefore + 1);
   });
 });

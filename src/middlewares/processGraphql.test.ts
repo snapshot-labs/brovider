@@ -1,6 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
 import { get, set } from '../helpers/aws';
-import { cacheHitCount } from '../helpers/metrics';
 import { fetchWithKeepAlive } from '../helpers/utils';
 
 jest.mock('../helpers/aws', () => ({
@@ -50,11 +49,6 @@ async function expectNoPersistentCache(query: string, variables: Record<string, 
   expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(2);
   expect(mockGet).not.toHaveBeenCalled();
   expect(mockSet).not.toHaveBeenCalled();
-}
-
-async function cacheStatusCount(status: string) {
-  const metric = await cacheHitCount.get();
-  return metric.values.find(v => v.labels.status === status)?.value ?? 0;
 }
 
 beforeAll(async () => {
@@ -242,35 +236,25 @@ describe('processGraphql caching', () => {
     await expectNoPersistentCache(query);
   });
 
-  it('falls through to upstream and counts READ_ERROR, not MISS, when the cache read fails', async () => {
+  it('falls through to upstream when the cache read fails', async () => {
     const query = '{ items(block: { number: 123 }) { id } }';
-    const errorBefore = await cacheStatusCount('READ_ERROR');
-    const missBefore = await cacheStatusCount('MISS');
     mockGet.mockRejectedValueOnce(new Error('cache read failed'));
 
     await execute(query);
 
     expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(1);
-    expect(await cacheStatusCount('READ_ERROR')).toBe(errorBefore + 1);
-    expect(await cacheStatusCount('MISS')).toBe(missBefore);
   });
 
-  it('counts a write failure as WRITE_ERROR without rejecting the request', async () => {
+  it('does not reject the request when the cache write fails', async () => {
     const query = '{ items(block: { number: 456 }) { id } }';
-    const writeErrorBefore = await cacheStatusCount('WRITE_ERROR');
-    const readErrorBefore = await cacheStatusCount('READ_ERROR');
     mockSet.mockRejectedValueOnce(new Error('write failed'));
 
     await execute(query);
     await new Promise(resolve => setImmediate(resolve));
-
-    expect(await cacheStatusCount('WRITE_ERROR')).toBe(writeErrorBefore + 1);
-    expect(await cacheStatusCount('READ_ERROR')).toBe(readErrorBefore);
   });
 
   it('serves a stored falsy value from cache instead of refetching upstream', async () => {
     const query = '{ items(block: { number: 789 }) { id } }';
-    const hitBefore = await cacheStatusCount('HIT');
     mockGet.mockResolvedValueOnce(0);
 
     const json = jest.fn();
@@ -286,6 +270,5 @@ describe('processGraphql caching', () => {
     expect(next).not.toHaveBeenCalled();
     expect(mockFetchWithKeepAlive).not.toHaveBeenCalled();
     expect(json).toHaveBeenCalledWith(0);
-    expect(await cacheStatusCount('HIT')).toBe(hitBefore + 1);
   });
 });

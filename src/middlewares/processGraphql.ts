@@ -3,7 +3,6 @@ import { Kind, parse, print } from 'graphql';
 import { REQUEST_TIMEOUT } from '../constants';
 import { SubgraphError } from '../errors/SubgraphError';
 import { get, set } from '../helpers/aws';
-import { cacheHitCount } from '../helpers/metrics';
 import serve from '../helpers/requestDeduplicator';
 import { fetchWithKeepAlive, sha256 } from '../helpers/utils';
 
@@ -33,23 +32,12 @@ export async function graphqlQuery(url: string, query: string, variables = {}) {
 }
 
 async function getCachedData(key: string) {
-  try {
-    const cached = await get(key);
-    cacheHitCount.inc({ status: cached === undefined ? 'MISS' : 'HIT' });
-    return cached;
-  } catch (e) {
-    console.log('Read cache failed', key, e);
-    cacheHitCount.inc({ status: 'READ_ERROR' });
-    return undefined;
-  }
+  return await get(key).catch(() => undefined);
 }
 
 async function setCachedData(key: string, data: any) {
   if (data?.data) {
-    set(key, data).catch(e => {
-      console.log('Write cache failed', key, e);
-      cacheHitCount.inc({ status: 'WRITE_ERROR' });
-    });
+    set(key, data).catch(() => {});
   }
 }
 
