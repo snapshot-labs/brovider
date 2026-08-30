@@ -1,6 +1,6 @@
 import express from 'express';
 import request from 'supertest';
-import handleJsonParseError from '../../src/middlewares/handleJsonParseError';
+import mountMiddleware from '../../src/mountMiddleware';
 import rpc from '../../src/rpc';
 
 describe('Subgraph Endpoints', () => {
@@ -8,8 +8,7 @@ describe('Subgraph Endpoints', () => {
 
   beforeAll(() => {
     app = express();
-    app.use(express.json());
-    app.use(handleJsonParseError);
+    mountMiddleware(app);
     app.use('/', rpc);
   });
 

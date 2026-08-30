@@ -4,7 +4,7 @@ import express from 'express';
 import request from 'supertest';
 import { rpcRequestCount } from '../../src/helpers/metrics';
 import { nodes, stop } from '../../src/helpers/nodes';
-import handleJsonParseError from '../../src/middlewares/handleJsonParseError';
+import mountMiddleware from '../../src/mountMiddleware';
 import rpc from '../../src/rpc';
 
 describe('Network Endpoint E2E Tests', () => {
@@ -12,8 +12,7 @@ describe('Network Endpoint E2E Tests', () => {
 
   beforeAll(() => {
     app = express();
-    app.use(express.json());
-    app.use(handleJsonParseError);
+    mountMiddleware(app);
     app.use('/', rpc);
   });
 

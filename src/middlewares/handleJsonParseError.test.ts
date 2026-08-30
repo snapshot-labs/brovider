@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import createError from 'http-errors';
 import handleJsonParseError from './handleJsonParseError';
 
 function run(err: any, path = '/1') {
@@ -14,9 +15,7 @@ function run(err: any, path = '/1') {
 
 describe('handleJsonParseError', () => {
   it('answers a JSON-RPC parse error for a body-parser JSON parse failure', () => {
-    const err = Object.assign(new SyntaxError('Unexpected end of JSON input'), {
-      type: 'entity.parse.failed'
-    });
+    const err = createError(400, 'Unexpected end of JSON input', { type: 'entity.parse.failed' });
 
     const { status, json, next } = run(err);
 
@@ -32,7 +31,7 @@ describe('handleJsonParseError', () => {
   it.each(['/subgraph/1/space', '/delegation/1', '/SUBGRAPH/1/space', '/Delegation/1'])(
     'answers a GraphQL-shaped parse error for %s',
     path => {
-      const err = Object.assign(new SyntaxError('Unexpected end of JSON input'), {
+      const err = createError(400, 'Unexpected end of JSON input', {
         type: 'entity.parse.failed'
       });
 
@@ -47,7 +46,7 @@ describe('handleJsonParseError', () => {
   it.each(['/1', '/137', '/sn', '/', '/subgraph'])(
     'answers a JSON-RPC-shaped parse error for %s',
     path => {
-      const err = Object.assign(new SyntaxError('Unexpected end of JSON input'), {
+      const err = createError(400, 'Unexpected end of JSON input', {
         type: 'entity.parse.failed'
       });
 
@@ -74,7 +73,7 @@ describe('handleJsonParseError', () => {
       message: 'request size did not match content length'
     }
   ])('answers a JSON-RPC -32600 for $type', ({ type, status, message }) => {
-    const err = Object.assign(new Error(message), { type, status });
+    const err = createError(status, message, { type });
 
     const { status: statusMock, json, next } = run(err);
 
@@ -87,11 +86,25 @@ describe('handleJsonParseError', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('answers a GraphQL-shaped error for a non-parse client body error on a GraphQL route', () => {
-    const err = Object.assign(new Error('request entity too large'), {
-      type: 'entity.too.large',
-      status: 413
+  it('answers a JSON-RPC -32600 for a decompression failure carrying no body-parser type', () => {
+    const zlibError = Object.assign(new Error('incorrect header check'), {
+      code: 'Z_DATA_ERROR'
     });
+    const err = createError(400, zlibError);
+
+    const { status, json, next } = run(err);
+
+    expect(status).toHaveBeenCalledWith(400);
+    expect(json).toHaveBeenCalledWith({
+      jsonrpc: '2.0',
+      id: null,
+      error: { code: -32600, message: 'incorrect header check' }
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('answers a GraphQL-shaped error for a non-parse client body error on a GraphQL route', () => {
+    const err = createError(413, 'request entity too large', { type: 'entity.too.large' });
 
     const { status, json, next } = run(err, '/subgraph/1/space');
 
@@ -101,9 +114,7 @@ describe('handleJsonParseError', () => {
   });
 
   it('passes through a 500-class body-parser programmer error unanswered', () => {
-    const err = Object.assign(new Error('stream is not readable'), {
-      type: 'stream.not.readable'
-    });
+    const err = createError(500, 'stream is not readable', { type: 'stream.not.readable' });
 
     const { status, next } = run(err);
 
