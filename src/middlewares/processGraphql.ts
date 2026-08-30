@@ -1,10 +1,8 @@
-import { capture } from '@snapshot-labs/snapshot-sentry';
 import { NextFunction, Request, Response } from 'express';
 import { Kind, parse, print } from 'graphql';
 import { REQUEST_TIMEOUT } from '../constants';
 import { SubgraphError } from '../errors/SubgraphError';
 import { get, set } from '../helpers/aws';
-import { cacheHitCount } from '../helpers/metrics';
 import serve from '../helpers/requestDeduplicator';
 import { fetchWithKeepAlive, sha256 } from '../helpers/utils';
 
@@ -34,18 +32,12 @@ export async function graphqlQuery(url: string, query: string, variables = {}) {
 }
 
 async function getCachedData(key: string) {
-  const cachedData = await get(key);
-  if (cachedData) {
-    cacheHitCount.inc({ status: 'HIT' });
-    return cachedData;
-  }
-  cacheHitCount.inc({ status: 'MISS' });
-  return null;
+  return await get(key).catch(() => undefined);
 }
 
 async function setCachedData(key: string, data: any) {
   if (data?.data) {
-    set(key, data).catch(capture);
+    set(key, data).catch(() => {});
   }
 }
 
@@ -58,7 +50,7 @@ export async function getData(
 ) {
   if (isCacheEnabled) {
     const cachedData = await getCachedData(key);
-    if (cachedData) {
+    if (cachedData !== undefined) {
       return cachedData;
     }
   }

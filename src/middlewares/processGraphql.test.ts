@@ -67,7 +67,7 @@ afterAll(() => {
 beforeEach(() => {
   cachedResponses.clear();
   jest.clearAllMocks();
-  mockGet.mockImplementation(async key => cachedResponses.get(key) ?? false);
+  mockGet.mockImplementation(async key => cachedResponses.get(key));
   mockSet.mockImplementation(async (key, value) => {
     cachedResponses.set(key, value);
     return {} as any;
@@ -234,5 +234,41 @@ describe('processGraphql caching', () => {
     ]
   ])('does not persist documents with %s', async (_selection, query) => {
     await expectNoPersistentCache(query);
+  });
+
+  it('falls through to upstream when the cache read fails', async () => {
+    const query = '{ items(block: { number: 123 }) { id } }';
+    mockGet.mockRejectedValueOnce(new Error('cache read failed'));
+
+    await execute(query);
+
+    expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not reject the request when the cache write fails', async () => {
+    const query = '{ items(block: { number: 456 }) { id } }';
+    mockSet.mockRejectedValueOnce(new Error('write failed'));
+
+    await execute(query);
+    await new Promise(resolve => setImmediate(resolve));
+  });
+
+  it('serves a stored falsy value from cache instead of refetching upstream', async () => {
+    const query = '{ items(block: { number: 789 }) { id } }';
+    mockGet.mockResolvedValueOnce(0);
+
+    const json = jest.fn();
+    const next = jest.fn();
+    const req = {
+      body: { query, variables: {} },
+      _subgraph_url: { url: 'https://example.com/graphql' }
+    } as unknown as Request;
+    const res = { json } as unknown as Response;
+
+    await processGraphql(req, res, next as NextFunction);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(mockFetchWithKeepAlive).not.toHaveBeenCalled();
+    expect(json).toHaveBeenCalledWith(0);
   });
 });
