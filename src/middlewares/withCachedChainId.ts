@@ -19,10 +19,9 @@ function chainIdOf(network: string, method: unknown): string | undefined {
 }
 
 function isValidChainIdRequest(body: Record<string, unknown>): boolean {
-  const { jsonrpc, id, params } = body;
+  const { id, params } = body;
 
   return (
-    jsonrpc === '2.0' &&
     Object.hasOwn(body, 'id') &&
     (typeof id === 'string' || typeof id === 'number' || id === null) &&
     (!Object.hasOwn(body, 'params') || (Array.isArray(params) && params.length === 0))
@@ -31,7 +30,7 @@ function isValidChainIdRequest(body: Record<string, unknown>): boolean {
 
 export default function withCachedChainId(req: Request, res: Response, next: NextFunction) {
   const network = req.params[0];
-  const body = req.body || {};
+  const body = req.body;
   const { method, jsonrpc, id } = body;
 
   const result = isValidChainIdRequest(body) ? chainIdOf(network, method) : undefined;

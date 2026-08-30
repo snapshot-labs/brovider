@@ -20,13 +20,9 @@ function metricLabel(value: unknown, allowed: Set<string>) {
 
 export default function setNode(req: Request, res: Response, next: NextFunction) {
   const network = req.params[0];
-  const body = req.body || {};
-  const { jsonrpc, id } = body;
+  const body = req.body;
+  const { jsonrpc, id, method } = body;
   const url = Object.hasOwn(nodes, network) ? nodes[network] : undefined;
-
-  if (!req.body || !jsonrpc) {
-    return res.status(400).json({ error: 'Invalid request' });
-  }
 
   if (!url) {
     return res.status(404).json({ jsonrpc, id, error: 'Invalid network' });
@@ -51,7 +47,7 @@ export default function setNode(req: Request, res: Response, next: NextFunction)
   rpcRequestCount.inc({
     network,
     client: metricLabel(req.query.client, RPC_CLIENTS),
-    rpc_method: metricLabel(body.method, RPC_METHODS)
+    rpc_method: metricLabel(method, RPC_METHODS)
   });
 
   (req as any)._node = {
