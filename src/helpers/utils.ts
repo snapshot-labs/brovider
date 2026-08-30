@@ -1,8 +1,8 @@
 import { createHash } from 'crypto';
 import https from 'node:https';
 import fetch, { RequestInit, Response } from 'node-fetch';
+import { REQUEST_TIMEOUT } from '../constants';
 
-const DEFAULT_FETCH_TIMEOUT = 30000;
 const httpsAgent = new https.Agent({ keepAlive: true });
 
 export async function sleep(ms: number): Promise<void> {
@@ -21,7 +21,7 @@ export const fetchWithKeepAlive = async (
   uri: string | URL,
   options: FetchWithTimeoutOptions = {}
 ): Promise<Response> => {
-  const { timeout = DEFAULT_FETCH_TIMEOUT, ...fetchOptions } = options;
+  const { timeout = REQUEST_TIMEOUT, ...fetchOptions } = options;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);

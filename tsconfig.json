@@ -14,5 +14,8 @@
     "sourceRoot": "/",
     "skipLibCheck": true
   },
-  "exclude": ["**/*.test.ts"]
+  "exclude": [
+    "**/*.test.ts",
+    "tests"
+  ]
 }

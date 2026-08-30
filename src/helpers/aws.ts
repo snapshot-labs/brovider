@@ -1,4 +1,3 @@
-import { Readable } from 'stream';
 import * as AWS from '@aws-sdk/client-s3';
 
 const client = new AWS.S3({
@@ -7,15 +6,6 @@ const client = new AWS.S3({
 });
 
 const dir = 'subgrapher';
-
-async function streamToString(stream: Readable): Promise<string> {
-  return await new Promise((resolve, reject) => {
-    const chunks: Uint8Array[] = [];
-    stream.on('data', chunk => chunks.push(chunk));
-    stream.on('error', reject);
-    stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
-  });
-}
 
 export async function set(key, value) {
   try {
@@ -37,9 +27,7 @@ export async function get(key) {
       Bucket: process.env.AWS_BUCKET_NAME,
       Key: `public/${dir}/${key}`
     });
-    // @ts-ignore
-    const str = await streamToString(Body);
-    return JSON.parse(str);
+    return JSON.parse(await Body!.transformToString());
   } catch (e) {
     return false;
   }

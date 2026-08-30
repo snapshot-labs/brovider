@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { subgraphs } from '../constants';
-import { SubgraphError } from '../errors/SubgraphError';
+import { SubgraphError } from '../helpers/SubgraphError';
 
 export default function setGraphqlUrl(req: Request, _res: Response, next: NextFunction) {
   const network = req.params.network;

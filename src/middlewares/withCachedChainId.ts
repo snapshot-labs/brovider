@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { nodes } from '../helpers/nodes';
+import { nodeUrl } from '../helpers/nodes';
 
 const STARKNET_CHAIN_IDS: Record<string, string> = {
   sn: '0x534e5f4d41494e',
@@ -38,7 +38,7 @@ export default function withCachedChainId(req: Request, res: Response, next: Nex
 
   if (result === undefined) return next();
 
-  if (!Object.hasOwn(nodes, network) || !nodes[network]) {
+  if (!nodeUrl(network)) {
     return res.status(404).json({ jsonrpc, id, error: 'Invalid network' });
   }
 

@@ -2,7 +2,7 @@ import { capture } from '@snapshot-labs/snapshot-sentry';
 import { NextFunction, Request, Response } from 'express';
 import { RPC_CLIENTS, RPC_METHODS } from '../constants';
 import { rpcRequestCount } from '../helpers/metrics';
-import { nodes } from '../helpers/nodes';
+import { nodeUrl } from '../helpers/nodes';
 
 const NODE_HEADERS: Record<string, Record<string, string>> = {
   'https://internal-archive.storyrpc.io': {
@@ -22,7 +22,7 @@ export default function setNode(req: Request, res: Response, next: NextFunction)
   const network = req.params[0];
   const body = req.body || {};
   const { jsonrpc, id } = body;
-  const url = Object.hasOwn(nodes, network) ? nodes[network] : undefined;
+  const url = nodeUrl(network);
 
   if (!req.body || !jsonrpc) {
     return res.status(400).json({ error: 'Invalid request' });

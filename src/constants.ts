@@ -81,27 +81,30 @@ export const RPC_METHODS = new Set([
   'web3_clientVersion'
 ]);
 
+const graphUrl = (key: string | undefined, id = '') =>
+  `https://gateway-arbitrum.network.thegraph.com/api/${key}/subgraphs/id/${id}`;
+
 export const subgraphs = {
   subgraph: {
     mainnet: `https://gateway.network.thegraph.com/api/${NON_RESTRICTED_SUBGRAPH_KEY}/subgraphs/id/`,
-    arbitrum: `https://gateway-arbitrum.network.thegraph.com/api/${NON_RESTRICTED_SUBGRAPH_KEY}/subgraphs/id/`
+    arbitrum: graphUrl(NON_RESTRICTED_SUBGRAPH_KEY)
   },
   delegation: {
-    '1': `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_KEY}/subgraphs/id/4YgtogVaqoM8CErHWDK8mKQ825BcVdKB8vBYmb4avAQo`,
-    '10': `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_KEY}/subgraphs/id/CAsVTyvLA6vnvDX9zgXifmi3wFM8GYeNHvRpxsABvbYL`,
-    '56': `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_KEY}/subgraphs/id/GuTMtMnx7zukaA1hiHB1uz6FR45gpZX3GtiEN7Cyitjd`,
-    '100': `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_KEY}/subgraphs/id/2XuuZyGrxw72keXKfeHQW7yaGqVa7dyoghkgdGMdC6Az`,
-    '137': `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_KEY}/subgraphs/id/7ynRuH2PPw975dtHkthpZCyQGKBCrxFA8VsYD3KE631B`,
-    '146': `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_KEY}/subgraphs/id/3VUpuJv8J7kdvEMd6ymD1XszpGNQiTjK5oGAnmS3C2Bb`,
-    '250': `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_KEY}/subgraphs/id/szZ3FWewDGHtpeZzf6uQ5dxPY68JNfrGPoWqBXwtBXR`,
+    '1': graphUrl(SUBGRAPH_KEY, '4YgtogVaqoM8CErHWDK8mKQ825BcVdKB8vBYmb4avAQo'),
+    '10': graphUrl(SUBGRAPH_KEY, 'CAsVTyvLA6vnvDX9zgXifmi3wFM8GYeNHvRpxsABvbYL'),
+    '56': graphUrl(SUBGRAPH_KEY, 'GuTMtMnx7zukaA1hiHB1uz6FR45gpZX3GtiEN7Cyitjd'),
+    '100': graphUrl(SUBGRAPH_KEY, '2XuuZyGrxw72keXKfeHQW7yaGqVa7dyoghkgdGMdC6Az'),
+    '137': graphUrl(SUBGRAPH_KEY, '7ynRuH2PPw975dtHkthpZCyQGKBCrxFA8VsYD3KE631B'),
+    '146': graphUrl(SUBGRAPH_KEY, '3VUpuJv8J7kdvEMd6ymD1XszpGNQiTjK5oGAnmS3C2Bb'),
+    '250': graphUrl(SUBGRAPH_KEY, 'szZ3FWewDGHtpeZzf6uQ5dxPY68JNfrGPoWqBXwtBXR'),
     '5000':
       'https://subgraph-api.mantle.xyz/api/public/54a96b6a-f1f4-4124-bf71-17207d243f94/subgraphs/snapshot-labs/snapshot-mantle/v0.0.1/gn',
-    '8453': `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_KEY}/subgraphs/id/9qxDXD1SNnZriMMkCRVAmSdsv4KP6Xvnr8U2CRc5HQWh`,
-    '42161': `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_KEY}/subgraphs/id/HuLBhuKuknXEEUmVmKR8Lsmpi5h1SfNLGcaa1e9tWyMG`,
-    '43114': `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_KEY}/subgraphs/id/5GPQs1wbQXJpt4nJemmEvW3TTf7CPq2MdTvpopTABxhN`,
-    '59144': `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_KEY}/subgraphs/id/5KsUhS8E9xQUu6szt9PUNuUbzJ73C4vi7yQuxFUzmRt4`,
-    '81457': `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_KEY}/subgraphs/id/EtHGr4ekkZkP81yfL2yQEyHqhyBa4nShASoSnjCUgvQd`,
-    '84532': `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_KEY}/subgraphs/id/CdxACSJVLsvfQXRmGYGGM1F93LTkk6VA8anBsxdjJWXn`,
-    '11155111': `https://gateway-arbitrum.network.thegraph.com/api/${SUBGRAPH_KEY}/subgraphs/id/2SZVRR6G8txMFtf39aw2aP7BTAawRVwgqHeQXMhr7BRJ`
+    '8453': graphUrl(SUBGRAPH_KEY, '9qxDXD1SNnZriMMkCRVAmSdsv4KP6Xvnr8U2CRc5HQWh'),
+    '42161': graphUrl(SUBGRAPH_KEY, 'HuLBhuKuknXEEUmVmKR8Lsmpi5h1SfNLGcaa1e9tWyMG'),
+    '43114': graphUrl(SUBGRAPH_KEY, '5GPQs1wbQXJpt4nJemmEvW3TTf7CPq2MdTvpopTABxhN'),
+    '59144': graphUrl(SUBGRAPH_KEY, '5KsUhS8E9xQUu6szt9PUNuUbzJ73C4vi7yQuxFUzmRt4'),
+    '81457': graphUrl(SUBGRAPH_KEY, 'EtHGr4ekkZkP81yfL2yQEyHqhyBa4nShASoSnjCUgvQd'),
+    '84532': graphUrl(SUBGRAPH_KEY, 'CdxACSJVLsvfQXRmGYGGM1F93LTkk6VA8anBsxdjJWXn'),
+    '11155111': graphUrl(SUBGRAPH_KEY, '2SZVRR6G8txMFtf39aw2aP7BTAawRVwgqHeQXMhr7BRJ')
   }
 };
