@@ -21,21 +21,8 @@ function metricLabel(value: unknown, allowed: Set<string>) {
 export default function setNode(req: Request, res: Response, next: NextFunction) {
   const network = req.params[0];
   const body = req.body;
-  const url = Object.hasOwn(nodes, network) ? nodes[network] : undefined;
-
-  if (!body || body.jsonrpc !== '2.0' || typeof body.method !== 'string' || body.method === '') {
-    const id =
-      body && (typeof body.id === 'string' || typeof body.id === 'number' || body.id === null)
-        ? body.id
-        : null;
-    return res.status(400).json({
-      jsonrpc: '2.0',
-      id,
-      error: { code: -32600, message: 'Invalid Request' }
-    });
-  }
-
   const { jsonrpc, id, method } = body;
+  const url = Object.hasOwn(nodes, network) ? nodes[network] : undefined;
 
   if (!url) {
     return res.status(404).json({ jsonrpc, id, error: 'Invalid network' });
