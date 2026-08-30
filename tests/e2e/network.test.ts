@@ -581,6 +581,24 @@ describe('Network Endpoint E2E Tests', () => {
           });
         }
       );
+
+      it('should echo back a non-spec id on an invalid network response', async () => {
+        const response = await request(app)
+          .post('/999999')
+          .send({
+            jsonrpc: '2.0',
+            method: 'eth_blockNumber',
+            params: [],
+            id: false
+          })
+          .expect(404);
+
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: false,
+          error: 'Invalid network'
+        });
+      });
     });
 
     describe('JSON-RPC Errors', () => {
@@ -641,6 +659,24 @@ describe('Network Endpoint E2E Tests', () => {
       expect(response.body).toEqual({
         jsonrpc: '2.0',
         id: 1,
+        error: 'Invalid node URL configuration'
+      });
+    });
+
+    it('should echo back a non-spec id on an invalid node URL configuration response', async () => {
+      const response = await request(app)
+        .post('/11001100')
+        .send({
+          jsonrpc: '2.0',
+          method: 'eth_blockNumber',
+          params: [],
+          id: false
+        })
+        .expect(500);
+
+      expect(response.body).toEqual({
+        jsonrpc: '2.0',
+        id: false,
         error: 'Invalid node URL configuration'
       });
     });
