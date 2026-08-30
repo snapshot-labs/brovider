@@ -6,6 +6,7 @@ import express from 'express';
 import initMetrics from './helpers/metrics';
 import { run as loadData } from './helpers/nodes';
 import { initSentryFilters } from './helpers/sentry';
+import handleJsonParseError from './middlewares/handleJsonParseError';
 import rpc from './rpc';
 import pkg from '../package.json';
 
@@ -19,6 +20,7 @@ loadData();
 app.disable('x-powered-by');
 app.use(express.json({ limit: '4mb' }));
 app.use(express.urlencoded({ limit: '4mb', extended: false }));
+app.use(handleJsonParseError);
 app.use(cors({ maxAge: 86400 }));
 app.use('/', rpc);
 app.get('/', (req, res) => {
