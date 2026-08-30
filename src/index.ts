@@ -1,12 +1,11 @@
 import 'dotenv/config';
 import './instrument';
 import { fallbackLogger } from '@snapshot-labs/snapshot-sentry';
-import cors from 'cors';
 import express from 'express';
 import initMetrics from './helpers/metrics';
 import { run as loadData } from './helpers/nodes';
 import { initSentryFilters } from './helpers/sentry';
-import handleJsonParseError from './middlewares/handleJsonParseError';
+import mountMiddleware from './mountMiddleware';
 import rpc from './rpc';
 import pkg from '../package.json';
 
@@ -18,10 +17,7 @@ initMetrics(app);
 loadData();
 
 app.disable('x-powered-by');
-app.use(cors({ maxAge: 86400 }));
-app.use(express.json({ limit: '4mb' }));
-app.use(express.urlencoded({ limit: '4mb', extended: false }));
-app.use(handleJsonParseError);
+mountMiddleware(app);
 app.use('/', rpc);
 app.get('/', (req, res) => {
   const commit = process.env.COMMIT_HASH || '';

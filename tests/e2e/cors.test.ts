@@ -1,16 +1,13 @@
-import cors from 'cors';
 import express from 'express';
 import request from 'supertest';
-import handleJsonParseError from '../../src/middlewares/handleJsonParseError';
+import mountMiddleware from '../../src/mountMiddleware';
 
 describe('CORS on a body-parser error response', () => {
   let app: express.Application;
 
   beforeAll(() => {
     app = express();
-    app.use(cors({ maxAge: 86400 }));
-    app.use(express.json({ limit: '4mb' }));
-    app.use(handleJsonParseError);
+    mountMiddleware(app);
     app.post('/1', (_req, res) => res.json({ ok: true }));
   });
 

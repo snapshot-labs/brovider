@@ -62,8 +62,48 @@ describe('handleJsonParseError', () => {
     }
   );
 
-  it('passes through any other error unanswered', () => {
-    const err = Object.assign(new Error('payload too large'), { type: 'entity.too.large' });
+  it.each([
+    { type: 'entity.too.large', status: 413, message: 'request entity too large' },
+    { type: 'charset.unsupported', status: 415, message: 'unsupported charset "FOO"' },
+    { type: 'encoding.unsupported', status: 415, message: 'unsupported content encoding "foo"' },
+    { type: 'parameters.too.many', status: 413, message: 'too many parameters' },
+    { type: 'request.aborted', status: 400, message: 'request aborted' },
+    {
+      type: 'request.size.invalid',
+      status: 400,
+      message: 'request size did not match content length'
+    }
+  ])('answers a JSON-RPC -32600 for $type', ({ type, status, message }) => {
+    const err = Object.assign(new Error(message), { type, status });
+
+    const { status: statusMock, json, next } = run(err);
+
+    expect(statusMock).toHaveBeenCalledWith(status);
+    expect(json).toHaveBeenCalledWith({
+      jsonrpc: '2.0',
+      id: null,
+      error: { code: -32600, message }
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('answers a GraphQL-shaped error for a non-parse client body error on a GraphQL route', () => {
+    const err = Object.assign(new Error('request entity too large'), {
+      type: 'entity.too.large',
+      status: 413
+    });
+
+    const { status, json, next } = run(err, '/subgraph/1/space');
+
+    expect(status).toHaveBeenCalledWith(413);
+    expect(json).toHaveBeenCalledWith({ errors: [{ message: 'request entity too large' }] });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('passes through a 500-class body-parser programmer error unanswered', () => {
+    const err = Object.assign(new Error('stream is not readable'), {
+      type: 'stream.not.readable'
+    });
 
     const { status, next } = run(err);
 
