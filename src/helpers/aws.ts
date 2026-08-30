@@ -18,17 +18,12 @@ async function streamToString(stream: Readable): Promise<string> {
 }
 
 export async function set(key, value) {
-  try {
-    return await client.putObject({
-      Bucket: process.env.AWS_BUCKET_NAME,
-      Key: `public/${dir}/${key}`,
-      Body: JSON.stringify(value),
-      ContentType: 'application/json; charset=utf-8'
-    });
-  } catch (e) {
-    console.log('Store cache failed', e);
-    throw e;
-  }
+  return await client.putObject({
+    Bucket: process.env.AWS_BUCKET_NAME,
+    Key: `public/${dir}/${key}`,
+    Body: JSON.stringify(value),
+    ContentType: 'application/json; charset=utf-8'
+  });
 }
 
 export async function get(key) {

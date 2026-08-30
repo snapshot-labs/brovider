@@ -267,4 +267,25 @@ describe('processGraphql caching', () => {
     expect(await cacheStatusCount('WRITE_ERROR')).toBe(writeErrorBefore + 1);
     expect(await cacheStatusCount('READ_ERROR')).toBe(readErrorBefore);
   });
+
+  it('serves a stored falsy value from cache instead of refetching upstream', async () => {
+    const query = '{ items(block: { number: 789 }) { id } }';
+    const hitBefore = await cacheStatusCount('HIT');
+    mockGet.mockResolvedValueOnce(0);
+
+    const json = jest.fn();
+    const next = jest.fn();
+    const req = {
+      body: { query, variables: {} },
+      _subgraph_url: { url: 'https://example.com/graphql' }
+    } as unknown as Request;
+    const res = { json } as unknown as Response;
+
+    await processGraphql(req, res, next as NextFunction);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(mockFetchWithKeepAlive).not.toHaveBeenCalled();
+    expect(json).toHaveBeenCalledWith(0);
+    expect(await cacheStatusCount('HIT')).toBe(hitBefore + 1);
+  });
 });

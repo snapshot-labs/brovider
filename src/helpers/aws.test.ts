@@ -31,7 +31,7 @@ describe('aws get()', () => {
     await expect(get('missing')).resolves.toBeUndefined();
   });
 
-  it('returns undefined on a 404 without the NoSuchKey name', async () => {
+  it('returns undefined on a NotFound miss', async () => {
     mockGetObject.mockRejectedValue(
       s3Error('NotFound', 'Not Found', { $metadata: { httpStatusCode: 404 } })
     );

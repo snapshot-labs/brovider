@@ -36,17 +36,20 @@ async function getCachedData(key: string) {
   try {
     const cached = await get(key);
     cacheHitCount.inc({ status: cached === undefined ? 'MISS' : 'HIT' });
-    return cached ?? null;
+    return cached;
   } catch (e) {
     console.log('Read cache failed', key, e);
     cacheHitCount.inc({ status: 'READ_ERROR' });
-    return null;
+    return undefined;
   }
 }
 
 async function setCachedData(key: string, data: any) {
   if (data?.data) {
-    set(key, data).catch(() => cacheHitCount.inc({ status: 'WRITE_ERROR' }));
+    set(key, data).catch(e => {
+      console.log('Write cache failed', key, e);
+      cacheHitCount.inc({ status: 'WRITE_ERROR' });
+    });
   }
 }
 
@@ -59,7 +62,7 @@ export async function getData(
 ) {
   if (isCacheEnabled) {
     const cachedData = await getCachedData(key);
-    if (cachedData) {
+    if (cachedData !== undefined) {
       return cachedData;
     }
   }
