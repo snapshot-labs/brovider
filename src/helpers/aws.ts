@@ -1,5 +1,6 @@
 import { Readable } from 'stream';
 import * as AWS from '@aws-sdk/client-s3';
+import { capture } from '@snapshot-labs/snapshot-sentry';
 import { cacheHitCount } from './metrics';
 
 const client = new AWS.S3({
@@ -8,6 +9,10 @@ const client = new AWS.S3({
 });
 
 const dir = 'subgrapher';
+
+// capture() below is unsampled (one Sentry event per failed op), fine at today's
+// subgraph-only call volume; a higher-traffic caller adopting get()/set() needs
+// its own gating before that stops being true.
 
 async function streamToString(stream: Readable): Promise<string> {
   return await new Promise((resolve, reject) => {
@@ -29,6 +34,7 @@ export async function set(key, value) {
   } catch (e) {
     console.log('Store cache failed', key, e);
     cacheHitCount.inc({ status: 'WRITE_ERROR' });
+    capture(e, { contexts: { cache: { key, op: 'set' } } });
     throw e;
   }
 }
@@ -49,6 +55,7 @@ export async function get(key) {
     }
     console.log('Read cache failed', key, e);
     cacheHitCount.inc({ status: 'READ_ERROR' });
+    capture(e, { contexts: { cache: { key, op: 'get' } } });
     throw e;
   }
 
@@ -58,7 +65,9 @@ export async function get(key) {
   } catch {
     console.log('Read cache failed, corrupt entry', key);
     cacheHitCount.inc({ status: 'READ_ERROR' });
-    throw new Error(`corrupt cache entry: ${key}`);
+    const corruptError = new Error(`corrupt cache entry: ${key}`);
+    capture(corruptError, { contexts: { cache: { key, op: 'parse' } } });
+    throw corruptError;
   }
   cacheHitCount.inc({ status: 'HIT' });
   return value;
