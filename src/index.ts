@@ -18,10 +18,10 @@ initMetrics(app);
 loadData();
 
 app.disable('x-powered-by');
+app.use(cors({ maxAge: 86400 }));
 app.use(express.json({ limit: '4mb' }));
 app.use(express.urlencoded({ limit: '4mb', extended: false }));
 app.use(handleJsonParseError);
-app.use(cors({ maxAge: 86400 }));
 app.use('/', rpc);
 app.get('/', (req, res) => {
   const commit = process.env.COMMIT_HASH || '';

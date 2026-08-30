@@ -1,5 +1,6 @@
 import express from 'express';
 import request from 'supertest';
+import handleJsonParseError from '../../src/middlewares/handleJsonParseError';
 import rpc from '../../src/rpc';
 
 describe('Subgraph Endpoints', () => {
@@ -8,6 +9,7 @@ describe('Subgraph Endpoints', () => {
   beforeAll(() => {
     app = express();
     app.use(express.json());
+    app.use(handleJsonParseError);
     app.use('/', rpc);
   });
 
@@ -104,11 +106,15 @@ describe('Subgraph Endpoints', () => {
       });
 
       it('should return 400 for malformed JSON in request body', async () => {
-        await request(app)
+        const response = await request(app)
           .post('/subgraph/mainnet/test-id')
           .set('Content-Type', 'application/json')
           .send('invalid json')
           .expect(400);
+
+        expect(response.body).toMatchObject({
+          errors: [{ message: 'Parse error' }]
+        });
       });
 
       it('should return 400 for invalid JSON query string', async () => {
