@@ -242,27 +242,29 @@ describe('processGraphql caching', () => {
     await expectNoPersistentCache(query);
   });
 
-  it('falls through to upstream and counts ERROR, not MISS, when the cache read fails', async () => {
+  it('falls through to upstream and counts READ_ERROR, not MISS, when the cache read fails', async () => {
     const query = '{ items(block: { number: 123 }) { id } }';
-    const errorBefore = await cacheStatusCount('ERROR');
+    const errorBefore = await cacheStatusCount('READ_ERROR');
     const missBefore = await cacheStatusCount('MISS');
     mockGet.mockRejectedValueOnce(new Error('cache read failed'));
 
     await execute(query);
 
     expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(1);
-    expect(await cacheStatusCount('ERROR')).toBe(errorBefore + 1);
+    expect(await cacheStatusCount('READ_ERROR')).toBe(errorBefore + 1);
     expect(await cacheStatusCount('MISS')).toBe(missBefore);
   });
 
-  it('counts a write failure as ERROR without rejecting the request', async () => {
+  it('counts a write failure as WRITE_ERROR without rejecting the request', async () => {
     const query = '{ items(block: { number: 456 }) { id } }';
-    const errorBefore = await cacheStatusCount('ERROR');
+    const writeErrorBefore = await cacheStatusCount('WRITE_ERROR');
+    const readErrorBefore = await cacheStatusCount('READ_ERROR');
     mockSet.mockRejectedValueOnce(new Error('write failed'));
 
     await execute(query);
     await new Promise(resolve => setImmediate(resolve));
 
-    expect(await cacheStatusCount('ERROR')).toBe(errorBefore + 1);
+    expect(await cacheStatusCount('WRITE_ERROR')).toBe(writeErrorBefore + 1);
+    expect(await cacheStatusCount('READ_ERROR')).toBe(readErrorBefore);
   });
 });

@@ -28,7 +28,7 @@ export default function initMetrics(app: Express) {
 
 export const cacheHitCount = new client.Counter({
   name: 'cache_hit_count',
-  help: 'Number of hit/miss of the cache layer',
+  help: 'Number of cache lookups by outcome (status label)',
   labelNames: ['status']
 });
 

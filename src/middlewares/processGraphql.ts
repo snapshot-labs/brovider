@@ -38,14 +38,15 @@ async function getCachedData(key: string) {
     cacheHitCount.inc({ status: cached === undefined ? 'MISS' : 'HIT' });
     return cached ?? null;
   } catch (e) {
-    cacheHitCount.inc({ status: 'ERROR' });
+    console.log('Read cache failed', key, e);
+    cacheHitCount.inc({ status: 'READ_ERROR' });
     return null;
   }
 }
 
 async function setCachedData(key: string, data: any) {
   if (data?.data) {
-    set(key, data).catch(() => cacheHitCount.inc({ status: 'ERROR' }));
+    set(key, data).catch(() => cacheHitCount.inc({ status: 'WRITE_ERROR' }));
   }
 }
 

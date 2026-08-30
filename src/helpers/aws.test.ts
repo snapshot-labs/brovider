@@ -48,6 +48,15 @@ describe('aws get()', () => {
     await expect(get('any-key')).rejects.toBe(storageError);
   });
 
+  it('rethrows a NoSuchBucket 404 instead of treating it as a miss', async () => {
+    const storageError = s3Error('NoSuchBucket', 'The specified bucket does not exist.', {
+      $metadata: { httpStatusCode: 404 }
+    });
+    mockGetObject.mockRejectedValue(storageError);
+
+    await expect(get('any-key')).rejects.toBe(storageError);
+  });
+
   it('throws a distinct error on a corrupt cache entry instead of returning it as a miss', async () => {
     mockGetObject.mockResolvedValue({ Body: bodyStream('not json') });
 

@@ -41,7 +41,7 @@ export async function get(key) {
     // @ts-ignore
     str = await streamToString(Body);
   } catch (e: any) {
-    if (e?.name === 'NoSuchKey' || e?.$metadata?.httpStatusCode === 404) return undefined;
+    if (e?.name === 'NoSuchKey' || e?.name === 'NotFound') return undefined;
     throw e;
   }
 
