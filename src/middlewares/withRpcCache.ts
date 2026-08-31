@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
-import { REQUEST_TIMEOUT } from '../constants';
-import { rpcCacheCount } from '../helpers/metrics';
+import { REQUEST_TIMEOUT, RPC_CLIENTS, RPC_METHODS } from '../constants';
+import { rpcCacheCount, rpcRequestCount } from '../helpers/metrics';
 import serve from '../helpers/requestDeduplicator';
 import { fetchWithKeepAlive, sha256 } from '../helpers/utils';
 
@@ -46,6 +46,11 @@ const ENTRY_OVERHEAD = 128;
 const cache = new Map<string, Entry>();
 let cacheSize = 0;
 const heads = new Map<string, { number: number | null; expiresAt: number }>();
+
+function metricLabel(value: unknown, allowed: Set<string>) {
+  if (value === undefined) return 'none';
+  return typeof value === 'string' && allowed.has(value) ? value : 'other';
+}
 
 function pinnedBlock(body: any): number | undefined {
   const index = BLOCK_PARAM_INDEX.get(body?.method);
@@ -149,9 +154,18 @@ export default async function withRpcCache(req: Request, res: Response, next: Ne
   const node: Node = (req as any)._node;
   const body = req.body;
   const block = pinnedBlock(body);
+  const isNotification = !Object.hasOwn(body, 'id');
 
-  if (block === undefined) {
+  const countRequest = () =>
+    rpcRequestCount.inc({
+      network: node.network,
+      client: metricLabel(req.query.client, RPC_CLIENTS),
+      rpc_method: metricLabel(body.method, RPC_METHODS)
+    });
+
+  if (block === undefined || isNotification) {
     rpcCacheCount.inc({ status: 'BYPASS' });
+    countRequest();
     return next();
   }
 
@@ -159,10 +173,11 @@ export default async function withRpcCache(req: Request, res: Response, next: Ne
   const cached = readCache(key);
   if (cached !== undefined) {
     rpcCacheCount.inc({ status: 'HIT' });
-    return res.json({ jsonrpc: '2.0', id: body.id ?? null, result: cached });
+    return res.json({ jsonrpc: '2.0', id: body.id, result: cached });
   }
 
   rpcCacheCount.inc({ status: 'MISS' });
+  countRequest();
   const pendingHead = headOf(node);
 
   let response: Awaited<ReturnType<typeof rpcCall>>;
@@ -172,7 +187,7 @@ export default async function withRpcCache(req: Request, res: Response, next: Ne
     await pendingHead;
     return res.status(502).json({
       jsonrpc: '2.0',
-      id: body.id ?? null,
+      id: body.id,
       error: { code: -32603, message: 'Upstream request failed' }
     });
   }
@@ -184,7 +199,7 @@ export default async function withRpcCache(req: Request, res: Response, next: Ne
   const payload = response.body;
   const isEnvelope = !!payload && typeof payload === 'object' && !Array.isArray(payload);
   if (isEnvelope) {
-    res.status(response.status).json({ ...payload, id: body.id ?? null });
+    res.status(response.status).json({ ...payload, id: body.id });
   } else {
     res.status(response.status).send(response.text);
   }

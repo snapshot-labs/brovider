@@ -2,7 +2,7 @@ import { Server } from 'http';
 import { AddressInfo } from 'net';
 import express from 'express';
 import request from 'supertest';
-import { rpcCacheCount } from '../../src/helpers/metrics';
+import { rpcCacheCount, rpcRequestCount } from '../../src/helpers/metrics';
 import { nodes, stop } from '../../src/helpers/nodes';
 import rpc from '../../src/rpc';
 
@@ -44,6 +44,11 @@ describe('RPC cache E2E Tests', () => {
     return Object.fromEntries(metric.values.map(v => [v.labels.status as string, v.value]));
   }
 
+  async function requestCountTotal() {
+    const metric = await rpcRequestCount.get();
+    return metric.values.reduce((sum, v) => sum + v.value, 0);
+  }
+
   beforeAll(async () => {
     stop();
     app = express();
@@ -57,6 +62,10 @@ describe('RPC cache E2E Tests', () => {
       calls.push(method);
       received = req.headers;
       if (upstreamDelay) await new Promise(resolve => setTimeout(resolve, upstreamDelay));
+
+      if (!Object.hasOwn(req.body, 'id')) {
+        return res.status(204).end();
+      }
 
       if (method === 'eth_blockNumber') {
         return res.json({ jsonrpc: '2.0', id, result: `0x${HEAD.toString(16)}` });
@@ -245,12 +254,19 @@ describe('RPC cache E2E Tests', () => {
     expect(received['x-client-tag']).toBe('score-api');
   });
 
-  it('should answer a request with no id with a null id', async () => {
+  it('should bypass the cache for a notification, even once the value is cached', async () => {
+    const body = { jsonrpc: '2.0', method: 'eth_getCode', params: ['0xcc08', DEEP_BLOCK], id: 1 };
+
+    await request(app).post('/1').send(body);
+    expect(countOf('eth_getCode')).toBe(1);
+
+    calls = [];
     const response = await request(app)
       .post('/1')
       .send({ jsonrpc: '2.0', method: 'eth_getCode', params: ['0xcc08', DEEP_BLOCK] });
 
-    expect(response.body.id).toBeNull();
+    expect(response.status).toBe(204);
+    expect(countOf('eth_getCode')).toBe(1);
   });
 
   it('should answer a failed upstream once, without a second attempt through the proxy', async () => {
@@ -295,7 +311,7 @@ describe('RPC cache E2E Tests', () => {
   });
 
   it('should answer with jsonrpc 2.0 on both a miss and a hit', async () => {
-    const body = { jsonrpc: '1.0', method: 'eth_getCode', params: ['0xcc03', DEEP_BLOCK], id: 1 };
+    const body = { jsonrpc: '2.0', method: 'eth_getCode', params: ['0xcc03', DEEP_BLOCK], id: 1 };
 
     const miss = await request(app).post('/1').send(body);
     const hit = await request(app).post('/1').send(body);
@@ -404,5 +420,19 @@ describe('RPC cache E2E Tests', () => {
     expect((after.MISS || 0) - (before.MISS || 0)).toBe(1);
     expect((after.HIT || 0) - (before.HIT || 0)).toBe(1);
     expect((after.BYPASS || 0) - (before.BYPASS || 0)).toBe(1);
+  });
+
+  it('should count a miss and a bypass but not a hit toward rpc_request_count', async () => {
+    const before = await requestCountTotal();
+
+    await request(app).post('/1').send(call('0xaa10', DEEP_BLOCK));
+    await request(app).post('/1').send(call('0xaa10', DEEP_BLOCK));
+    await request(app)
+      .post('/1')
+      .send({ jsonrpc: '2.0', method: 'eth_blockNumber', params: [], id: 1 });
+
+    const after = await requestCountTotal();
+
+    expect(after - before).toBe(2);
   });
 });
