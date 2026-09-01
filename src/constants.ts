@@ -17,6 +17,7 @@ export const RPC_CLIENTS = new Set([
   'mcp',
   'score-api',
   'sequencer',
+  'sidekick',
   'snapshot-relayer',
   'stamp',
   'sx.js',
