@@ -4,6 +4,7 @@ import express from 'express';
 import request from 'supertest';
 import { rpcCacheCount, rpcRequestCount } from '../../src/helpers/metrics';
 import { nodes, stop } from '../../src/helpers/nodes';
+import withRpcCache from '../../src/middlewares/withRpcCache';
 import rpc from '../../src/rpc';
 
 const HEAD = 20000000;
@@ -434,5 +435,31 @@ describe('RPC cache E2E Tests', () => {
     const after = await requestCountTotal();
 
     expect(after - before).toBe(2);
+  });
+
+  describe('withRpcCache given a JSON-RPC batch', () => {
+    let batchApp: express.Application;
+
+    beforeAll(() => {
+      batchApp = express();
+      batchApp.use(express.json());
+      batchApp.use((req, _res, next) => {
+        (req as any)._node = { url: upstreamUrl, network: '1', headers: {} };
+        next();
+      });
+      batchApp.use(withRpcCache);
+      batchApp.use((_req, res) => res.status(200).json({ reachedNext: true }));
+    });
+
+    it('passes an array body to next() rather than treating it as cacheable', async () => {
+      const response = await request(batchApp)
+        .post('/')
+        .send([
+          { jsonrpc: '2.0', method: 'eth_call', params: [{ to: ADDRESS }, DEEP_BLOCK], id: 1 }
+        ]);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ reachedNext: true });
+    });
   });
 });
