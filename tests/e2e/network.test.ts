@@ -423,7 +423,7 @@ describe('Network Endpoint E2E Tests', () => {
         ]);
       });
 
-      it.each(['blockfinder', 'score-api', 'snapshot-relayer', 'stamp'])(
+      it.each(['blockfinder', 'score-api', 'snapshot-relayer', 'stamp', 'v1'])(
         'should count %s as a recognized client',
         async client => {
           await request(app)

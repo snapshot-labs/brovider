@@ -21,7 +21,8 @@ export const RPC_CLIENTS = new Set([
   'snapshot-relayer',
   'stamp',
   'sx.js',
-  'ui'
+  'ui',
+  'v1'
 ]);
 
 export const RPC_METHODS = new Set([
