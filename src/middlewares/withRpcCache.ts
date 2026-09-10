@@ -1,6 +1,7 @@
+import { IncomingMessage } from 'http';
 import { NextFunction, Request, Response } from 'express';
 import { RPC_CLIENTS, RPC_METHODS } from '../constants';
-import { headOf, HEX_BLOCK, Node } from '../helpers/chainHead';
+import { headOf, HEX_BLOCK } from '../helpers/chainHead';
 import { readCache, writeCache } from '../helpers/lruCache';
 import {
   metricLabel,
@@ -10,7 +11,13 @@ import {
 import serve from '../helpers/requestDeduplicator';
 import { sha256 } from '../helpers/utils';
 
-type Pending = {
+type JsonRpcRequest = {
+  method: string;
+  params?: unknown;
+  id?: string | number | null;
+};
+
+export type Pending = {
   key: string;
   block: number;
   settle: (result?: string) => void;
@@ -25,14 +32,18 @@ const BLOCK_PARAM_INDEX = new Map([
 
 const CONFIRMATIONS = 128;
 
-function pinnedBlock(body: any): number | undefined {
-  const index = BLOCK_PARAM_INDEX.get(body?.method);
+function pinnedBlock(body: JsonRpcRequest): number | undefined {
+  const index = BLOCK_PARAM_INDEX.get(body.method);
   if (index === undefined || !Array.isArray(body.params)) return undefined;
 
-  const param = body.params[index];
+  const param: unknown = body.params[index];
   if (typeof param !== 'string' || !HEX_BLOCK.test(param)) return undefined;
 
   return parseInt(param, 16);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 export default function withRpcCache(
@@ -40,8 +51,8 @@ export default function withRpcCache(
   res: Response,
   next: NextFunction
 ) {
-  const node: Node = (req as any)._node;
-  const body = req.body;
+  const node = req._node;
+  const body: JsonRpcRequest = req.body;
   const block = pinnedBlock(body);
   const isNotification = !Object.hasOwn(body, 'id');
 
@@ -75,9 +86,9 @@ export default function withRpcCache(
   // Identical in-flight reads share one upstream call: the first one (the leader) goes through
   // the proxy and settles this promise from storeRpcResponse, the others answer from it.
   let settle: Pending['settle'] | undefined;
-  const shared: Promise<string | undefined> = serve(
+  const shared = serve(
     key,
-    () => new Promise(resolve => (settle = resolve)),
+    () => new Promise<string | undefined>(resolve => (settle = resolve)),
     []
   );
   if (!settle) {
@@ -90,29 +101,33 @@ export default function withRpcCache(
 
   // Leader failed or went away before the decorator ran: release the followers to retry.
   res.on('close', () => settle!());
-  (req as any)._cache = { key, block, settle };
+  req._cache = { key, block, settle };
   next();
 }
 
 export async function storeRpcResponse(
-  proxyRes: unknown,
+  proxyRes: IncomingMessage,
   data: Buffer,
   req: Request
 ) {
-  const { key, block, settle }: Pending = (req as any)._cache;
+  // Only the buffered proxy instance calls this, and it is only chosen once _cache is set.
+  const pending = req._cache;
+  if (!pending) return data;
 
-  let payload: any;
+  let payload: unknown;
   try {
     payload = JSON.parse(data.toString());
   } catch {
     return data;
   }
+  if (!isRecord(payload)) return data;
 
-  if (payload?.error == null && typeof payload?.result === 'string') {
-    settle(payload.result);
-    const head = await headOf((req as any)._node);
-    if (head !== null && block <= head - CONFIRMATIONS)
-      writeCache(key, payload.result);
+  const { error, result } = payload;
+  if (error == null && typeof result === 'string') {
+    pending.settle(result);
+    const head = await headOf(req._node);
+    if (head !== null && pending.block <= head - CONFIRMATIONS)
+      writeCache(pending.key, result);
   }
 
   return data;

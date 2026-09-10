@@ -1,4 +1,4 @@
-import { Server } from 'http';
+import { IncomingHttpHeaders, Server } from 'http';
 import { AddressInfo } from 'net';
 import { brotliCompressSync } from 'zlib';
 import express from 'express';
@@ -16,7 +16,7 @@ const ADDRESS = '0x0000000000000000000000000000000000000001';
 type Canned = {
   status?: number;
   headers?: Record<string, string>;
-  body?: Record<string, any>;
+  body?: Record<string, unknown>;
   raw?: string;
 };
 
@@ -29,7 +29,7 @@ describe('RPC cache E2E Tests', () => {
   let calls: string[] = [];
   let answers = 0;
   let upstreamDelay = 100;
-  let received: Record<string, any> = {};
+  let received: IncomingHttpHeaders = {};
   const responses = new Map<string, Canned>();
 
   const call = (data: string, block: string, id: number = 1) => ({
@@ -571,7 +571,7 @@ describe('RPC cache E2E Tests', () => {
       batchApp = express();
       batchApp.use(express.json());
       batchApp.use((req, _res, next) => {
-        (req as any)._node = { url: upstreamUrl, network: '1', headers: {} };
+        req._node = { url: upstreamUrl, path: '/', network: '1', headers: {} };
         next();
       });
       batchApp.use(withRpcCache);

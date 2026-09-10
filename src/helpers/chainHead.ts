@@ -4,6 +4,7 @@ import { fetchWithKeepAlive } from './utils';
 
 export type Node = {
   url: string;
+  path: string;
   network: string;
   headers: Record<string, string>;
 };
@@ -12,6 +13,12 @@ export const HEX_BLOCK = /^0x[0-9a-f]+$/i;
 const HEAD_TTL = 10e3;
 
 const heads = new Map<string, { number: number | null; expiresAt: number }>();
+
+function reasonOf(err: unknown): string {
+  const { code, name } = (err ?? {}) as { code?: unknown; name?: unknown };
+  if (typeof code === 'string') return code;
+  return typeof name === 'string' ? name : 'error';
+}
 
 async function blockNumber(node: Node): Promise<unknown> {
   let text: string;
@@ -28,11 +35,9 @@ async function blockNumber(node: Node): Promise<unknown> {
       })
     });
     text = await res.text();
-  } catch (err: any) {
+  } catch (err) {
     // node-fetch puts the full url, api key included, in its error message
-    throw new Error(
-      `${node.network} head lookup failed: ${err?.code || err?.name || 'error'}`
-    );
+    throw new Error(`${node.network} head lookup failed: ${reasonOf(err)}`);
   }
 
   try {
@@ -55,11 +60,12 @@ export async function headOf(node: Node): Promise<number | null> {
     ]);
     if (typeof result === 'string' && HEX_BLOCK.test(result))
       number = parseInt(result, 16);
-  } catch (err: any) {
+  } catch (err) {
+    const { errors } = (err ?? {}) as { errors?: { message?: string }[] };
     console.log(
       '[chainHead] head lookup failed',
       node.network,
-      err?.errors?.[0]?.message ?? err
+      errors?.[0]?.message ?? err
     );
   }
 

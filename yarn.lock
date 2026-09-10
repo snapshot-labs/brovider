@@ -2347,6 +2347,13 @@
   resolved "https://registry.yarnpkg.com/@types/estree/-/estree-1.0.9.tgz#cf3f0e876d7bee15a93ab925b82bf570a3904a24"
   integrity sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==
 
+"@types/express-http-proxy@^1.6.7":
+  version "1.6.7"
+  resolved "https://registry.yarnpkg.com/@types/express-http-proxy/-/express-http-proxy-1.6.7.tgz#7536a8dbaa3bbbfc4c5d3dc519a2295822e6150b"
+  integrity sha512-CEp9pbnwVI1RzN9PXc+KESMxwUW5r1O7tkWb5h7Wg/YAIf+KulD/zKev8fbbn+Ljt0Yvs8MXwV2W6Id+cKxe2Q==
+  dependencies:
+    "@types/express" "*"
+
 "@types/express-serve-static-core@^5.0.0":
   version "5.1.3"
   resolved "https://registry.yarnpkg.com/@types/express-serve-static-core/-/express-serve-static-core-5.1.3.tgz#9d34c88c0c9ee62b9a6e4d9f8ab8d7e29688e6b4"
@@ -2357,7 +2364,7 @@
     "@types/range-parser" "*"
     "@types/send" "*"
 
-"@types/express@^5.0.6":
+"@types/express@*", "@types/express@^5.0.6":
   version "5.0.6"
   resolved "https://registry.yarnpkg.com/@types/express/-/express-5.0.6.tgz#2d724b2c990dcb8c8444063f3580a903f6d500cc"
   integrity sha512-sKYVuV7Sv9fbPIt/442koC7+IIwK5olP1KWeD88e/idgoJqDm3JV/YUiPwkoKK92ylff2MGxSz1CSjsXelx0YA==

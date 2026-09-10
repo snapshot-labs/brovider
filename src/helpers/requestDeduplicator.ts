@@ -1,14 +1,20 @@
 import { requestDeduplicatorSize } from './metrics';
 
-const ongoingRequests = new Map();
+const ongoingRequests = new Map<string, Promise<unknown>>();
 
-export default function serve(key, action, args) {
+export default function serve<T, A extends unknown[]>(
+  key: string,
+  action: (...args: A) => Promise<T>,
+  args: A
+): Promise<T> {
   if (!ongoingRequests.has(key)) {
     const requestPromise = action(...args)
       .then(result => result)
-      .catch(error => {
+      .catch((error: unknown) => {
         console.log('[requestDeduplicator] request error', error);
-        throw { errors: [{ message: error.message }] };
+        throw {
+          errors: [{ message: (error as { message?: string })?.message }]
+        };
       })
       .finally(() => {
         ongoingRequests.delete(key);
@@ -19,5 +25,5 @@ export default function serve(key, action, args) {
     requestDeduplicatorSize.set(ongoingRequests.size);
   }
 
-  return ongoingRequests.get(key);
+  return ongoingRequests.get(key) as Promise<T>;
 }

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request } from 'express';
 import proxy from 'express-http-proxy';
 import { REQUEST_TIMEOUT } from './constants';
 import processGraphql from './middlewares/processGraphql';
@@ -9,6 +9,10 @@ import validateJsonRpc from './middlewares/validateJsonRpc';
 import withCachedChainId from './middlewares/withCachedChainId';
 import withRpcCache, { storeRpcResponse } from './middlewares/withRpcCache';
 
+type ProxyReqOpts = Parameters<
+  NonNullable<proxy.ProxyOptions['proxyReqOptDecorator']>
+>[0];
+
 const router = express.Router();
 
 router.post(
@@ -18,22 +22,25 @@ router.post(
   subgraphErrorHandler
 );
 
-const proxyOptions = {
+const withNodeHeaders = (proxyReqOpts: ProxyReqOpts, srcReq: Request) => ({
+  ...proxyReqOpts,
+  headers: { ...proxyReqOpts.headers, ...srcReq._node.headers }
+});
+
+const proxyOptions: proxy.ProxyOptions = {
   timeout: REQUEST_TIMEOUT,
   memoizeHost: false,
-  proxyReqPathResolver: (req: any) => req._node.path,
-  proxyReqOptDecorator: (proxyReqOpts: any, srcReq: any) => ({
-    ...proxyReqOpts,
-    headers: { ...proxyReqOpts.headers, ...srcReq._node.headers }
-  })
+  proxyReqPathResolver: req => req._node.path,
+  proxyReqOptDecorator: withNodeHeaders
 };
-const streamed = proxy((req: any) => req._node.url, proxyOptions);
+const target = (req: Request) => req._node.url;
+const streamed = proxy(target, proxyOptions);
 // Any response decorator turns the whole proxy instance into buffering mode,
 // so cacheable reads get their own instance and everything else keeps streaming.
-const buffered = proxy((req: any) => req._node.url, {
+const buffered = proxy(target, {
   ...proxyOptions,
-  proxyReqOptDecorator: (proxyReqOpts: any, srcReq: any) => {
-    const opts = proxyOptions.proxyReqOptDecorator(proxyReqOpts, srcReq);
+  proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
+    const opts = withNodeHeaders(proxyReqOpts, srcReq);
     // The proxy only inflates gzip before the decorator; a brotli body would be unreadable.
     delete opts.headers['accept-encoding'];
     return opts;
@@ -47,7 +54,8 @@ router.use(
   withCachedChainId,
   setNode,
   withRpcCache,
-  (req: any, res, next) => (req._cache ? buffered : streamed)(req, res, next)
+  (req: Request, res, next) =>
+    (req._cache ? buffered : streamed)(req, res, next)
 );
 
 export default router;
