@@ -33,11 +33,11 @@ export const fetchWithKeepAlive = async (
       ...fetchOptions
     });
     return response;
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
       throw new Error(`Request timeout after ${timeout}ms`);
     }
-    throw error;
+    throw err;
   } finally {
     clearTimeout(timeoutId);
   }

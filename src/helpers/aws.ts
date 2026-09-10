@@ -31,11 +31,11 @@ export async function set(key, value) {
       Body: JSON.stringify(value),
       ContentType: 'application/json; charset=utf-8'
     });
-  } catch (e) {
-    console.log('Store cache failed', key, e);
+  } catch (err) {
+    console.log('Store cache failed', key, err);
     cacheHitCount.inc({ status: 'WRITE_ERROR' });
-    capture(e, { contexts: { cache: { key, op: 'set' } } });
-    throw e;
+    capture(err, { contexts: { cache: { key, op: 'set' } } });
+    throw err;
   }
 }
 
@@ -48,15 +48,15 @@ export async function get(key) {
     });
     // @ts-ignore
     str = await streamToString(Body);
-  } catch (e: any) {
-    if (e?.name === 'NoSuchKey' || e?.name === 'NotFound') {
+  } catch (err: any) {
+    if (err?.name === 'NoSuchKey' || err?.name === 'NotFound') {
       cacheHitCount.inc({ status: 'MISS' });
       return undefined;
     }
-    console.log('Read cache failed', key, e);
+    console.log('Read cache failed', key, err);
     cacheHitCount.inc({ status: 'READ_ERROR' });
-    capture(e, { contexts: { cache: { key, op: 'get' } } });
-    throw e;
+    capture(err, { contexts: { cache: { key, op: 'get' } } });
+    throw err;
   }
 
   let value: any;
