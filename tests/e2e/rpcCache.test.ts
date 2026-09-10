@@ -1,5 +1,6 @@
 import { Server } from 'http';
 import { AddressInfo } from 'net';
+import { brotliCompressSync } from 'zlib';
 import express from 'express';
 import request from 'supertest';
 import { rpcCacheCount, rpcRequestCount } from '../../src/helpers/metrics';
@@ -81,7 +82,10 @@ describe('RPC cache E2E Tests', () => {
       }
 
       answers += 1;
-      return res.json({ jsonrpc: '2.0', id, result: `0x${answers}` });
+      const payload = { jsonrpc: '2.0', id, result: `0x${answers}` };
+      if (!req.headers['accept-encoding']?.includes('br')) return res.json(payload);
+      res.set('content-encoding', 'br').type('json');
+      return res.send(brotliCompressSync(JSON.stringify(payload)));
     });
     upstream = await new Promise(resolve => {
       const server = upstreamApp.listen(0, '127.0.0.1', () => resolve(server));
@@ -270,17 +274,26 @@ describe('RPC cache E2E Tests', () => {
     expect(countOf('eth_getCode')).toBe(1);
   });
 
-  it('should answer a failed upstream once, without a second attempt through the proxy', async () => {
+  it('should cache a read even when the client accepts brotli', async () => {
+    const body = { jsonrpc: '2.0', method: 'eth_getCode', params: ['0xcc0b', DEEP_BLOCK], id: 1 };
+
+    const miss = await request(app).post('/1').set('accept-encoding', 'br').send(body);
+    const hit = await request(app).post('/1').set('accept-encoding', 'br').send(body);
+
+    expect(countOf('eth_getCode')).toBe(1);
+    expect(hit.body.result).toBe(miss.body.result);
+  });
+
+  it('should answer every concurrent read of an unreachable node with an error', async () => {
     configuredNodes['10'] = 'http://127.0.0.1:1';
 
-    const response = await request(app).post('/10').send(call('0xcc02', DEEP_BLOCK, 7));
+    const [first, second] = await Promise.all([
+      request(app).post('/10').send(call('0xcc02', DEEP_BLOCK, 7)),
+      request(app).post('/10').send(call('0xcc02', DEEP_BLOCK, 8))
+    ]);
 
-    expect(response.status).toBe(502);
-    expect(response.body).toEqual({
-      jsonrpc: '2.0',
-      id: 7,
-      error: { code: -32603, message: 'Upstream request failed' }
-    });
+    expect(first.status).toBeGreaterThanOrEqual(500);
+    expect(second.status).toBeGreaterThanOrEqual(500);
 
     configuredNodes['10'] = upstreamUrl;
   });
@@ -288,14 +301,18 @@ describe('RPC cache E2E Tests', () => {
   it('should keep the node url out of the logs when the upstream fails', async () => {
     configuredNodes['10'] = 'http://127.0.0.1:1/?apikey=SUPERSECRETKEY';
     const logged: string[] = [];
-    const spy = jest.spyOn(console, 'log').mockImplementation((...args) => {
+    const record = (...args: unknown[]) => {
       logged.push(args.map(a => (typeof a === 'string' ? a : JSON.stringify(a))).join(' '));
-    });
+    };
+    const spies = [
+      jest.spyOn(console, 'log').mockImplementation(record),
+      jest.spyOn(console, 'error').mockImplementation(record)
+    ];
 
     try {
       await request(app).post('/10').send(call('0xcc09', DEEP_BLOCK));
     } finally {
-      spy.mockRestore();
+      spies.forEach(spy => spy.mockRestore());
       configuredNodes['10'] = upstreamUrl;
     }
 

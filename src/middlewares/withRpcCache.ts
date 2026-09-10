@@ -6,33 +6,13 @@ import { fetchWithKeepAlive, sha256 } from '../helpers/utils';
 
 type Node = { url: string; network: string; headers: Record<string, string> };
 type Entry = { value: string; size: number; expiresAt: number };
+type Pending = { key: string; block: number; settle: (result?: string) => void };
 
 const BLOCK_PARAM_INDEX = new Map([
   ['eth_call', 1],
   ['eth_getBalance', 1],
   ['eth_getCode', 1],
   ['eth_getStorageAt', 2]
-]);
-
-const SKIPPED_RESPONSE_HEADERS = new Set([
-  'connection',
-  'content-encoding',
-  'content-length',
-  'etag',
-  'keep-alive',
-  'proxy-authenticate',
-  'proxy-authorization',
-  'te',
-  'trailer',
-  'transfer-encoding',
-  'upgrade'
-]);
-
-const SKIPPED_REQUEST_HEADERS = new Set([
-  'accept-encoding',
-  'connection',
-  'content-length',
-  'host'
 ]);
 
 const HEX_BLOCK = /^0x[0-9a-f]+$/i;
@@ -62,42 +42,25 @@ function pinnedBlock(body: any): number | undefined {
   return parseInt(param, 16);
 }
 
-function forwardedRequestHeaders(req: Request) {
-  const headers: Record<string, string> = {};
-  for (const [name, value] of Object.entries(req.headers)) {
-    if (!SKIPPED_REQUEST_HEADERS.has(name) && typeof value === 'string') headers[name] = value;
-  }
-  return headers;
-}
-
-async function rpcCall(node: Node, body: any, requestHeaders: Record<string, string> = {}) {
-  let status: number;
-  let headers: Record<string, string[]>;
+async function blockNumber(node: Node): Promise<unknown> {
   let text: string;
-
   try {
     const res = await fetchWithKeepAlive(node.url, {
       method: 'POST',
-      headers: {
-        ...requestHeaders,
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        ...node.headers
-      },
+      headers: { 'Content-Type': 'application/json', ...node.headers },
       timeout: REQUEST_TIMEOUT,
-      body: JSON.stringify(body)
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_blockNumber', params: [] })
     });
-    status = res.status;
-    headers = res.headers.raw();
     text = await res.text();
   } catch (e: any) {
-    throw new Error(`${node.network} upstream request failed: ${e?.code || e?.name || 'error'}`);
+    // node-fetch puts the full url, api key included, in its error message
+    throw new Error(`${node.network} head lookup failed: ${e?.code || e?.name || 'error'}`);
   }
 
   try {
-    return { status, headers, text, body: JSON.parse(text) };
+    return JSON.parse(text)?.result;
   } catch (e) {
-    return { status, headers, text, body: undefined };
+    return undefined;
   }
 }
 
@@ -107,13 +70,8 @@ async function headOf(node: Node): Promise<number | null> {
 
   let number: number | null = null;
   try {
-    const { body } = await serve(`${node.network}:eth_blockNumber`, rpcCall, [
-      node,
-      { jsonrpc: '2.0', id: 1, method: 'eth_blockNumber', params: [] }
-    ]);
-    if (typeof body?.result === 'string' && HEX_BLOCK.test(body.result)) {
-      number = parseInt(body.result, 16);
-    }
+    const result = await serve(`${node.network}:eth_blockNumber`, blockNumber, [node]);
+    if (typeof result === 'string' && HEX_BLOCK.test(result)) number = parseInt(result, 16);
   } catch (e: any) {
     console.log('[withRpcCache] head lookup failed', node.network, e?.errors?.[0]?.message ?? e);
   }
@@ -136,8 +94,8 @@ function readCache(key: string) {
   return entry.value;
 }
 
-function writeCache(key: string, value: unknown) {
-  if (typeof value !== 'string' || cache.has(key) || value.length > MAX_VALUE_SIZE) return;
+function writeCache(key: string, value: string) {
+  if (cache.has(key) || value.length > MAX_VALUE_SIZE) return;
 
   const size = 2 * (value.length + key.length) + ENTRY_OVERHEAD;
   cache.set(key, { value, size, expiresAt: Date.now() + ENTRY_TTL });
@@ -150,7 +108,7 @@ function writeCache(key: string, value: unknown) {
   }
 }
 
-export default async function withRpcCache(req: Request, res: Response, next: NextFunction) {
+export default function withRpcCache(req: Request, res: Response, next: NextFunction) {
   const node: Node = (req as any)._node;
   const body = req.body;
   const block = pinnedBlock(body);
@@ -170,42 +128,51 @@ export default async function withRpcCache(req: Request, res: Response, next: Ne
   }
 
   const key = sha256(`${node.url}:${body.method}:${JSON.stringify(body.params)}`);
+  const reply = (result: string) => res.json({ jsonrpc: '2.0', id: body.id, result });
+
   const cached = readCache(key);
   if (cached !== undefined) {
     rpcCacheCount.inc({ status: 'HIT' });
-    return res.json({ jsonrpc: '2.0', id: body.id, result: cached });
+    return reply(cached);
   }
-
   rpcCacheCount.inc({ status: 'MISS' });
   countRequest();
-  const pendingHead = headOf(node);
 
-  let response: Awaited<ReturnType<typeof rpcCall>>;
+  // Identical in-flight reads share one upstream call: the first one (the leader) goes through
+  // the proxy and settles this promise from storeRpcResponse, the others answer from it.
+  let settle: Pending['settle'] | undefined;
+  const shared: Promise<string | undefined> = serve(
+    key,
+    () => new Promise(resolve => (settle = resolve)),
+    []
+  );
+  if (!settle) {
+    return shared
+      .then(result => (result !== undefined ? reply(result) : withRpcCache(req, res, next)))
+      .catch(next);
+  }
+
+  // Leader failed or went away before the decorator ran: release the followers to retry.
+  res.on('close', () => settle!());
+  (req as any)._cache = { key, block, settle };
+  next();
+}
+
+export async function storeRpcResponse(proxyRes: unknown, data: Buffer, req: Request) {
+  const { key, block, settle }: Pending = (req as any)._cache;
+
+  let payload: any;
   try {
-    response = await serve(key, rpcCall, [node, body, forwardedRequestHeaders(req)]);
-  } catch {
-    await pendingHead;
-    return res.status(502).json({
-      jsonrpc: '2.0',
-      id: body.id,
-      error: { code: -32603, message: 'Upstream request failed' }
-    });
+    payload = JSON.parse(data.toString());
+  } catch (e) {
+    return data;
   }
 
-  for (const [name, values] of Object.entries(response.headers)) {
-    if (!SKIPPED_RESPONSE_HEADERS.has(name)) res.setHeader(name, values);
+  if (payload?.error == null && typeof payload?.result === 'string') {
+    settle(payload.result);
+    const head = await headOf((req as any)._node);
+    if (head !== null && block <= head - CONFIRMATIONS) writeCache(key, payload.result);
   }
 
-  const payload = response.body;
-  const isEnvelope = !!payload && typeof payload === 'object' && !Array.isArray(payload);
-  if (isEnvelope) {
-    res.status(response.status).json({ ...payload, id: body.id });
-  } else {
-    res.status(response.status).send(response.text);
-  }
-
-  const head = await pendingHead;
-  if (isEnvelope && head !== null && block <= head - CONFIRMATIONS) {
-    if (payload.error == null && payload.result != null) writeCache(key, payload.result);
-  }
+  return data;
 }
