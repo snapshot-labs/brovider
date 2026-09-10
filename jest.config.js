@@ -9,7 +9,11 @@ module.exports = {
   collectCoverageFrom: ['./src/**'],
   coverageDirectory: 'coverage',
   coverageProvider: 'v8',
-  coveragePathIgnorePatterns: ['/node_modules/', '<rootDir>/dist/', '<rootDir>/tests'],
+  coveragePathIgnorePatterns: [
+    '/node_modules/',
+    '<rootDir>/dist/',
+    '<rootDir>/tests'
+  ],
   globalSetup: '<rootDir>/tests/setup.ts',
   testTimeout: 10000,
   setupFiles: ['<rootDir>/tests/env-config.ts'],

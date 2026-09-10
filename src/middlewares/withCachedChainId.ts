@@ -11,7 +11,10 @@ function chainIdOf(network: string, method: unknown): string | undefined {
     return `0x${Number(network).toString(16)}`;
   }
 
-  if (method === 'starknet_chainId' && Object.hasOwn(STARKNET_CHAIN_IDS, network)) {
+  if (
+    method === 'starknet_chainId' &&
+    Object.hasOwn(STARKNET_CHAIN_IDS, network)
+  ) {
     return STARKNET_CHAIN_IDS[network];
   }
 
@@ -24,16 +27,23 @@ function isValidChainIdRequest(body: Record<string, unknown>): boolean {
   return (
     Object.hasOwn(body, 'id') &&
     (typeof id === 'string' || typeof id === 'number' || id === null) &&
-    (!Object.hasOwn(body, 'params') || (Array.isArray(params) && params.length === 0))
+    (!Object.hasOwn(body, 'params') ||
+      (Array.isArray(params) && params.length === 0))
   );
 }
 
-export default function withCachedChainId(req: Request, res: Response, next: NextFunction) {
+export default function withCachedChainId(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   const network = req.params[0];
   const body = req.body;
   const { method, jsonrpc, id } = body;
 
-  const result = isValidChainIdRequest(body) ? chainIdOf(network, method) : undefined;
+  const result = isValidChainIdRequest(body)
+    ? chainIdOf(network, method)
+    : undefined;
 
   if (result === undefined) return next();
 

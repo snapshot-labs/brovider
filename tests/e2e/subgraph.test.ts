@@ -41,7 +41,9 @@ describe('Subgraph Endpoints', () => {
         };
 
         const response = await request(app)
-          .post('/subgraph/arbitrum/A6EEuSAB7mFrWvLBnL1HZXwfiGfqFYnFJjc14REtMNkd')
+          .post(
+            '/subgraph/arbitrum/A6EEuSAB7mFrWvLBnL1HZXwfiGfqFYnFJjc14REtMNkd'
+          )
           .send(graphqlQuery);
 
         expect(response.status).toBe(200);
@@ -68,7 +70,9 @@ describe('Subgraph Endpoints', () => {
         };
 
         const response = await request(app)
-          .post('/subgraph/arbitrum/A6EEuSAB7mFrWvLBnL1HZXwfiGfqFYnFJjc14REtMNkd')
+          .post(
+            '/subgraph/arbitrum/A6EEuSAB7mFrWvLBnL1HZXwfiGfqFYnFJjc14REtMNkd'
+          )
           .send(invalidGraphqlQuery);
 
         expect(response.status).toBe(400);
@@ -97,7 +101,9 @@ describe('Subgraph Endpoints', () => {
 
     describe('when request body is invalid', () => {
       it('should return 400 "Invalid request" when body is missing', async () => {
-        const response = await request(app).post('/subgraph/mainnet/test-id').expect(400);
+        const response = await request(app)
+          .post('/subgraph/mainnet/test-id')
+          .expect(400);
 
         expect(response.body).toEqual({
           errors: [{ message: 'No query provided' }]

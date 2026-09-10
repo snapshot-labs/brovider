@@ -30,7 +30,11 @@ describe('Network Endpoint E2E Tests', () => {
       upstreamApp.post('/', (req, res) => {
         upstreamBodies.push(req.body);
 
-        const getResponse = (body: { jsonrpc: unknown; id: unknown; method: string }) => ({
+        const getResponse = (body: {
+          jsonrpc: unknown;
+          id: unknown;
+          method: string;
+        }) => ({
           jsonrpc: body.jsonrpc,
           id: body.id,
           result:
@@ -55,7 +59,9 @@ describe('Network Endpoint E2E Tests', () => {
         return res.json(getResponse(req.body));
       });
       upstream = await new Promise(resolve => {
-        const server = upstreamApp.listen(0, '127.0.0.1', () => resolve(server));
+        const server = upstreamApp.listen(0, '127.0.0.1', () =>
+          resolve(server)
+        );
       });
       const { port } = upstream.address() as AddressInfo;
       const upstreamUrl = `http://127.0.0.1:${port}`;
@@ -117,22 +123,28 @@ describe('Network Endpoint E2E Tests', () => {
       it.each([
         { network: 'sn', type: 'nonnumeric' },
         { network: '0x1', type: 'coercible non-decimal' }
-      ])('should proxy eth_chainId for a $type network', async ({ network }) => {
-        const body = {
-          jsonrpc: '2.0',
-          method: 'eth_chainId',
-          params: [network, { nested: ['value'] }],
-          id: 2
-        };
-        const response = await request(app).post(`/${network}`).send(body).expect(200);
+      ])(
+        'should proxy eth_chainId for a $type network',
+        async ({ network }) => {
+          const body = {
+            jsonrpc: '2.0',
+            method: 'eth_chainId',
+            params: [network, { nested: ['value'] }],
+            id: 2
+          };
+          const response = await request(app)
+            .post(`/${network}`)
+            .send(body)
+            .expect(200);
 
-        expect(response.body).toEqual({
-          jsonrpc: '2.0',
-          id: 2,
-          result: 'upstream-chain-id'
-        });
-        expect(upstreamBodies).toEqual([body]);
-      });
+          expect(response.body).toEqual({
+            jsonrpc: '2.0',
+            id: 2,
+            result: 'upstream-chain-id'
+          });
+          expect(upstreamBodies).toEqual([body]);
+        }
+      );
 
       it('should proxy a valid request for a non-decimal network', async () => {
         const body = {
@@ -245,22 +257,28 @@ describe('Network Endpoint E2E Tests', () => {
         expect(upstreamBodies).toEqual([body]);
       });
 
-      it.each(['sn', 'sn-sep'])('should proxy other methods for %s', async network => {
-        const body = {
-          jsonrpc: '2.0',
-          method: 'starknet_blockNumber',
-          params: [],
-          id: 5
-        };
-        const response = await request(app).post(`/${network}`).send(body).expect(200);
+      it.each(['sn', 'sn-sep'])(
+        'should proxy other methods for %s',
+        async network => {
+          const body = {
+            jsonrpc: '2.0',
+            method: 'starknet_blockNumber',
+            params: [],
+            id: 5
+          };
+          const response = await request(app)
+            .post(`/${network}`)
+            .send(body)
+            .expect(200);
 
-        expect(response.body).toEqual({
-          jsonrpc: '2.0',
-          id: 5,
-          result: 'upstream-starknet_blockNumber'
-        });
-        expect(upstreamBodies).toEqual([body]);
-      });
+          expect(response.body).toEqual({
+            jsonrpc: '2.0',
+            id: 5,
+            result: 'upstream-starknet_blockNumber'
+          });
+          expect(upstreamBodies).toEqual([body]);
+        }
+      );
 
       it('should reject a starknet_chainId request missing jsonrpc rather than answer it locally', async () => {
         const body = { method: 'starknet_chainId', id: 6 };
@@ -275,7 +293,12 @@ describe('Network Endpoint E2E Tests', () => {
       });
 
       it('should proxy a starknet_chainId request with non-empty params rather than answer it locally', async () => {
-        const body = { jsonrpc: '2.0', method: 'starknet_chainId', params: ['bad'], id: 7 };
+        const body = {
+          jsonrpc: '2.0',
+          method: 'starknet_chainId',
+          params: ['bad'],
+          id: 7
+        };
         const response = await request(app).post('/sn').send(body).expect(200);
 
         expect(response.body).toEqual({
@@ -330,7 +353,9 @@ describe('Network Endpoint E2E Tests', () => {
       it('should reject an array body', async () => {
         const response = await request(app)
           .post('/1')
-          .send([{ jsonrpc: '2.0', method: 'eth_blockNumber', params: [], id: 1 }])
+          .send([
+            { jsonrpc: '2.0', method: 'eth_blockNumber', params: [], id: 1 }
+          ])
           .expect(400);
 
         expect(upstreamBodies).toHaveLength(0);
@@ -345,9 +370,18 @@ describe('Network Endpoint E2E Tests', () => {
       });
 
       it.each([
-        { type: 'a missing method', body: { jsonrpc: '2.0', params: [], id: 2 } },
-        { type: 'a non-string method', body: { jsonrpc: '2.0', method: 42, params: [], id: 2 } },
-        { type: 'an empty method', body: { jsonrpc: '2.0', method: '', params: [], id: 2 } }
+        {
+          type: 'a missing method',
+          body: { jsonrpc: '2.0', params: [], id: 2 }
+        },
+        {
+          type: 'a non-string method',
+          body: { jsonrpc: '2.0', method: 42, params: [], id: 2 }
+        },
+        {
+          type: 'an empty method',
+          body: { jsonrpc: '2.0', method: '', params: [], id: 2 }
+        }
       ])('should reject a request with $type', async ({ body }) => {
         const response = await request(app).post('/1').send(body).expect(400);
 
@@ -365,7 +399,12 @@ describe('Network Endpoint E2E Tests', () => {
       it('should sanitize a non-spec id on an invalid envelope response', async () => {
         const response = await request(app)
           .post('/1')
-          .send({ jsonrpc: '1.0', method: 'eth_blockNumber', params: [], id: false })
+          .send({
+            jsonrpc: '1.0',
+            method: 'eth_blockNumber',
+            params: [],
+            id: false
+          })
           .expect(400);
 
         expect(upstreamBodies).toHaveLength(0);
@@ -406,7 +445,9 @@ describe('Network Endpoint E2E Tests', () => {
       const collectCounts = async () =>
         (await rpcRequestCount.get()).values
           .map(({ labels, value }) => ({ ...labels, value }))
-          .sort((a, b) => String(a.rpc_method).localeCompare(String(b.rpc_method)));
+          .sort((a, b) =>
+            String(a.rpc_method).localeCompare(String(b.rpc_method))
+          );
 
       beforeEach(() => {
         rpcRequestCount.reset();
@@ -642,7 +683,9 @@ describe('Network Endpoint E2E Tests', () => {
           jsonrpc: '2.0',
           error: {
             code: expect.any(Number),
-            message: expect.stringMatching(/not (supported|available|found)|does not exist/i)
+            message: expect.stringMatching(
+              /not (supported|available|found)|does not exist/i
+            )
           }
         });
       });

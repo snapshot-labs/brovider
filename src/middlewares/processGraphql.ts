@@ -64,7 +64,11 @@ export async function getData(
   return result;
 }
 
-export default async function processGraphql(req: Request, res: Response, next: NextFunction) {
+export default async function processGraphql(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   const subgraphUrl = (req as any)._subgraph_url.url;
 
   if (!req.body) {
@@ -91,23 +95,30 @@ export default async function processGraphql(req: Request, res: Response, next: 
   );
   const operation = operations.length === 1 ? operations[0] : undefined;
   const getVariable = name =>
-    variables !== null && typeof variables === 'object' && Object.hasOwn(variables, name)
+    variables !== null &&
+    typeof variables === 'object' &&
+    Object.hasOwn(variables, name)
       ? variables[name]
       : undefined;
   const hasValue = value =>
-    value.kind === Kind.VARIABLE ? getVariable(value.name.value) != null : value.kind !== Kind.NULL;
+    value.kind === Kind.VARIABLE
+      ? getVariable(value.name.value) != null
+      : value.kind !== Kind.NULL;
   const isPinnedBlock = value => {
     if (value.kind === Kind.VARIABLE) {
       const block = getVariable(value.name.value);
       return (
-        block !== null && typeof block === 'object' && (block.number != null || block.hash != null)
+        block !== null &&
+        typeof block === 'object' &&
+        (block.number != null || block.hash != null)
       );
     }
     return (
       value.kind === Kind.OBJECT &&
       value.fields.some(
         field =>
-          (field.name.value === 'number' || field.name.value === 'hash') && hasValue(field.value)
+          (field.name.value === 'number' || field.name.value === 'hash') &&
+          hasValue(field.value)
       )
     );
   };
@@ -118,7 +129,8 @@ export default async function processGraphql(req: Request, res: Response, next: 
       selection =>
         selection.kind === Kind.FIELD &&
         selection.arguments.some(
-          argument => argument.name.value === 'block' && isPinnedBlock(argument.value)
+          argument =>
+            argument.name.value === 'block' && isPinnedBlock(argument.value)
         )
     );
   try {
