@@ -3,7 +3,7 @@ import { subgraphs } from '../constants';
 import { SubgraphError } from '../errors/SubgraphError';
 
 export default function setGraphqlUrl(
-  req: Request,
+  req: Request<{ network: string; subgraph?: string }>,
   _res: Response,
   next: NextFunction
 ) {
