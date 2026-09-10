@@ -21,7 +21,7 @@ export async function graphqlQuery(url: string, query: string, variables = {}) {
   let responseData: any = await res.text();
   try {
     responseData = JSON.parse(responseData);
-  } catch (e) {
+  } catch {
     if (!res.ok) {
       throw new Error(`Unable to connect to ${url}, code: ${res.status}`);
     } else {
@@ -80,8 +80,8 @@ export default async function processGraphql(
   let parsedQuery: any;
   try {
     parsedQuery = parse(query);
-  } catch (error: any) {
-    return next(new SubgraphError(`Query parse error: ${error.message}`, 400));
+  } catch (err: any) {
+    return next(new SubgraphError(`Query parse error: ${err.message}`, 400));
   }
 
   const normalizedQuery = print(parsedQuery);
@@ -145,7 +145,7 @@ export default async function processGraphql(
       return next(SubgraphError.fromGraphQLResult(result, 400));
     }
     return res.json(result);
-  } catch (error: any) {
-    return next(error);
+  } catch (err: any) {
+    return next(err);
   }
 }

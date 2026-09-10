@@ -35,9 +35,9 @@ async function insertTestData() {
     }
 
     console.log('Test data inserted successfully');
-  } catch (error) {
-    console.error('Error inserting test data:', error);
-    throw error;
+  } catch (err) {
+    console.error('Error inserting test data:', err);
+    throw err;
   }
 }
 
@@ -66,9 +66,9 @@ async function setupTestDatabase() {
 
     // Insert test data
     await insertTestData();
-  } catch (error) {
-    console.error('Error setting up test database:', error);
-    throw error;
+  } catch (err) {
+    console.error('Error setting up test database:', err);
+    throw err;
   }
 }
 
