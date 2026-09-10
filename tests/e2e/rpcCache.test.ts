@@ -43,7 +43,9 @@ describe('RPC cache E2E Tests', () => {
 
   async function statuses() {
     const metric = await rpcCacheCount.get();
-    return Object.fromEntries(metric.values.map(v => [v.labels.status as string, v.value]));
+    return Object.fromEntries(
+      metric.values.map(v => [v.labels.status as string, v.value])
+    );
   }
 
   async function requestCountTotal() {
@@ -63,14 +65,19 @@ describe('RPC cache E2E Tests', () => {
       const { method, params, id } = req.body;
       calls.push(method);
       received = req.headers;
-      if (upstreamDelay) await new Promise(resolve => setTimeout(resolve, upstreamDelay));
+      if (upstreamDelay)
+        await new Promise(resolve => setTimeout(resolve, upstreamDelay));
 
       if (!Object.hasOwn(req.body, 'id')) {
         return res.status(204).end();
       }
 
       if (method === 'eth_blockNumber') {
-        return res.json({ jsonrpc: '2.0', id, result: `0x${HEAD.toString(16)}` });
+        return res.json({
+          jsonrpc: '2.0',
+          id,
+          result: `0x${HEAD.toString(16)}`
+        });
       }
 
       const canned = responses.get(params?.[0]?.data ?? params?.[0]);
@@ -83,7 +90,8 @@ describe('RPC cache E2E Tests', () => {
 
       answers += 1;
       const payload = { jsonrpc: '2.0', id, result: `0x${answers}` };
-      if (!req.headers['accept-encoding']?.includes('br')) return res.json(payload);
+      if (!req.headers['accept-encoding']?.includes('br'))
+        return res.json(payload);
       res.set('content-encoding', 'br').type('json');
       return res.send(brotliCompressSync(JSON.stringify(payload)));
     });
@@ -128,8 +136,12 @@ describe('RPC cache E2E Tests', () => {
 
   it('should answer two concurrent block-pinned reads with a single upstream request', async () => {
     const [first, second] = await Promise.all([
-      request(app).post('/1').send(call('0xaa01', DEEP_BLOCK, 11)),
-      request(app).post('/1').send(call('0xaa01', DEEP_BLOCK, 22))
+      request(app)
+        .post('/1')
+        .send(call('0xaa01', DEEP_BLOCK, 11)),
+      request(app)
+        .post('/1')
+        .send(call('0xaa01', DEEP_BLOCK, 22))
     ]);
 
     expect(countOf('eth_call')).toBe(1);
@@ -144,23 +156,42 @@ describe('RPC cache E2E Tests', () => {
       tag: '0xbb01',
       params: (t: string) => [{ to: ADDRESS, data: t }, DEEP_BLOCK]
     },
-    { method: 'eth_getBalance', tag: '0xbb02', params: (t: string) => [t, DEEP_BLOCK] },
-    { method: 'eth_getCode', tag: '0xbb03', params: (t: string) => [t, DEEP_BLOCK] },
-    { method: 'eth_getStorageAt', tag: '0xbb04', params: (t: string) => [t, '0x0', DEEP_BLOCK] }
-  ])('should serve a repeated $method from cache', async ({ method, tag, params }) => {
-    const body = { jsonrpc: '2.0', method, params: params(tag), id: 1 };
+    {
+      method: 'eth_getBalance',
+      tag: '0xbb02',
+      params: (t: string) => [t, DEEP_BLOCK]
+    },
+    {
+      method: 'eth_getCode',
+      tag: '0xbb03',
+      params: (t: string) => [t, DEEP_BLOCK]
+    },
+    {
+      method: 'eth_getStorageAt',
+      tag: '0xbb04',
+      params: (t: string) => [t, '0x0', DEEP_BLOCK]
+    }
+  ])(
+    'should serve a repeated $method from cache',
+    async ({ method, tag, params }) => {
+      const body = { jsonrpc: '2.0', method, params: params(tag), id: 1 };
 
-    const first = await request(app).post('/1').send(body);
-    expect(countOf(method)).toBe(1);
+      const first = await request(app).post('/1').send(body);
+      expect(countOf(method)).toBe(1);
 
-    calls = [];
-    const second = await request(app)
-      .post('/1')
-      .send({ ...body, id: 2 });
+      calls = [];
+      const second = await request(app)
+        .post('/1')
+        .send({ ...body, id: 2 });
 
-    expect(countOf(method)).toBe(0);
-    expect(second.body).toEqual({ jsonrpc: '2.0', id: 2, result: first.body.result });
-  });
+      expect(countOf(method)).toBe(0);
+      expect(second.body).toEqual({
+        jsonrpc: '2.0',
+        id: 2,
+        result: first.body.result
+      });
+    }
+  );
 
   it("should take eth_getStorageAt's block from the third parameter, not the second", async () => {
     const body = {
@@ -182,32 +213,48 @@ describe('RPC cache E2E Tests', () => {
 
   it('should never cache or dedupe a latest read', async () => {
     await Promise.all([
-      request(app).post('/1').send(call('0xaa03', 'latest', 1)),
-      request(app).post('/1').send(call('0xaa03', 'latest', 2))
+      request(app)
+        .post('/1')
+        .send(call('0xaa03', 'latest', 1)),
+      request(app)
+        .post('/1')
+        .send(call('0xaa03', 'latest', 2))
     ]);
     expect(countOf('eth_call')).toBe(2);
 
-    await request(app).post('/1').send(call('0xaa03', 'latest', 3));
+    await request(app)
+      .post('/1')
+      .send(call('0xaa03', 'latest', 3));
     expect(countOf('eth_call')).toBe(3);
   });
 
   it('should dedupe but not store a read above the confirmation depth', async () => {
     const [first, second] = await Promise.all([
-      request(app).post('/1').send(call('0xaa04', SHALLOW_BLOCK, 1)),
-      request(app).post('/1').send(call('0xaa04', SHALLOW_BLOCK, 2))
+      request(app)
+        .post('/1')
+        .send(call('0xaa04', SHALLOW_BLOCK, 1)),
+      request(app)
+        .post('/1')
+        .send(call('0xaa04', SHALLOW_BLOCK, 2))
     ]);
     expect(countOf('eth_call')).toBe(1);
     expect(first.body.result).toBe(second.body.result);
 
     calls = [];
-    const third = await request(app).post('/1').send(call('0xaa04', SHALLOW_BLOCK, 3));
+    const third = await request(app)
+      .post('/1')
+      .send(call('0xaa04', SHALLOW_BLOCK, 3));
 
     expect(countOf('eth_call')).toBe(1);
     expect(third.body.result).not.toBe(first.body.result);
   });
 
   it.each([
-    { label: 'a result next to an error', data: '0xaa06', body: { result: '0xf', error: {} } },
+    {
+      label: 'a result next to an error',
+      data: '0xaa06',
+      body: { result: '0xf', error: {} }
+    },
     { label: 'a null result', data: '0xaa07', body: { result: null } },
     {
       label: 'a result above the value size cap',
@@ -217,8 +264,12 @@ describe('RPC cache E2E Tests', () => {
   ])('should not cache $label', async ({ data, body }) => {
     responses.set(data, { body });
 
-    const first = await request(app).post('/1').send(call(data, DEEP_BLOCK, 1));
-    const second = await request(app).post('/1').send(call(data, DEEP_BLOCK, 2));
+    const first = await request(app)
+      .post('/1')
+      .send(call(data, DEEP_BLOCK, 1));
+    const second = await request(app)
+      .post('/1')
+      .send(call(data, DEEP_BLOCK, 2));
 
     expect(countOf('eth_call')).toBe(2);
     expect(first.body.id).toBe(1);
@@ -232,7 +283,9 @@ describe('RPC cache E2E Tests', () => {
       body: { error: { code: 429, message: 'slow down' } }
     });
 
-    const response = await request(app).post('/1').send(call('0xcc01', DEEP_BLOCK));
+    const response = await request(app)
+      .post('/1')
+      .send(call('0xcc01', DEEP_BLOCK));
 
     expect(response.status).toBe(429);
     expect(response.headers['retry-after']).toBe('30');
@@ -246,7 +299,9 @@ describe('RPC cache E2E Tests', () => {
       raw: 'rate limited'
     });
 
-    const response = await request(app).post('/1').send(call('0xcc06', DEEP_BLOCK));
+    const response = await request(app)
+      .post('/1')
+      .send(call('0xcc06', DEEP_BLOCK));
 
     expect(response.status).toBe(429);
     expect(response.headers['retry-after']).toBe('30');
@@ -254,13 +309,21 @@ describe('RPC cache E2E Tests', () => {
   });
 
   it('should forward the client request headers to the upstream', async () => {
-    await request(app).post('/1').set('x-client-tag', 'score-api').send(call('0xcc07', DEEP_BLOCK));
+    await request(app)
+      .post('/1')
+      .set('x-client-tag', 'score-api')
+      .send(call('0xcc07', DEEP_BLOCK));
 
     expect(received['x-client-tag']).toBe('score-api');
   });
 
   it('should bypass the cache for a notification, even once the value is cached', async () => {
-    const body = { jsonrpc: '2.0', method: 'eth_getCode', params: ['0xcc08', DEEP_BLOCK], id: 1 };
+    const body = {
+      jsonrpc: '2.0',
+      method: 'eth_getCode',
+      params: ['0xcc08', DEEP_BLOCK],
+      id: 1
+    };
 
     await request(app).post('/1').send(body);
     expect(countOf('eth_getCode')).toBe(1);
@@ -268,17 +331,32 @@ describe('RPC cache E2E Tests', () => {
     calls = [];
     const response = await request(app)
       .post('/1')
-      .send({ jsonrpc: '2.0', method: 'eth_getCode', params: ['0xcc08', DEEP_BLOCK] });
+      .send({
+        jsonrpc: '2.0',
+        method: 'eth_getCode',
+        params: ['0xcc08', DEEP_BLOCK]
+      });
 
     expect(response.status).toBe(204);
     expect(countOf('eth_getCode')).toBe(1);
   });
 
   it('should cache a read even when the client accepts brotli', async () => {
-    const body = { jsonrpc: '2.0', method: 'eth_getCode', params: ['0xcc0b', DEEP_BLOCK], id: 1 };
+    const body = {
+      jsonrpc: '2.0',
+      method: 'eth_getCode',
+      params: ['0xcc0b', DEEP_BLOCK],
+      id: 1
+    };
 
-    const miss = await request(app).post('/1').set('accept-encoding', 'br').send(body);
-    const hit = await request(app).post('/1').set('accept-encoding', 'br').send(body);
+    const miss = await request(app)
+      .post('/1')
+      .set('accept-encoding', 'br')
+      .send(body);
+    const hit = await request(app)
+      .post('/1')
+      .set('accept-encoding', 'br')
+      .send(body);
 
     expect(countOf('eth_getCode')).toBe(1);
     expect(hit.body.result).toBe(miss.body.result);
@@ -288,8 +366,12 @@ describe('RPC cache E2E Tests', () => {
     configuredNodes['10'] = 'http://127.0.0.1:1';
 
     const [first, second] = await Promise.all([
-      request(app).post('/10').send(call('0xcc02', DEEP_BLOCK, 7)),
-      request(app).post('/10').send(call('0xcc02', DEEP_BLOCK, 8))
+      request(app)
+        .post('/10')
+        .send(call('0xcc02', DEEP_BLOCK, 7)),
+      request(app)
+        .post('/10')
+        .send(call('0xcc02', DEEP_BLOCK, 8))
     ]);
 
     expect(first.status).toBeGreaterThanOrEqual(500);
@@ -302,7 +384,9 @@ describe('RPC cache E2E Tests', () => {
     configuredNodes['10'] = 'http://127.0.0.1:1/?apikey=SUPERSECRETKEY';
     const logged: string[] = [];
     const record = (...args: unknown[]) => {
-      logged.push(args.map(a => (typeof a === 'string' ? a : JSON.stringify(a))).join(' '));
+      logged.push(
+        args.map(a => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ')
+      );
     };
     const spies = [
       jest.spyOn(console, 'log').mockImplementation(record),
@@ -322,14 +406,23 @@ describe('RPC cache E2E Tests', () => {
   it('should not store a result that is not a string', async () => {
     responses.set('0xcc0a', { body: { result: [['a'], ['b']] } });
 
-    await request(app).post('/1').send(call('0xcc0a', DEEP_BLOCK, 1));
-    await request(app).post('/1').send(call('0xcc0a', DEEP_BLOCK, 2));
+    await request(app)
+      .post('/1')
+      .send(call('0xcc0a', DEEP_BLOCK, 1));
+    await request(app)
+      .post('/1')
+      .send(call('0xcc0a', DEEP_BLOCK, 2));
 
     expect(countOf('eth_call')).toBe(2);
   });
 
   it('should answer with jsonrpc 2.0 on both a miss and a hit', async () => {
-    const body = { jsonrpc: '2.0', method: 'eth_getCode', params: ['0xcc03', DEEP_BLOCK], id: 1 };
+    const body = {
+      jsonrpc: '2.0',
+      method: 'eth_getCode',
+      params: ['0xcc03', DEEP_BLOCK],
+      id: 1
+    };
 
     const miss = await request(app).post('/1').send(body);
     const hit = await request(app).post('/1').send(body);
@@ -340,7 +433,12 @@ describe('RPC cache E2E Tests', () => {
   });
 
   it('should not serve an entry cached against a different node url', async () => {
-    const body = { jsonrpc: '2.0', method: 'eth_getCode', params: ['0xcc04', DEEP_BLOCK], id: 1 };
+    const body = {
+      jsonrpc: '2.0',
+      method: 'eth_getCode',
+      params: ['0xcc04', DEEP_BLOCK],
+      id: 1
+    };
 
     await request(app).post('/1').send(body);
     calls = [];
@@ -356,14 +454,21 @@ describe('RPC cache E2E Tests', () => {
   });
 
   it('should refetch an entry once its ttl has passed', async () => {
-    const body = { jsonrpc: '2.0', method: 'eth_getCode', params: ['0xcc05', DEEP_BLOCK], id: 1 };
+    const body = {
+      jsonrpc: '2.0',
+      method: 'eth_getCode',
+      params: ['0xcc05', DEEP_BLOCK],
+      id: 1
+    };
 
     await request(app).post('/1').send(body);
     calls = [];
     await request(app).post('/1').send(body);
     expect(countOf('eth_getCode')).toBe(0);
 
-    const spy = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 2 * 3600e3);
+    const spy = jest
+      .spyOn(Date, 'now')
+      .mockReturnValue(Date.now() + 2 * 3600e3);
     try {
       calls = [];
       await request(app).post('/1').send(body);
@@ -380,7 +485,12 @@ describe('RPC cache E2E Tests', () => {
     const send = (tag: string) =>
       request(app)
         .post('/1')
-        .send({ jsonrpc: '2.0', method: 'eth_getCode', params: [tag, DEEP_BLOCK], id: 1 });
+        .send({
+          jsonrpc: '2.0',
+          method: 'eth_getCode',
+          params: [tag, DEEP_BLOCK],
+          id: 1
+        });
 
     const fill = async (from: number, to: number) => {
       for (let i = from; i < to; i++) {
@@ -472,7 +582,12 @@ describe('RPC cache E2E Tests', () => {
       const response = await request(batchApp)
         .post('/')
         .send([
-          { jsonrpc: '2.0', method: 'eth_call', params: [{ to: ADDRESS }, DEEP_BLOCK], id: 1 }
+          {
+            jsonrpc: '2.0',
+            method: 'eth_call',
+            params: [{ to: ADDRESS }, DEEP_BLOCK],
+            id: 1
+          }
         ]);
 
       expect(response.status).toBe(200);

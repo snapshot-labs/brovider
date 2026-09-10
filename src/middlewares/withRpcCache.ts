@@ -6,7 +6,11 @@ import { fetchWithKeepAlive, sha256 } from '../helpers/utils';
 
 type Node = { url: string; network: string; headers: Record<string, string> };
 type Entry = { value: string; size: number; expiresAt: number };
-type Pending = { key: string; block: number; settle: (result?: string) => void };
+type Pending = {
+  key: string;
+  block: number;
+  settle: (result?: string) => void;
+};
 
 const BLOCK_PARAM_INDEX = new Map([
   ['eth_call', 1],
@@ -49,17 +53,24 @@ async function blockNumber(node: Node): Promise<unknown> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...node.headers },
       timeout: REQUEST_TIMEOUT,
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_blockNumber', params: [] })
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'eth_blockNumber',
+        params: []
+      })
     });
     text = await res.text();
-  } catch (e: any) {
+  } catch (err: any) {
     // node-fetch puts the full url, api key included, in its error message
-    throw new Error(`${node.network} head lookup failed: ${e?.code || e?.name || 'error'}`);
+    throw new Error(
+      `${node.network} head lookup failed: ${err?.code || err?.name || 'error'}`
+    );
   }
 
   try {
     return JSON.parse(text)?.result;
-  } catch (e) {
+  } catch {
     return undefined;
   }
 }
@@ -70,10 +81,17 @@ async function headOf(node: Node): Promise<number | null> {
 
   let number: number | null = null;
   try {
-    const result = await serve(`${node.network}:eth_blockNumber`, blockNumber, [node]);
-    if (typeof result === 'string' && HEX_BLOCK.test(result)) number = parseInt(result, 16);
-  } catch (e: any) {
-    console.log('[withRpcCache] head lookup failed', node.network, e?.errors?.[0]?.message ?? e);
+    const result = await serve(`${node.network}:eth_blockNumber`, blockNumber, [
+      node
+    ]);
+    if (typeof result === 'string' && HEX_BLOCK.test(result))
+      number = parseInt(result, 16);
+  } catch (err: any) {
+    console.log(
+      '[withRpcCache] head lookup failed',
+      node.network,
+      err?.errors?.[0]?.message ?? err
+    );
   }
 
   heads.set(node.network, { number, expiresAt: Date.now() + HEAD_TTL });
@@ -108,7 +126,11 @@ function writeCache(key: string, value: string) {
   }
 }
 
-export default function withRpcCache(req: Request, res: Response, next: NextFunction) {
+export default function withRpcCache(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   const node: Node = (req as any)._node;
   const body = req.body;
   const block = pinnedBlock(body);
@@ -127,8 +149,11 @@ export default function withRpcCache(req: Request, res: Response, next: NextFunc
     return next();
   }
 
-  const key = sha256(`${node.url}:${body.method}:${JSON.stringify(body.params)}`);
-  const reply = (result: string) => res.json({ jsonrpc: '2.0', id: body.id, result });
+  const key = sha256(
+    `${node.url}:${body.method}:${JSON.stringify(body.params)}`
+  );
+  const reply = (result: string) =>
+    res.json({ jsonrpc: '2.0', id: body.id, result });
 
   const cached = readCache(key);
   if (cached !== undefined) {
@@ -148,7 +173,9 @@ export default function withRpcCache(req: Request, res: Response, next: NextFunc
   );
   if (!settle) {
     return shared
-      .then(result => (result !== undefined ? reply(result) : withRpcCache(req, res, next)))
+      .then(result =>
+        result !== undefined ? reply(result) : withRpcCache(req, res, next)
+      )
       .catch(next);
   }
 
@@ -158,20 +185,25 @@ export default function withRpcCache(req: Request, res: Response, next: NextFunc
   next();
 }
 
-export async function storeRpcResponse(proxyRes: unknown, data: Buffer, req: Request) {
+export async function storeRpcResponse(
+  proxyRes: unknown,
+  data: Buffer,
+  req: Request
+) {
   const { key, block, settle }: Pending = (req as any)._cache;
 
   let payload: any;
   try {
     payload = JSON.parse(data.toString());
-  } catch (e) {
+  } catch {
     return data;
   }
 
   if (payload?.error == null && typeof payload?.result === 'string') {
     settle(payload.result);
     const head = await headOf((req as any)._node);
-    if (head !== null && block <= head - CONFIRMATIONS) writeCache(key, payload.result);
+    if (head !== null && block <= head - CONFIRMATIONS)
+      writeCache(key, payload.result);
   }
 
   return data;
