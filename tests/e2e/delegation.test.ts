@@ -56,7 +56,9 @@ describe('Delegation Endpoints', () => {
           `
         };
 
-        const response = await request(app).post('/delegation/1').send(graphqlQuery);
+        const response = await request(app)
+          .post('/delegation/1')
+          .send(graphqlQuery);
 
         expect(response.status).toBe(200);
         expect(response.body).toHaveProperty('data');
@@ -89,7 +91,9 @@ describe('Delegation Endpoints', () => {
           `
         };
 
-        const response = await request(app).post('/delegation/1').send(invalidGraphqlQuery);
+        const response = await request(app)
+          .post('/delegation/1')
+          .send(invalidGraphqlQuery);
 
         expect(response.status).toBe(400);
         expect(response.body).toMatchObject({

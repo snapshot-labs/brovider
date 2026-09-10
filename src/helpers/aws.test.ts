@@ -24,7 +24,11 @@ function bodyStream(content: string) {
   return Readable.from([Buffer.from(content)]);
 }
 
-function s3Error(name: string, message: string, extra: Record<string, unknown> = {}) {
+function s3Error(
+  name: string,
+  message: string,
+  extra: Record<string, unknown> = {}
+) {
   return Object.assign(new Error(message), { name, ...extra });
 }
 
@@ -39,7 +43,9 @@ beforeEach(() => {
 
 describe('aws get()', () => {
   it('returns undefined on a NoSuchKey miss', async () => {
-    mockGetObject.mockRejectedValue(s3Error('NoSuchKey', 'The specified key does not exist.'));
+    mockGetObject.mockRejectedValue(
+      s3Error('NoSuchKey', 'The specified key does not exist.')
+    );
 
     await expect(get('missing')).resolves.toBeUndefined();
   });
@@ -65,9 +71,13 @@ describe('aws get()', () => {
   });
 
   it('rethrows a NoSuchBucket 404 instead of treating it as a miss', async () => {
-    const storageError = s3Error('NoSuchBucket', 'The specified bucket does not exist.', {
-      $metadata: { httpStatusCode: 404 }
-    });
+    const storageError = s3Error(
+      'NoSuchBucket',
+      'The specified bucket does not exist.',
+      {
+        $metadata: { httpStatusCode: 404 }
+      }
+    );
     mockGetObject.mockRejectedValue(storageError);
 
     await expect(get('any-key')).rejects.toBe(storageError);
@@ -79,9 +89,13 @@ describe('aws get()', () => {
   it('throws a distinct error on a corrupt cache entry instead of returning it as a miss', async () => {
     mockGetObject.mockResolvedValue({ Body: bodyStream('not json') });
 
-    await expect(get('corrupt-key')).rejects.toThrow(/corrupt cache entry: corrupt-key/);
+    await expect(get('corrupt-key')).rejects.toThrow(
+      /corrupt cache entry: corrupt-key/
+    );
     expect(mockCapture).toHaveBeenCalledWith(
-      expect.objectContaining({ message: expect.stringContaining('corrupt-key') }),
+      expect.objectContaining({
+        message: expect.stringContaining('corrupt-key')
+      }),
       {
         contexts: { cache: { key: 'corrupt-key', op: 'parse' } }
       }
@@ -113,7 +127,9 @@ describe('aws get()', () => {
     await get('a');
     mockGetObject.mockRejectedValueOnce(s3Error('NoSuchBucket', 'no bucket'));
     await expect(get('b')).rejects.toThrow();
-    mockGetObject.mockResolvedValueOnce({ Body: bodyStream(JSON.stringify({ data: 1 })) });
+    mockGetObject.mockResolvedValueOnce({
+      Body: bodyStream(JSON.stringify({ data: 1 }))
+    });
     await get('c');
     mockGetObject.mockResolvedValueOnce({ Body: bodyStream('nope') });
     await expect(get('d')).rejects.toThrow(/corrupt/);
@@ -143,7 +159,9 @@ describe('aws set()', () => {
     const storageError = s3Error('InternalError', 'write failed');
     mockPutObject.mockRejectedValue(storageError);
 
-    await expect(set('some-key', { data: { ok: true } })).rejects.toBe(storageError);
+    await expect(set('some-key', { data: { ok: true } })).rejects.toBe(
+      storageError
+    );
     expect(await cacheStatusCount('WRITE_ERROR')).toBe(writeErrorBefore + 1);
     expect(mockCapture).toHaveBeenCalledWith(storageError, {
       contexts: { cache: { key: 'some-key', op: 'set' } }

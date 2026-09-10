@@ -15,7 +15,9 @@ function run(err: any, path = '/1') {
 
 describe('handleJsonParseError', () => {
   it('answers a JSON-RPC parse error for a body-parser JSON parse failure', () => {
-    const err = createError(400, 'Unexpected end of JSON input', { type: 'entity.parse.failed' });
+    const err = createError(400, 'Unexpected end of JSON input', {
+      type: 'entity.parse.failed'
+    });
 
     const { status, json, next } = run(err);
 
@@ -28,20 +30,22 @@ describe('handleJsonParseError', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it.each(['/subgraph/1/space', '/delegation/1', '/SUBGRAPH/1/space', '/Delegation/1'])(
-    'answers a GraphQL-shaped parse error for %s',
-    path => {
-      const err = createError(400, 'Unexpected end of JSON input', {
-        type: 'entity.parse.failed'
-      });
+  it.each([
+    '/subgraph/1/space',
+    '/delegation/1',
+    '/SUBGRAPH/1/space',
+    '/Delegation/1'
+  ])('answers a GraphQL-shaped parse error for %s', path => {
+    const err = createError(400, 'Unexpected end of JSON input', {
+      type: 'entity.parse.failed'
+    });
 
-      const { status, json, next } = run(err, path);
+    const { status, json, next } = run(err, path);
 
-      expect(status).toHaveBeenCalledWith(400);
-      expect(json).toHaveBeenCalledWith({ errors: [{ message: 'Parse error' }] });
-      expect(next).not.toHaveBeenCalled();
-    }
-  );
+    expect(status).toHaveBeenCalledWith(400);
+    expect(json).toHaveBeenCalledWith({ errors: [{ message: 'Parse error' }] });
+    expect(next).not.toHaveBeenCalled();
+  });
 
   it.each(['/1', '/137', '/sn', '/', '/subgraph'])(
     'answers a JSON-RPC-shaped parse error for %s',
@@ -62,10 +66,26 @@ describe('handleJsonParseError', () => {
   );
 
   it.each([
-    { type: 'entity.too.large', status: 413, message: 'request entity too large' },
-    { type: 'charset.unsupported', status: 415, message: 'unsupported charset "FOO"' },
-    { type: 'encoding.unsupported', status: 415, message: 'unsupported content encoding "foo"' },
-    { type: 'parameters.too.many', status: 413, message: 'too many parameters' },
+    {
+      type: 'entity.too.large',
+      status: 413,
+      message: 'request entity too large'
+    },
+    {
+      type: 'charset.unsupported',
+      status: 415,
+      message: 'unsupported charset "FOO"'
+    },
+    {
+      type: 'encoding.unsupported',
+      status: 415,
+      message: 'unsupported content encoding "foo"'
+    },
+    {
+      type: 'parameters.too.many',
+      status: 413,
+      message: 'too many parameters'
+    },
     { type: 'request.aborted', status: 400, message: 'request aborted' },
     {
       type: 'request.size.invalid',
@@ -104,17 +124,23 @@ describe('handleJsonParseError', () => {
   });
 
   it('answers a GraphQL-shaped error for a non-parse client body error on a GraphQL route', () => {
-    const err = createError(413, 'request entity too large', { type: 'entity.too.large' });
+    const err = createError(413, 'request entity too large', {
+      type: 'entity.too.large'
+    });
 
     const { status, json, next } = run(err, '/subgraph/1/space');
 
     expect(status).toHaveBeenCalledWith(413);
-    expect(json).toHaveBeenCalledWith({ errors: [{ message: 'request entity too large' }] });
+    expect(json).toHaveBeenCalledWith({
+      errors: [{ message: 'request entity too large' }]
+    });
     expect(next).not.toHaveBeenCalled();
   });
 
   it('passes through a 500-class body-parser programmer error unanswered', () => {
-    const err = createError(500, 'stream is not readable', { type: 'stream.not.readable' });
+    const err = createError(500, 'stream is not readable', {
+      type: 'stream.not.readable'
+    });
 
     const { status, next } = run(err);
 

@@ -18,7 +18,11 @@ function metricLabel(value: unknown, allowed: Set<string>) {
   return typeof value === 'string' && allowed.has(value) ? value : 'other';
 }
 
-export default function setNode(req: Request, res: Response, next: NextFunction) {
+export default function setNode(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   const network = req.params[0];
   const body = req.body;
   const { jsonrpc, id, method } = body;
@@ -41,7 +45,9 @@ export default function setNode(req: Request, res: Response, next: NextFunction)
         }
       }
     });
-    return res.status(500).json({ jsonrpc, id, error: 'Invalid node URL configuration' });
+    return res
+      .status(500)
+      .json({ jsonrpc, id, error: 'Invalid node URL configuration' });
   }
 
   rpcRequestCount.inc({

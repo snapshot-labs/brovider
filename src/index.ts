@@ -21,7 +21,9 @@ mountMiddleware(app);
 app.use('/', rpc);
 app.get('/', (req, res) => {
   const commit = process.env.COMMIT_HASH || '';
-  const version = commit ? `${pkg.version}#${commit.substr(0, 7)}` : pkg.version;
+  const version = commit
+    ? `${pkg.version}#${commit.substr(0, 7)}`
+    : pkg.version;
   res.json({ version, port: PORT });
 });
 

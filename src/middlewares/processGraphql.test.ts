@@ -19,7 +19,11 @@ const cachedResponses = new Map<string, any>();
 const upstreamResponse = { data: { items: [] } };
 const awsRegion = process.env.AWS_REGION;
 
-let processGraphql: (req: Request, res: Response, next: NextFunction) => Promise<void | Response>;
+let processGraphql: (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => Promise<void | Response>;
 
 function response() {
   return {
@@ -43,7 +47,10 @@ async function execute(query: string, variables: Record<string, unknown> = {}) {
   expect(json).toHaveBeenCalledWith(upstreamResponse);
 }
 
-async function expectNoPersistentCache(query: string, variables: Record<string, unknown> = {}) {
+async function expectNoPersistentCache(
+  query: string,
+  variables: Record<string, unknown> = {}
+) {
   await execute(query, variables);
   await execute(query, variables);
   expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(2);
@@ -92,8 +99,12 @@ describe('processGraphql caching', () => {
   });
 
   it('caches queries pinned by block variables', async () => {
-    const query = 'query Items($block: Block_height) { items(block: $block) { id } }';
-    const variableSets = [{ block: { number: 123 } }, { block: { hash: '0x123' } }];
+    const query =
+      'query Items($block: Block_height) { items(block: $block) { id } }';
+    const variableSets = [
+      { block: { number: 123 } },
+      { block: { hash: '0x123' } }
+    ];
 
     for (const variables of variableSets) {
       await execute(query, variables);
@@ -105,7 +116,8 @@ describe('processGraphql caching', () => {
   });
 
   it('caches queries pinned by variables inside block objects', async () => {
-    const query = 'query Items($number: Int) { items(block: { number: $number }) { id } }';
+    const query =
+      'query Items($number: Int) { items(block: { number: $number }) { id } }';
     const variables = { number: 123 };
 
     await execute(query, variables);
@@ -136,7 +148,8 @@ describe('processGraphql caching', () => {
   });
 
   it('bypasses persistent caching for unpinned block variables', async () => {
-    const query = 'query Items($block: Block_height) { items(block: $block) { id } }';
+    const query =
+      'query Items($block: Block_height) { items(block: $block) { id } }';
     const variableSets = [
       { block: { number_gte: 123 } },
       { block: { number: null } },
@@ -150,7 +163,9 @@ describe('processGraphql caching', () => {
       await execute(query, variables);
     }
 
-    expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(variableSets.length * 2);
+    expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(
+      variableSets.length * 2
+    );
     expect(mockGet).not.toHaveBeenCalled();
     expect(mockSet).not.toHaveBeenCalled();
   });
