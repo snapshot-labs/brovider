@@ -53,3 +53,8 @@ export const nodesRefreshCount = new client.Counter({
   name: 'node_refresh_count',
   help: 'Number of node refreshes'
 });
+
+export function metricLabel(value: unknown, allowed: Set<string>) {
+  if (value === undefined) return 'none';
+  return typeof value === 'string' && allowed.has(value) ? value : 'other';
+}
