@@ -1,7 +1,7 @@
 import express from 'express';
 import proxy from 'express-http-proxy';
 import { REQUEST_TIMEOUT } from './constants';
-import measureRpcNamespace from './middlewares/measureRpcNamespace';
+import filterRpcNamespace from './middlewares/filterRpcNamespace';
 import processGraphql from './middlewares/processGraphql';
 import setGraphqlUrl from './middlewares/setGraphqlUrl';
 import setNode from './middlewares/setNode';
@@ -22,7 +22,7 @@ router.use(
   /^\/([^\/]+)$/,
   validateJsonRpc,
   withCachedChainId,
-  measureRpcNamespace,
+  filterRpcNamespace,
   setNode,
   proxy((req: any) => req._node.url, {
     timeout: REQUEST_TIMEOUT,

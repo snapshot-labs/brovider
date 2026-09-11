@@ -2,10 +2,7 @@ import { Server } from 'http';
 import { AddressInfo } from 'net';
 import express from 'express';
 import request from 'supertest';
-import {
-  rpcNamespaceMismatchCount,
-  rpcRequestCount
-} from '../../src/helpers/metrics';
+import { rpcRequestCount } from '../../src/helpers/metrics';
 import { nodes, stop } from '../../src/helpers/nodes';
 import mountMiddleware from '../../src/mountMiddleware';
 import rpc from '../../src/rpc';
@@ -123,33 +120,41 @@ describe('Network Endpoint E2E Tests', () => {
         expect(upstreamBodies).toHaveLength(0);
       });
 
-      it.each([
-        { network: 'sn', type: 'nonnumeric' },
-        { network: '0x1', type: 'coercible non-decimal' }
-      ])(
-        'should proxy eth_chainId for a $type network',
-        async ({ network }) => {
-          const body = {
-            jsonrpc: '2.0',
-            method: 'eth_chainId',
-            params: [network, { nested: ['value'] }],
-            id: 2
-          };
-          const response = await request(app)
-            .post(`/${network}`)
-            .send(body)
-            .expect(200);
+      it('should proxy eth_chainId for a network whose family cannot be determined', async () => {
+        const body = {
+          jsonrpc: '2.0',
+          method: 'eth_chainId',
+          params: ['0x1', { nested: ['value'] }],
+          id: 2
+        };
+        const response = await request(app).post('/0x1').send(body).expect(200);
 
-          expect(response.body).toEqual({
-            jsonrpc: '2.0',
-            id: 2,
-            result: 'upstream-chain-id'
-          });
-          expect(upstreamBodies).toEqual([body]);
-        }
-      );
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 2,
+          result: 'upstream-chain-id'
+        });
+        expect(upstreamBodies).toEqual([body]);
+      });
 
-      it('should proxy a valid request for a non-decimal network', async () => {
+      it('should reject eth_chainId for a starknet network rather than proxy it', async () => {
+        const body = {
+          jsonrpc: '2.0',
+          method: 'eth_chainId',
+          params: ['sn', { nested: ['value'] }],
+          id: 2
+        };
+        const response = await request(app).post('/sn').send(body).expect(400);
+
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 2,
+          error: { code: -32601, message: 'Method not found' }
+        });
+        expect(upstreamBodies).toHaveLength(0);
+      });
+
+      it('should reject a valid-shaped eth_chainId request for a starknet network rather than proxy it', async () => {
         const body = {
           jsonrpc: '2.0',
           method: 'eth_chainId',
@@ -157,14 +162,14 @@ describe('Network Endpoint E2E Tests', () => {
           id: 3
         };
 
-        const response = await request(app).post('/sn').send(body).expect(200);
+        const response = await request(app).post('/sn').send(body).expect(400);
 
         expect(response.body).toEqual({
           jsonrpc: '2.0',
           id: 3,
-          result: 'upstream-chain-id'
+          error: { code: -32601, message: 'Method not found' }
         });
-        expect(upstreamBodies).toEqual([body]);
+        expect(upstreamBodies).toHaveLength(0);
       });
 
       it('should answer a valid request without params locally', async () => {
@@ -243,21 +248,21 @@ describe('Network Endpoint E2E Tests', () => {
         }
       );
 
-      it('should proxy starknet_chainId for a decimal network', async () => {
+      it('should reject starknet_chainId for a decimal network rather than proxy it', async () => {
         const body = {
           jsonrpc: '2.0',
           method: 'starknet_chainId',
           params: [],
           id: 4
         };
-        const response = await request(app).post('/1').send(body).expect(200);
+        const response = await request(app).post('/1').send(body).expect(400);
 
         expect(response.body).toEqual({
           jsonrpc: '2.0',
           id: 4,
-          result: 'upstream-chain-id'
+          error: { code: -32601, message: 'Method not found' }
         });
-        expect(upstreamBodies).toEqual([body]);
+        expect(upstreamBodies).toHaveLength(0);
       });
 
       it.each(['sn', 'sn-sep'])(
@@ -549,34 +554,23 @@ describe('Network Endpoint E2E Tests', () => {
       });
     });
 
-    describe('Namespace Mismatch Metrics', () => {
-      const collectMismatches = async () =>
-        (await rpcNamespaceMismatchCount.get()).values
-          .map(({ labels, value }) => ({ ...labels, value }))
-          .sort((a, b) => String(a.prefix).localeCompare(String(b.prefix)));
-
-      beforeEach(() => {
-        rpcNamespaceMismatchCount.reset();
-      });
-
-      it('should count an out-of-namespace method on a numeric network as evm/other, and still proxy it', async () => {
+    describe('Namespace Filtering', () => {
+      it('should reject an out-of-namespace method on a numeric network locally', async () => {
         const response = await request(app)
           .post('/1')
           .send({ jsonrpc: '2.0', method: 'admin_peers', params: [], id: 1 })
-          .expect(200);
+          .expect(400);
 
         expect(response.body).toEqual({
           jsonrpc: '2.0',
           id: 1,
-          result: 'upstream-admin_peers'
+          error: { code: -32601, message: 'Method not found' }
         });
-        expect(await collectMismatches()).toEqual([
-          { network_family: 'evm', prefix: 'other', value: 1 }
-        ]);
+        expect(upstreamBodies).toHaveLength(0);
       });
 
-      it('should count a starknet method on a numeric network as evm/starknet', async () => {
-        await request(app)
+      it('should reject a starknet method on a numeric network locally', async () => {
+        const response = await request(app)
           .post('/1')
           .send({
             jsonrpc: '2.0',
@@ -584,57 +578,117 @@ describe('Network Endpoint E2E Tests', () => {
             params: [],
             id: 2
           })
-          .expect(200);
+          .expect(400);
 
-        expect(await collectMismatches()).toEqual([
-          { network_family: 'evm', prefix: 'starknet', value: 1 }
-        ]);
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 2,
+          error: { code: -32601, message: 'Method not found' }
+        });
+        expect(upstreamBodies).toHaveLength(0);
       });
 
-      it('should count an eth method on a starknet network as starknet/eth', async () => {
-        await request(app)
+      it('should reject an eth method on a starknet network locally', async () => {
+        const response = await request(app)
           .post('/sn')
           .send({ jsonrpc: '2.0', method: 'eth_call', params: [], id: 3 })
-          .expect(200);
+          .expect(400);
 
-        expect(await collectMismatches()).toEqual([
-          { network_family: 'starknet', prefix: 'eth', value: 1 }
-        ]);
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 3,
+          error: { code: -32601, message: 'Method not found' }
+        });
+        expect(upstreamBodies).toHaveLength(0);
       });
 
-      it.each(['eth_call', 'net_version', 'web3_clientVersion'])(
-        'should not count an in-namespace method %s on a numeric network',
+      it.each(['net_version', 'web3_clientVersion', 'eth_getLogs'])(
+        'should still proxy the in-namespace method %s on a numeric network',
         async method => {
-          await request(app)
-            .post('/1')
-            .send({ jsonrpc: '2.0', method, params: [], id: 4 })
-            .expect(200);
+          const body = { jsonrpc: '2.0', method, params: [], id: 4 };
+          const response = await request(app).post('/1').send(body).expect(200);
 
-          expect(await collectMismatches()).toEqual([]);
+          expect(response.body).toEqual({
+            jsonrpc: '2.0',
+            id: 4,
+            result: `upstream-${method}`
+          });
+          expect(upstreamBodies).toEqual([body]);
         }
       );
 
-      it('should not count an in-namespace method on a starknet network', async () => {
-        await request(app)
-          .post('/sn')
-          .send({
-            jsonrpc: '2.0',
-            method: 'starknet_blockNumber',
-            params: [],
-            id: 5
-          })
-          .expect(200);
+      it.each([
+        'chain_getBlockHash',
+        'state_getStorage',
+        'hmyv2_getValidatorsStakeByBlockNumber'
+      ])(
+        'should still proxy %s, a non eth/net/web3 method score-api sends on a numeric network',
+        async method => {
+          const body = { jsonrpc: '2.0', method, params: [], id: 5 };
+          const response = await request(app).post('/1').send(body).expect(200);
 
-        expect(await collectMismatches()).toEqual([]);
+          expect(response.body).toEqual({
+            jsonrpc: '2.0',
+            id: 5,
+            result: `upstream-${method}`
+          });
+          expect(upstreamBodies).toEqual([body]);
+        }
+      );
+
+      it('should still proxy a starknet_* method on a starknet network', async () => {
+        const body = {
+          jsonrpc: '2.0',
+          method: 'starknet_blockNumber',
+          params: [],
+          id: 6
+        };
+        const response = await request(app).post('/sn').send(body).expect(200);
+
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 6,
+          result: 'upstream-starknet_blockNumber'
+        });
+        expect(upstreamBodies).toEqual([body]);
       });
 
-      it('should not count a request for an unknown network', async () => {
-        await request(app)
+      it('should still proxy a request for a network whose family cannot be determined', async () => {
+        const body = {
+          jsonrpc: '2.0',
+          method: 'admin_peers',
+          params: [],
+          id: 7
+        };
+        const response = await request(app).post('/0x1').send(body).expect(200);
+
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 7,
+          result: 'upstream-admin_peers'
+        });
+        expect(upstreamBodies).toEqual([body]);
+      });
+
+      it('should return 404 for an unknown network with an out-of-namespace method, rather than -32601', async () => {
+        const response = await request(app)
           .post('/999999')
-          .send({ jsonrpc: '2.0', method: 'admin_peers', params: [], id: 6 })
+          .send({ jsonrpc: '2.0', method: 'admin_peers', params: [], id: 8 })
           .expect(404);
 
-        expect(await collectMismatches()).toEqual([]);
+        expect(response.body).toEqual({
+          jsonrpc: '2.0',
+          id: 8,
+          error: 'Invalid network'
+        });
+        expect(upstreamBodies).toHaveLength(0);
+      });
+
+      it('should reject an out-of-namespace notification with no response body', async () => {
+        const body = { jsonrpc: '2.0', method: 'admin_peers', params: [] };
+        await request(app).post('/1').send(body).expect(204);
+
+        expect(upstreamBodies).toHaveLength(0);
       });
     });
   });
@@ -759,7 +813,7 @@ describe('Network Endpoint E2E Tests', () => {
     });
 
     describe('JSON-RPC Errors', () => {
-      it('should return error for invalid method', async () => {
+      it('should reject an out-of-namespace method locally rather than ask the upstream node', async () => {
         const response = await request(app)
           .post('/1')
           .send({
@@ -768,17 +822,12 @@ describe('Network Endpoint E2E Tests', () => {
             params: [],
             id: 2
           })
-          .expect(200);
+          .expect(400);
 
-        expect(response.body).toMatchObject({
-          id: 2,
+        expect(response.body).toEqual({
           jsonrpc: '2.0',
-          error: {
-            code: expect.any(Number),
-            message: expect.stringMatching(
-              /not (supported|available|found)|does not exist/i
-            )
-          }
+          id: 2,
+          error: { code: -32601, message: 'Method not found' }
         });
       });
 

@@ -43,12 +43,6 @@ export const rpcRequestCount = new client.Counter({
   labelNames: ['network', 'client', 'rpc_method']
 });
 
-export const rpcNamespaceMismatchCount = new client.Counter({
-  name: 'rpc_namespace_mismatch_count',
-  help: "Number of RPC requests whose method falls outside the resolved network's namespace",
-  labelNames: ['network_family', 'prefix']
-});
-
 export const nodesRefreshCount = new client.Counter({
   name: 'node_refresh_count',
   help: 'Number of node refreshes'
