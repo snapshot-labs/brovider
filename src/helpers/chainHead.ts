@@ -10,9 +10,6 @@ export type Node = {
   headers: Record<string, string>;
 };
 
-// What differs between chain families for the cache: how a block argument is
-// read as a block number, and which method reports the head. One entry per
-// JSON-RPC method prefix; a method whose prefix is absent here is never cached.
 export type Family = {
   headMethod: string;
   parseBlock: (value: unknown) => number | undefined;
@@ -73,9 +70,6 @@ async function blockNumber(node: Node, family: Family): Promise<unknown> {
   }
 }
 
-// Head of the node's network as of the last lookup, or null if none succeeded yet.
-// A remembered head only ever understates the chain, so it is reused as long as it
-// already reaches `needed`; otherwise it is refreshed at most once per HEAD_TTL.
 export async function headOf(
   node: Node,
   family: Family,

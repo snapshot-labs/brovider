@@ -35,13 +35,10 @@ const proxyOptions: proxy.ProxyOptions = {
 };
 const target = (req: Request) => req._node.url;
 const streamed = proxy(target, proxyOptions);
-// Any response decorator turns the whole proxy instance into buffering mode,
-// so cacheable reads get their own instance and everything else keeps streaming.
 const buffered = proxy(target, {
   ...proxyOptions,
   proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
     const opts = withNodeHeaders(proxyReqOpts, srcReq);
-    // The proxy only inflates gzip before the decorator; a brotli body would be unreadable.
     delete opts.headers['accept-encoding'];
     return opts;
   },

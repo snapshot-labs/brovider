@@ -12,6 +12,7 @@ import {
 } from '../../src/helpers/metrics';
 import { nodes, stop } from '../../src/helpers/nodes';
 import withRpcCache from '../../src/middlewares/withRpcCache';
+import mountMiddleware from '../../src/mountMiddleware';
 import rpc from '../../src/rpc';
 
 const HEAD = 20000000;
@@ -75,7 +76,7 @@ describe('RPC cache E2E Tests', () => {
   beforeAll(async () => {
     stop();
     app = express();
-    app.use(express.json());
+    mountMiddleware(app);
     app.use('/', rpc);
 
     const upstreamApp = express();

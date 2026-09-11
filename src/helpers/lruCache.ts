@@ -5,8 +5,6 @@ const MAX_VALUE_SIZE = 100e3;
 const MAX_CACHE_SIZE = 16e6;
 const ENTRY_OVERHEAD = 128;
 
-// Insertion order doubles as recency order: a read re-inserts the entry it hit,
-// so eviction from the front always drops the least recently used one.
 const cache = new Map<string, Entry>();
 let cacheSize = 0;
 
@@ -31,8 +29,9 @@ export function set(key: string, value: string): void {
   cache.set(key, { value, size, expiresAt: Date.now() + ENTRY_TTL });
   cacheSize += size;
 
+  const oldestFirst = cache.entries();
   while (cacheSize > MAX_CACHE_SIZE && cache.size > 1) {
-    const [oldest, entry] = cache.entries().next().value as [string, Entry];
+    const [oldest, entry] = oldestFirst.next().value as [string, Entry];
     cache.delete(oldest);
     cacheSize -= entry.size;
   }
