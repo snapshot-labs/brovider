@@ -2,7 +2,7 @@ import { IncomingMessage } from 'http';
 import { NextFunction, Request, Response } from 'express';
 import { RPC_CLIENTS, RPC_METHODS } from '../constants';
 import { headOf, HEX_BLOCK } from '../helpers/chainHead';
-import { readCache, writeCache } from '../helpers/lruCache';
+import { get, set } from '../helpers/lruCache';
 import {
   metricLabel,
   rpcCacheCount,
@@ -75,7 +75,7 @@ export default function withRpcCache(
   const reply = (result: string) =>
     res.json({ jsonrpc: '2.0', id: body.id, result });
 
-  const cached = readCache(key);
+  const cached = get(key);
   if (cached !== undefined) {
     rpcCacheCount.inc({ status: 'HIT' });
     return reply(cached);
@@ -127,7 +127,7 @@ export async function storeRpcResponse(
     pending.settle(result);
     const head = await headOf(req._node);
     if (head !== null && pending.block <= head - CONFIRMATIONS)
-      writeCache(pending.key, result);
+      set(pending.key, result);
   }
 
   return data;

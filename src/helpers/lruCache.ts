@@ -10,7 +10,7 @@ const ENTRY_OVERHEAD = 128;
 const cache = new Map<string, Entry>();
 let cacheSize = 0;
 
-export function readCache(key: string) {
+export function get(key: string): string | undefined {
   const entry = cache.get(key);
   if (entry === undefined) return undefined;
 
@@ -24,7 +24,7 @@ export function readCache(key: string) {
   return entry.value;
 }
 
-export function writeCache(key: string, value: string) {
+export function set(key: string, value: string): void {
   if (cache.has(key) || value.length > MAX_VALUE_SIZE) return;
 
   const size = 2 * (value.length + key.length) + ENTRY_OVERHEAD;
