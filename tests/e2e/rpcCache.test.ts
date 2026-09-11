@@ -80,6 +80,30 @@ describe('RPC cache E2E Tests', () => {
     return metric.values.find(v => v.labels.network === network)?.value ?? 0;
   }
 
+  async function closeServer(server: Server): Promise<void> {
+    server.closeAllConnections();
+    await new Promise<void>((resolve, reject) => {
+      server.close(error => (error ? reject(error) : resolve()));
+    });
+  }
+
+  async function startLowHeadServer(): Promise<Server> {
+    const lowHeadApp = express();
+    lowHeadApp.use(express.json());
+    lowHeadApp.post('/', (req, res) => {
+      const { method, id } = req.body;
+      calls.push(method);
+      return res.json({
+        jsonrpc: '2.0',
+        id,
+        result: method === 'eth_blockNumber' ? '0x3e8' : '0xbad' // head 1000
+      });
+    });
+    return new Promise(resolve => {
+      const s = lowHeadApp.listen(0, '127.0.0.1', () => resolve(s));
+    });
+  }
+
   beforeAll(async () => {
     stop();
     app = express();
@@ -153,10 +177,7 @@ describe('RPC cache E2E Tests', () => {
       if (url === undefined) delete configuredNodes[network];
       else configuredNodes[network] = url;
     }
-    upstream.closeAllConnections();
-    await new Promise<void>((resolve, reject) => {
-      upstream.close(error => (error ? reject(error) : resolve()));
-    });
+    await closeServer(upstream);
   });
 
   it('should look the head up once per network for the whole ttl window', async () => {
@@ -239,20 +260,7 @@ describe('RPC cache E2E Tests', () => {
 
       // Repoint the network at a different node — a DB failover, or by
       // mistake onto a different chain — whose real head is far lower.
-      const lowHeadApp = express();
-      lowHeadApp.use(express.json());
-      lowHeadApp.post('/', (req, res) => {
-        const { method, id } = req.body;
-        calls.push(method);
-        return res.json({
-          jsonrpc: '2.0',
-          id,
-          result: method === 'eth_blockNumber' ? '0x3e8' : '0xbad' // head 1000
-        });
-      });
-      const lowHeadServer: Server = await new Promise(resolve => {
-        const s = lowHeadApp.listen(0, '127.0.0.1', () => resolve(s));
-      });
+      const lowHeadServer = await startLowHeadServer();
 
       try {
         const { port } = lowHeadServer.address() as AddressInfo;
@@ -274,10 +282,7 @@ describe('RPC cache E2E Tests', () => {
           .send({ ...body, id: 2 });
         expect(countOf('eth_call')).toBe(1); // never cached
       } finally {
-        lowHeadServer.closeAllConnections();
-        await new Promise<void>((resolve, reject) => {
-          lowHeadServer.close(error => (error ? reject(error) : resolve()));
-        });
+        await closeServer(lowHeadServer);
       }
     } finally {
       delete configuredNodes['11'];
@@ -289,20 +294,7 @@ describe('RPC cache E2E Tests', () => {
     blockNumberDelay = 600;
     configuredNodes['12'] = upstreamUrl;
 
-    const lowHeadApp = express();
-    lowHeadApp.use(express.json());
-    lowHeadApp.post('/', (req, res) => {
-      const { method, id } = req.body;
-      calls.push(method);
-      return res.json({
-        jsonrpc: '2.0',
-        id,
-        result: method === 'eth_blockNumber' ? '0x3e8' : '0xbad' // head 1000
-      });
-    });
-    const lowHeadServer: Server = await new Promise(resolve => {
-      const s = lowHeadApp.listen(0, '127.0.0.1', () => resolve(s));
-    });
+    const lowHeadServer = await startLowHeadServer();
 
     try {
       // The old provider's head lookup (head 20,000,000) is still in flight
@@ -325,10 +317,7 @@ describe('RPC cache E2E Tests', () => {
       expect(countOf('eth_call')).toBe(2);
     } finally {
       delete configuredNodes['12'];
-      lowHeadServer.closeAllConnections();
-      await new Promise<void>((resolve, reject) => {
-        lowHeadServer.close(error => (error ? reject(error) : resolve()));
-      });
+      await closeServer(lowHeadServer);
     }
   });
 
@@ -695,10 +684,7 @@ describe('RPC cache E2E Tests', () => {
     } finally {
       spies.forEach(spy => spy.mockRestore());
       delete configuredNodes['13'];
-      server.closeAllConnections();
-      await new Promise<void>((resolve, reject) => {
-        server.close(error => (error ? reject(error) : resolve()));
-      });
+      await closeServer(server);
     }
 
     expect(countOf('eth_blockNumber')).toBe(1);

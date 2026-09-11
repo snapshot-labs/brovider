@@ -39,19 +39,18 @@ export const rpcCacheHitCount = new client.Counter({
   labelNames: ['status', 'network', 'rpc_method']
 });
 
+export const rpcCacheBytes = new client.Gauge({
+  name: 'rpc_cache_bytes',
+  help: 'Estimated heap held by the in-memory RPC cache'
+});
+
 export const rpcCacheEntries = new client.Gauge({
   name: 'rpc_cache_entries',
   help: 'Number of entries held by the in-memory RPC cache',
   collect() {
-    this.set(rpcCacheStats().entries);
-  }
-});
-
-export const rpcCacheBytes = new client.Gauge({
-  name: 'rpc_cache_bytes',
-  help: 'Estimated heap held by the in-memory RPC cache',
-  collect() {
-    this.set(rpcCacheStats().bytes);
+    const stats = rpcCacheStats();
+    this.set(stats.entries);
+    rpcCacheBytes.set(stats.bytes);
   }
 });
 

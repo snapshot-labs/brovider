@@ -98,9 +98,6 @@ export async function storeRpcResponse(
   const pending = req._cache;
   if (!pending) return data;
 
-  // A result this large can never pass set()'s MAX_VALUE_SIZE check (the envelope
-  // only adds a little overhead around `result`), so skip the parse and the
-  // string copy it would otherwise pay for nothing.
   if (data.length > MAX_VALUE_SIZE) return data;
 
   let payload: unknown;
@@ -113,9 +110,6 @@ export async function storeRpcResponse(
 
   const { error, result } = payload;
   if (error == null && typeof result === 'string') {
-    // Confirming against the chain head and storing happen off the response path:
-    // headOf is bounded only by REQUEST_TIMEOUT and must not hold up a result the
-    // client already has.
     lastConfirmation = confirmAndStore(req._node, pending, result).catch(err =>
       console.log('[withRpcCache] confirm failed', err)
     );
@@ -132,8 +126,6 @@ async function confirmAndStore(node: Node, pending: Pending, result: string) {
 
 let lastConfirmation: Promise<void> = Promise.resolve();
 
-// Test-only hook: resolves once the most recently started background
-// confirm-and-store has settled.
 export function whenConfirmed(): Promise<void> {
   return lastConfirmation;
 }

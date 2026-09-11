@@ -56,7 +56,6 @@ async function blockNumber(node: Node, family: Family): Promise<unknown> {
     });
     text = await res.text();
   } catch (err) {
-    // node-fetch puts the full url, api key included, in its error message
     throw new Error(`${node.network} head lookup failed: ${reasonOf(err)}`);
   }
 
@@ -73,10 +72,6 @@ export async function headOf(
   needed: number
 ): Promise<number | null> {
   const known = heads.get(node.network);
-  // A remembered head is only a valid lower bound for the node that reported
-  // it: if the network now points at a different URL (DB failover, including
-  // onto a different chain entirely), discard it and look the head up again
-  // rather than certify blocks against a provider we never asked.
   const stale = known !== undefined && known.url !== node.url;
   if (!stale && known) {
     if (known.number !== null && known.number >= needed) return known.number;
