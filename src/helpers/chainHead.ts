@@ -10,7 +10,30 @@ export type Node = {
   headers: Record<string, string>;
 };
 
-export const HEX_BLOCK = /^0x[0-9a-f]+$/i;
+// What differs between chain families for the cache: how a block argument is
+// read as a block number, and which method reports the head. One entry per
+// JSON-RPC method prefix; a method whose prefix is absent here is never cached.
+export type Family = {
+  headMethod: string;
+  parseBlock: (value: unknown) => number | undefined;
+};
+
+const HEX_QUANTITY = /^0x[0-9a-f]+$/i;
+
+const FAMILIES: Record<string, Family> = {
+  eth: {
+    headMethod: 'eth_blockNumber',
+    parseBlock: value =>
+      typeof value === 'string' && HEX_QUANTITY.test(value)
+        ? parseInt(value, 16)
+        : undefined
+  }
+};
+
+export function familyOf(method: string): Family | undefined {
+  return FAMILIES[method.split('_', 1)[0]];
+}
+
 const HEAD_TTL = 10e3;
 
 const heads = new Map<string, { number: number | null; checkedAt: number }>();
@@ -21,7 +44,7 @@ function reasonOf(err: unknown): string {
   return typeof name === 'string' ? name : 'error';
 }
 
-async function blockNumber(node: Node): Promise<unknown> {
+async function blockNumber(node: Node, family: Family): Promise<unknown> {
   rpcCacheHeadLookupCount.inc({ network: node.network });
 
   let text: string;
@@ -33,7 +56,7 @@ async function blockNumber(node: Node): Promise<unknown> {
       body: JSON.stringify({
         jsonrpc: '2.0',
         id: 1,
-        method: 'eth_blockNumber',
+        method: family.headMethod,
         params: []
       })
     });
@@ -55,6 +78,7 @@ async function blockNumber(node: Node): Promise<unknown> {
 // already reaches `needed`; otherwise it is refreshed at most once per HEAD_TTL.
 export async function headOf(
   node: Node,
+  family: Family,
   needed: number
 ): Promise<number | null> {
   const known = heads.get(node.network);
@@ -64,11 +88,12 @@ export async function headOf(
 
   let number = known?.number ?? null;
   try {
-    const result = await serve(`${node.network}:eth_blockNumber`, blockNumber, [
-      node
-    ]);
-    if (typeof result === 'string' && HEX_BLOCK.test(result))
-      number = parseInt(result, 16);
+    const result = await serve(
+      `${node.network}:${family.headMethod}`,
+      blockNumber,
+      [node, family]
+    );
+    number = family.parseBlock(result) ?? number;
   } catch (err) {
     const { errors } = (err ?? {}) as { errors?: { message?: string }[] };
     console.log(

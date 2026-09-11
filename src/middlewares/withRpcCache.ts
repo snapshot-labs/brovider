@@ -1,7 +1,7 @@
 import { IncomingMessage } from 'http';
 import { NextFunction, Request, Response } from 'express';
 import { RPC_CLIENTS, RPC_METHODS } from '../constants';
-import { headOf, HEX_BLOCK } from '../helpers/chainHead';
+import { Family, familyOf, headOf } from '../helpers/chainHead';
 import { get, set } from '../helpers/lruCache';
 import {
   metricLabel,
@@ -17,29 +17,35 @@ type JsonRpcRequest = {
   id?: string | number | null;
 };
 
-export type Pending = {
+type Pinned = { family: Family; block: number };
+
+export type Pending = Pinned & {
   key: string;
-  block: number;
   settle: (result?: string) => void;
 };
 
-const BLOCK_PARAM_INDEX = new Map([
-  ['eth_call', 1],
-  ['eth_getBalance', 1],
-  ['eth_getCode', 1],
-  ['eth_getStorageAt', 2]
+// Cacheable methods, each with where its block argument sits in the params.
+const at = (index: number) => (params: unknown) =>
+  Array.isArray(params) ? (params[index] as unknown) : undefined;
+
+const BLOCK_PARAM = new Map<string, (params: unknown) => unknown>([
+  ['eth_call', at(1)],
+  ['eth_getBalance', at(1)],
+  ['eth_getCode', at(1)],
+  ['eth_getStorageAt', at(2)]
 ]);
 
 const CONFIRMATIONS = 128;
 
-function pinnedBlock(body: JsonRpcRequest): number | undefined {
-  const index = BLOCK_PARAM_INDEX.get(body.method);
-  if (index === undefined || !Array.isArray(body.params)) return undefined;
+function pinnedBlock(body: JsonRpcRequest): Pinned | undefined {
+  const blockParam = BLOCK_PARAM.get(body.method);
+  if (blockParam === undefined) return undefined;
 
-  const param: unknown = body.params[index];
-  if (typeof param !== 'string' || !HEX_BLOCK.test(param)) return undefined;
+  const family = familyOf(body.method);
+  if (family === undefined) return undefined;
 
-  return parseInt(param, 16);
+  const block = family.parseBlock(blockParam(body.params));
+  return block === undefined ? undefined : { family, block };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -53,7 +59,7 @@ export default function withRpcCache(
 ) {
   const node = req._node;
   const body: JsonRpcRequest = req.body;
-  const block = pinnedBlock(body);
+  const pinned = pinnedBlock(body);
   const isNotification = !Object.hasOwn(body, 'id');
 
   const countRequest = () =>
@@ -63,7 +69,7 @@ export default function withRpcCache(
       rpc_method: metricLabel(body.method, RPC_METHODS)
     });
 
-  if (block === undefined || isNotification) {
+  if (pinned === undefined || isNotification) {
     rpcCacheHitCount.inc({ status: 'BYPASS' });
     countRequest();
     return next();
@@ -101,7 +107,7 @@ export default function withRpcCache(
 
   // Leader failed or went away before the decorator ran: release the followers to retry.
   res.on('close', () => settle!());
-  req._cache = { key, block, settle };
+  req._cache = { ...pinned, key, settle };
   next();
 }
 
@@ -126,7 +132,7 @@ export async function storeRpcResponse(
   if (error == null && typeof result === 'string') {
     pending.settle(result);
     const needed = pending.block + CONFIRMATIONS;
-    const head = await headOf(req._node, needed);
+    const head = await headOf(req._node, pending.family, needed);
     if (head !== null && head >= needed) set(pending.key, result);
   }
 
