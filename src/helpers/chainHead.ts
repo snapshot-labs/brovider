@@ -1,14 +1,8 @@
 import { REQUEST_TIMEOUT } from '../constants';
 import { rpcCacheHeadLookupCount } from './metrics';
+import { Node } from './nodes';
 import serve from './requestDeduplicator';
 import { fetchWithKeepAlive } from './utils';
-
-export type Node = {
-  url: string;
-  path: string;
-  network: string;
-  headers: Record<string, string>;
-};
 
 export type Family = {
   headMethod: string;
@@ -33,7 +27,10 @@ export function familyOf(method: string): Family | undefined {
 
 const HEAD_TTL = 10e3;
 
-const heads = new Map<string, { number: number | null; checkedAt: number }>();
+const heads = new Map<
+  string,
+  { url: string; number: number | null; checkedAt: number }
+>();
 
 function reasonOf(err: unknown): string {
   const { code, name } = (err ?? {}) as { code?: unknown; name?: unknown };
@@ -76,18 +73,35 @@ export async function headOf(
   needed: number
 ): Promise<number | null> {
   const known = heads.get(node.network);
-  if (known && known.number !== null && known.number >= needed)
-    return known.number;
-  if (known && known.checkedAt + HEAD_TTL > Date.now()) return known.number;
+  // A remembered head is only a valid lower bound for the node that reported
+  // it: if the network now points at a different URL (DB failover, including
+  // onto a different chain entirely), discard it and look the head up again
+  // rather than certify blocks against a provider we never asked.
+  const stale = known !== undefined && known.url !== node.url;
+  if (!stale && known) {
+    if (known.number !== null && known.number >= needed) return known.number;
+    if (known.checkedAt + HEAD_TTL > Date.now()) return known.number;
+  }
 
-  let number = known?.number ?? null;
+  let number = stale ? null : (known?.number ?? null);
   try {
     const result = await serve(
       `${node.network}:${family.headMethod}`,
       blockNumber,
       [node, family]
     );
-    number = family.parseBlock(result) ?? number;
+    const parsed = family.parseBlock(result);
+    if (parsed === undefined) {
+      // The lookup answered (no fetch error, so no metric-worthy attempt is
+      // missed), but not with a usable quantity: a JSON-RPC error body, or a
+      // result the family can't parse. Log it, since nothing else will.
+      console.log('[chainHead] head lookup returned no usable result', {
+        network: node.network,
+        result
+      });
+    } else {
+      number = parsed;
+    }
   } catch (err) {
     const { errors } = (err ?? {}) as { errors?: { message?: string }[] };
     console.log(
@@ -97,6 +111,6 @@ export async function headOf(
     );
   }
 
-  heads.set(node.network, { number, checkedAt: Date.now() });
+  heads.set(node.network, { url: node.url, number, checkedAt: Date.now() });
   return number;
 }

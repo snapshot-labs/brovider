@@ -1,7 +1,7 @@
 type Entry = { value: string; size: number; expiresAt: number };
 
 const ENTRY_TTL = 3600e3;
-const MAX_VALUE_SIZE = 100e3;
+export const MAX_VALUE_SIZE = 100e3;
 const MAX_CACHE_SIZE = 16e6;
 const ENTRY_OVERHEAD = 128;
 
@@ -38,5 +38,17 @@ export function set(key: string, value: string): void {
 }
 
 export function stats() {
-  return { entries: cache.size, bytes: cacheSize };
+  // A read purges an expired entry, but nothing does that for a key that is
+  // never read again, so the map (and cacheSize) can hold expired entries
+  // until LRU pressure evicts them. Excluding them here keeps the gauges
+  // truthful without changing when eviction actually happens.
+  const now = Date.now();
+  let entries = 0;
+  let bytes = 0;
+  for (const entry of cache.values()) {
+    if (entry.expiresAt <= now) continue;
+    entries++;
+    bytes += entry.size;
+  }
+  return { entries, bytes };
 }

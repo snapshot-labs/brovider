@@ -1,6 +1,6 @@
 import { IncomingHttpHeaders, Server } from 'http';
 import { AddressInfo } from 'net';
-import { brotliCompressSync } from 'zlib';
+import { brotliCompressSync, gzipSync } from 'zlib';
 import express from 'express';
 import request from 'supertest';
 import {
@@ -11,7 +11,9 @@ import {
   rpcRequestCount
 } from '../../src/helpers/metrics';
 import { nodes, stop } from '../../src/helpers/nodes';
-import withRpcCache from '../../src/middlewares/withRpcCache';
+import withRpcCache, {
+  whenConfirmed
+} from '../../src/middlewares/withRpcCache';
 import mountMiddleware from '../../src/mountMiddleware';
 import rpc from '../../src/rpc';
 
@@ -36,6 +38,7 @@ describe('RPC cache E2E Tests', () => {
   let calls: string[] = [];
   let answers = 0;
   let upstreamDelay = 100;
+  let blockNumberDelay: number | undefined;
   let received: IncomingHttpHeaders = {};
   const responses = new Map<string, Canned>();
 
@@ -50,9 +53,13 @@ describe('RPC cache E2E Tests', () => {
 
   async function statuses() {
     const metric = await rpcCacheHitCount.get();
-    return Object.fromEntries(
-      metric.values.map(v => [v.labels.status as string, v.value])
-    );
+    // rpc_cache_hit_count now also carries network/rpc_method labels, so a
+    // status can appear across several value entries; sum them per status.
+    return metric.values.reduce<Record<string, number>>((sums, v) => {
+      const status = v.labels.status as string;
+      sums[status] = (sums[status] ?? 0) + v.value;
+      return sums;
+    }, {});
   }
 
   async function requestCountTotal() {
@@ -85,8 +92,11 @@ describe('RPC cache E2E Tests', () => {
       const { method, params, id } = req.body;
       calls.push(method);
       received = req.headers;
-      if (upstreamDelay)
-        await new Promise(resolve => setTimeout(resolve, upstreamDelay));
+      const delay =
+        method === 'eth_blockNumber' && blockNumberDelay !== undefined
+          ? blockNumberDelay
+          : upstreamDelay;
+      if (delay) await new Promise(resolve => setTimeout(resolve, delay));
 
       if (!Object.hasOwn(req.body, 'id')) {
         return res.status(204).end();
@@ -110,10 +120,15 @@ describe('RPC cache E2E Tests', () => {
 
       answers += 1;
       const payload = { jsonrpc: '2.0', id, result: `0x${answers}` };
-      if (!req.headers['accept-encoding']?.includes('br'))
-        return res.json(payload);
-      res.set('content-encoding', 'br').type('json');
-      return res.send(brotliCompressSync(JSON.stringify(payload)));
+      if (req.headers['accept-encoding']?.includes('br')) {
+        res.set('content-encoding', 'br').type('json');
+        return res.send(brotliCompressSync(JSON.stringify(payload)));
+      }
+      if (req.headers['accept-encoding']?.includes('gzip')) {
+        res.set('content-encoding', 'gzip').type('json');
+        return res.send(gzipSync(JSON.stringify(payload)));
+      }
+      return res.json(payload);
     });
     upstream = await new Promise(resolve => {
       const server = upstreamApp.listen(0, '127.0.0.1', () => resolve(server));
@@ -130,6 +145,7 @@ describe('RPC cache E2E Tests', () => {
   beforeEach(() => {
     calls = [];
     upstreamDelay = 100;
+    blockNumberDelay = undefined;
   });
 
   afterAll(async () => {
@@ -147,8 +163,11 @@ describe('RPC cache E2E Tests', () => {
     upstreamDelay = 0;
 
     await request(app).post('/1').send(call('0xa001', DEEP_BLOCK));
+    await whenConfirmed();
     await request(app).post('/1').send(call('0xa002', DEEP_BLOCK));
+    await whenConfirmed();
     await request(app).post('/1').send(call('0xa003', DEEP_BLOCK));
+    await whenConfirmed();
 
     expect(countOf('eth_call')).toBe(3);
     expect(countOf('eth_blockNumber')).toBe(1);
@@ -170,6 +189,7 @@ describe('RPC cache E2E Tests', () => {
     const spy = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 40e3);
     try {
       await request(app).post('/1').send(call('0xa005', SHALLOW_BLOCK));
+      await whenConfirmed();
 
       expect(countOf('eth_blockNumber')).toBe(1);
     } finally {
@@ -181,49 +201,86 @@ describe('RPC cache E2E Tests', () => {
     const before = await headLookups('10');
 
     await request(app).post('/10').send(call('0xa006', DEEP_BLOCK));
+    await whenConfirmed();
 
     expect(countOf('eth_blockNumber')).toBe(1);
     expect((await headLookups('10')) - before).toBe(1);
   });
 
-  it('should answer two concurrent block-pinned reads with a single upstream request, counted once', async () => {
-    const before = await requestCountTotal();
+  it('answers the leader before the background head confirmation, not after it', async () => {
+    upstreamDelay = 0;
+    blockNumberDelay = 500;
+    // Past the head TTL, forcing headOf to actually fetch instead of reusing a cached head.
+    const spy = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 60e3);
 
-    const [first, second] = await Promise.all([
-      request(app)
+    try {
+      const start = performance.now();
+      const response = await request(app)
         .post('/1')
-        .send(call('0xaa01', DEEP_BLOCK, 11)),
-      request(app)
-        .post('/1')
-        .send(call('0xaa01', DEEP_BLOCK, 22))
-    ]);
+        .send(call('0xa007', SHALLOW_BLOCK));
+      const elapsed = performance.now() - start;
 
-    expect(countOf('eth_call')).toBe(1);
-    expect((await requestCountTotal()) - before).toBe(1);
-    expect(first.body.result).toBe(second.body.result);
-    expect(first.body.id).toBe(11);
-    expect(second.body.id).toBe(22);
+      expect(response.body.result).toBeDefined();
+      expect(elapsed).toBeLessThan(blockNumberDelay);
+    } finally {
+      spy.mockRestore();
+      await whenConfirmed();
+    }
   });
 
-  it('should let each follower take over as leader when the upstream answers an error, counting each upstream call once', async () => {
-    responses.set('0xee01', {
-      body: { error: { code: -32000, message: 'execution reverted' } }
-    });
-    const before = await requestCountTotal();
+  it('should recheck the head once the network is repointed at a different node', async () => {
+    configuredNodes['11'] = upstreamUrl;
+    try {
+      // Warm the head against the original provider (head 20,000,000): any
+      // block <= head - CONFIRMATIONS is now final without rechecking.
+      await request(app).post('/11').send(call('0xa020', DEEP_BLOCK));
+      await whenConfirmed();
+      expect(countOf('eth_blockNumber')).toBe(1);
 
-    const replies = await Promise.all(
-      [31, 32, 33].map(id =>
-        request(app)
-          .post('/1')
-          .send(call('0xee01', DEEP_BLOCK, id))
-      )
-    );
+      // Repoint the network at a different node — a DB failover, or by
+      // mistake onto a different chain — whose real head is far lower.
+      const lowHeadApp = express();
+      lowHeadApp.use(express.json());
+      lowHeadApp.post('/', (req, res) => {
+        const { method, id } = req.body;
+        calls.push(method);
+        return res.json({
+          jsonrpc: '2.0',
+          id,
+          result: method === 'eth_blockNumber' ? '0x3e8' : '0xbad' // head 1000
+        });
+      });
+      const lowHeadServer: Server = await new Promise(resolve => {
+        const s = lowHeadApp.listen(0, '127.0.0.1', () => resolve(s));
+      });
 
-    expect(countOf('eth_call')).toBe(3);
-    expect((await requestCountTotal()) - before).toBe(3);
-    expect(replies.map(r => r.body.id)).toEqual([31, 32, 33]);
-    for (const r of replies) {
-      expect(r.body.error.message).toBe('execution reverted');
+      try {
+        const { port } = lowHeadServer.address() as AddressInfo;
+        configuredNodes['11'] = `http://127.0.0.1:${port}`;
+
+        // Block 900 is only 100 below the new provider's real head (1000):
+        // not final under CONFIRMATIONS=128. The old provider's stale head
+        // (20,000,000) would have certified it as final had it never been
+        // rechecked.
+        const body = call('0xa021', '0x384', 1);
+        calls = [];
+        await request(app).post('/11').send(body);
+        await whenConfirmed();
+        expect(countOf('eth_blockNumber')).toBe(1);
+
+        calls = [];
+        await request(app)
+          .post('/11')
+          .send({ ...body, id: 2 });
+        expect(countOf('eth_call')).toBe(1); // never cached
+      } finally {
+        lowHeadServer.closeAllConnections();
+        await new Promise<void>((resolve, reject) => {
+          lowHeadServer.close(error => (error ? reject(error) : resolve()));
+        });
+      }
+    } finally {
+      delete configuredNodes['11'];
     }
   });
 
@@ -255,6 +312,7 @@ describe('RPC cache E2E Tests', () => {
 
       const first = await request(app).post('/1').send(body);
       expect(countOf(method)).toBe(1);
+      await whenConfirmed();
 
       calls = [];
       const second = await request(app)
@@ -279,6 +337,7 @@ describe('RPC cache E2E Tests', () => {
     };
 
     await request(app).post('/1').send(body);
+    await whenConfirmed();
 
     calls = [];
     await request(app)
@@ -288,7 +347,7 @@ describe('RPC cache E2E Tests', () => {
     expect(countOf('eth_getStorageAt')).toBe(0);
   });
 
-  it('should never cache or dedupe a latest read', async () => {
+  it('should never cache a latest read', async () => {
     await Promise.all([
       request(app)
         .post('/1')
@@ -305,25 +364,53 @@ describe('RPC cache E2E Tests', () => {
     expect(countOf('eth_call')).toBe(3);
   });
 
-  it('should dedupe but not store a read above the confirmation depth', async () => {
+  it('should not store a read above the confirmation depth', async () => {
+    const first = await request(app)
+      .post('/1')
+      .send(call('0xaa04', SHALLOW_BLOCK, 1));
+    await whenConfirmed();
+
+    calls = [];
+    const second = await request(app)
+      .post('/1')
+      .send(call('0xaa04', SHALLOW_BLOCK, 2));
+
+    expect(countOf('eth_call')).toBe(1);
+    expect(second.body.result).not.toBe(first.body.result);
+  });
+
+  it('should proxy concurrent identical reads separately until the first one is stored', async () => {
+    // In-flight deduplication is deferred to a follow-up: until the first answer is
+    // confirmed and stored, identical reads in flight each reach the upstream.
+    const before = await statuses();
+
     const [first, second] = await Promise.all([
       request(app)
         .post('/1')
-        .send(call('0xaa04', SHALLOW_BLOCK, 1)),
+        .send(call('0xaa01', DEEP_BLOCK, 11)),
       request(app)
         .post('/1')
-        .send(call('0xaa04', SHALLOW_BLOCK, 2))
+        .send(call('0xaa01', DEEP_BLOCK, 22))
     ]);
-    expect(countOf('eth_call')).toBe(1);
-    expect(first.body.result).toBe(second.body.result);
+    await whenConfirmed();
+
+    expect(countOf('eth_call')).toBe(2);
+    expect(first.body.id).toBe(11);
+    expect(second.body.id).toBe(22);
+    expect((await statuses()).MISS - (before.MISS || 0)).toBe(2);
 
     calls = [];
     const third = await request(app)
       .post('/1')
-      .send(call('0xaa04', SHALLOW_BLOCK, 3));
+      .send(call('0xaa01', DEEP_BLOCK, 33));
+    expect(countOf('eth_call')).toBe(0);
+    expect(third.body.result).toBe(first.body.result);
 
-    expect(countOf('eth_call')).toBe(1);
-    expect(third.body.result).not.toBe(first.body.result);
+    const metric = await rpcCacheHitCount.get();
+    const methods = metric.values
+      .filter(v => v.labels.status === 'MISS')
+      .map(v => v.labels.rpc_method);
+    expect(methods).toContain('eth_call');
   });
 
   it.each([
@@ -351,6 +438,31 @@ describe('RPC cache E2E Tests', () => {
     expect(countOf('eth_call')).toBe(2);
     expect(first.body.id).toBe(1);
     expect(second.body.id).toBe(2);
+  });
+
+  it('should forward an over-cap body unchanged without parsing it', async () => {
+    const data = '0xaa12';
+    const big = '0x'.padEnd(200e3, 'f');
+    responses.set(data, { body: { result: big } });
+
+    const parseSpy = jest.spyOn(JSON, 'parse');
+    let response;
+    try {
+      response = await request(app)
+        .post('/1')
+        .send(call(data, DEEP_BLOCK, 1));
+    } finally {
+      parseSpy.mockRestore();
+    }
+
+    // The over-cap body is forwarded unchanged...
+    expect(response.body.result).toBe(big);
+    // ...but never handed to JSON.parse: only the small client request body
+    // (parsed by express.json() upstream of the cache) may have gone through.
+    const parsedTheBigBody = parseSpy.mock.calls.some(
+      ([text]) => typeof text === 'string' && text.length > 150e3
+    );
+    expect(parsedTheBigBody).toBe(false);
   });
 
   it('should forward the upstream status and response headers on a miss', async () => {
@@ -430,6 +542,7 @@ describe('RPC cache E2E Tests', () => {
       .post('/1')
       .set('accept-encoding', 'br')
       .send(body);
+    await whenConfirmed();
     const hit = await request(app)
       .post('/1')
       .set('accept-encoding', 'br')
@@ -437,6 +550,28 @@ describe('RPC cache E2E Tests', () => {
 
     expect(countOf('eth_getCode')).toBe(1);
     expect(hit.body.result).toBe(miss.body.result);
+  });
+
+  it('should request gzip from the upstream when the client accepts it, and forward a correct response', async () => {
+    const body = {
+      jsonrpc: '2.0',
+      method: 'eth_getCode',
+      params: ['0xcc0c', DEEP_BLOCK],
+      id: 1
+    };
+
+    const miss = await request(app)
+      .post('/1')
+      .set('accept-encoding', 'gzip')
+      .send(body);
+    const hit = await request(app)
+      .post('/1')
+      .set('accept-encoding', 'gzip')
+      .send(body);
+
+    expect(received['accept-encoding']).toBe('gzip');
+    expect(countOf('eth_getCode')).toBe(1);
+    expect(miss.body.result).toBe(hit.body.result);
   });
 
   it('should answer every concurrent read of an unreachable node with an error', async () => {
@@ -502,6 +637,7 @@ describe('RPC cache E2E Tests', () => {
     };
 
     const miss = await request(app).post('/1').send(body);
+    await whenConfirmed();
     const hit = await request(app).post('/1').send(body);
 
     expect(countOf('eth_getCode')).toBe(1);
@@ -518,6 +654,7 @@ describe('RPC cache E2E Tests', () => {
     };
 
     await request(app).post('/1').send(body);
+    await whenConfirmed();
     calls = [];
     await request(app).post('/1').send(body);
     expect(countOf('eth_getCode')).toBe(0);
@@ -539,6 +676,7 @@ describe('RPC cache E2E Tests', () => {
     };
 
     await request(app).post('/1').send(body);
+    await whenConfirmed();
     calls = [];
     await request(app).post('/1').send(body);
     expect(countOf('eth_getCode')).toBe(0);
@@ -559,6 +697,7 @@ describe('RPC cache E2E Tests', () => {
     const before = await cacheSize();
 
     await request(app).post('/1').send(call('0xaa11', DEEP_BLOCK));
+    await whenConfirmed();
     await request(app).post('/1').send(call('0xaa11', DEEP_BLOCK));
 
     const after = await cacheSize();
@@ -584,6 +723,7 @@ describe('RPC cache E2E Tests', () => {
       for (let i = from; i < to; i++) {
         responses.set(tagOf(i), { body: { result: big } });
         await send(tagOf(i));
+        await whenConfirmed();
       }
     };
 
@@ -626,6 +766,7 @@ describe('RPC cache E2E Tests', () => {
     const before = await statuses();
 
     await request(app).post('/1').send(call('0xaa09', DEEP_BLOCK));
+    await whenConfirmed();
     await request(app).post('/1').send(call('0xaa09', DEEP_BLOCK));
     await request(app)
       .post('/1')
@@ -642,6 +783,7 @@ describe('RPC cache E2E Tests', () => {
     const before = await requestCountTotal();
 
     await request(app).post('/1').send(call('0xaa10', DEEP_BLOCK));
+    await whenConfirmed();
     await request(app).post('/1').send(call('0xaa10', DEEP_BLOCK));
     await request(app)
       .post('/1')

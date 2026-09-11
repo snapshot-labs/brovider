@@ -2,13 +2,13 @@ import { IncomingMessage } from 'http';
 import { NextFunction, Request, Response } from 'express';
 import { RPC_CLIENTS, RPC_METHODS } from '../constants';
 import { Family, familyOf, headOf } from '../helpers/chainHead';
-import { get, set } from '../helpers/lruCache';
+import { get, MAX_VALUE_SIZE, set } from '../helpers/lruCache';
 import {
   metricLabel,
   rpcCacheHitCount,
   rpcRequestCount
 } from '../helpers/metrics';
-import serve from '../helpers/requestDeduplicator';
+import { Node } from '../helpers/nodes';
 import { sha256 } from '../helpers/utils';
 
 type JsonRpcRequest = {
@@ -19,10 +19,7 @@ type JsonRpcRequest = {
 
 type Pinned = { family: Family; block: number };
 
-export type Pending = Pinned & {
-  key: string;
-  settle: (result?: string) => void;
-};
+export type Pending = Pinned & { key: string };
 
 const at = (index: number) => (params: unknown) =>
   Array.isArray(params) ? (params[index] as unknown) : undefined;
@@ -61,15 +58,18 @@ export default function withRpcCache(
   const pinned = pinnedBlock(body);
   const isNotification = !Object.hasOwn(body, 'id');
 
+  const cacheLabels = {
+    network: node.network,
+    rpc_method: metricLabel(body.method, RPC_METHODS)
+  };
   const countRequest = () =>
     rpcRequestCount.inc({
-      network: node.network,
-      client: metricLabel(req.query.client, RPC_CLIENTS),
-      rpc_method: metricLabel(body.method, RPC_METHODS)
+      ...cacheLabels,
+      client: metricLabel(req.query.client, RPC_CLIENTS)
     });
 
   if (pinned === undefined || isNotification) {
-    rpcCacheHitCount.inc({ status: 'BYPASS' });
+    rpcCacheHitCount.inc({ status: 'BYPASS', ...cacheLabels });
     countRequest();
     return next();
   }
@@ -77,36 +77,17 @@ export default function withRpcCache(
   const key = sha256(
     `${node.url}:${body.method}:${JSON.stringify(body.params)}`
   );
-  const reply = (result: string) =>
-    res.json({ jsonrpc: '2.0', id: body.id, result });
 
   const cached = get(key);
   if (cached !== undefined) {
-    rpcCacheHitCount.inc({ status: 'HIT' });
-    return reply(cached);
+    rpcCacheHitCount.inc({ status: 'HIT', ...cacheLabels });
+    return res.json({ jsonrpc: '2.0', id: body.id, result: cached });
   }
-  rpcCacheHitCount.inc({ status: 'MISS' });
 
-  const lead = (): void => {
-    let settle: Pending['settle'] | undefined;
-    const shared = serve(
-      key,
-      () => new Promise<string | undefined>(resolve => (settle = resolve)),
-      []
-    );
-    if (!settle) {
-      shared
-        .then(result => (result !== undefined ? reply(result) : lead()))
-        .catch(next);
-      return;
-    }
-
-    countRequest();
-    res.on('close', () => settle!());
-    req._cache = { ...pinned, key, settle };
-    next();
-  };
-  lead();
+  rpcCacheHitCount.inc({ status: 'MISS', ...cacheLabels });
+  countRequest();
+  req._cache = { ...pinned, key };
+  next();
 }
 
 export async function storeRpcResponse(
@@ -116,6 +97,11 @@ export async function storeRpcResponse(
 ) {
   const pending = req._cache;
   if (!pending) return data;
+
+  // A result this large can never pass set()'s MAX_VALUE_SIZE check (the envelope
+  // only adds a little overhead around `result`), so skip the parse and the
+  // string copy it would otherwise pay for nothing.
+  if (data.length > MAX_VALUE_SIZE) return data;
 
   let payload: unknown;
   try {
@@ -127,11 +113,27 @@ export async function storeRpcResponse(
 
   const { error, result } = payload;
   if (error == null && typeof result === 'string') {
-    pending.settle(result);
-    const needed = pending.block + CONFIRMATIONS;
-    const head = await headOf(req._node, pending.family, needed);
-    if (head !== null && head >= needed) set(pending.key, result);
+    // Confirming against the chain head and storing happen off the response path:
+    // headOf is bounded only by REQUEST_TIMEOUT and must not hold up a result the
+    // client already has.
+    lastConfirmation = confirmAndStore(req._node, pending, result).catch(err =>
+      console.log('[withRpcCache] confirm failed', err)
+    );
   }
 
   return data;
+}
+
+async function confirmAndStore(node: Node, pending: Pending, result: string) {
+  const needed = pending.block + CONFIRMATIONS;
+  const head = await headOf(node, pending.family, needed);
+  if (head !== null && head >= needed) set(pending.key, result);
+}
+
+let lastConfirmation: Promise<void> = Promise.resolve();
+
+// Test-only hook: resolves once the most recently started background
+// confirm-and-store has settled.
+export function whenConfirmed(): Promise<void> {
+  return lastConfirmation;
 }

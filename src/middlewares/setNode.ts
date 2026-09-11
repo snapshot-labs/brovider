@@ -43,7 +43,7 @@ export default function setNode(
       .json({ jsonrpc, id, error: 'Invalid node URL configuration' });
   }
 
-  (req as any)._node = {
+  req._node = {
     url,
     path,
     network,

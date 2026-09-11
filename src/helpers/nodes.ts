@@ -3,6 +3,13 @@ import db from './db';
 import { nodesRefreshCount } from './metrics';
 import { sleep } from './utils';
 
+export type Node = {
+  url: string;
+  path: string;
+  network: string;
+  headers: Record<string, string>;
+};
+
 export let nodes = {};
 
 const REFRESH_INTERVAL = 10e3; // 10 seconds

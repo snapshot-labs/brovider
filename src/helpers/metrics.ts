@@ -35,8 +35,8 @@ export const cacheHitCount = new client.Counter({
 
 export const rpcCacheHitCount = new client.Counter({
   name: 'rpc_cache_hit_count',
-  help: 'Number of hit/miss/bypass of the RPC cache layer',
-  labelNames: ['status']
+  help: 'Number of hit/miss/bypass outcomes of the RPC cache layer',
+  labelNames: ['status', 'network', 'rpc_method']
 });
 
 export const rpcCacheEntries = new client.Gauge({

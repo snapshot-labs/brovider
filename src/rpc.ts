@@ -39,7 +39,12 @@ const buffered = proxy(target, {
   ...proxyOptions,
   proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
     const opts = withNodeHeaders(proxyReqOpts, srcReq);
-    delete opts.headers['accept-encoding'];
+    // The proxy only inflates gzip before the decorator (a brotli body would
+    // be unreadable), and forwards content-encoding to the client verbatim,
+    // so only ask for gzip when the client already offered it.
+    if (srcReq.headers['accept-encoding']?.includes('gzip'))
+      opts.headers['accept-encoding'] = 'gzip';
+    else delete opts.headers['accept-encoding'];
     return opts;
   },
   userResDecorator: storeRpcResponse
