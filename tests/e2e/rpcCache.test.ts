@@ -96,7 +96,7 @@ describe('RPC cache E2E Tests', () => {
       return res.json({
         jsonrpc: '2.0',
         id,
-        result: method === 'eth_blockNumber' ? '0x3e8' : '0xbad' // head 1000
+        result: method === 'eth_blockNumber' ? '0x3e8' : '0xbad'
       });
     });
     return new Promise(resolve => {
@@ -492,9 +492,8 @@ describe('RPC cache E2E Tests', () => {
       parseSpy.mockRestore();
     }
 
-    // The over-cap body is forwarded unchanged...
     expect(response.body.result).toBe(big);
-    // ...but never handed to JSON.parse: only the small client request body
+    // Never handed to JSON.parse: only the small client request body
     // (parsed by express.json() upstream of the cache) may have gone through.
     const parsedTheBigBody = parseSpy.mock.calls.some(
       ([text]) => typeof text === 'string' && text.length > 150e3
