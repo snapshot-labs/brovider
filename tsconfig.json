@@ -15,5 +15,6 @@
     "sourceRoot": "/",
     "skipLibCheck": true
   },
+  "ts-node": { "files": true },
   "exclude": ["**/*.test.ts"]
 }
