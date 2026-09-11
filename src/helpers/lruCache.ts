@@ -37,3 +37,7 @@ export function set(key: string, value: string): void {
     cacheSize -= entry.size;
   }
 }
+
+export function stats() {
+  return { entries: cache.size, bytes: cacheSize };
+}

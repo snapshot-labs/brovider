@@ -1,6 +1,7 @@
 import init, { client } from '@snapshot-labs/snapshot-metrics';
 import { capture } from '@snapshot-labs/snapshot-sentry';
 import { Express, Request } from 'express';
+import { stats as rpcCacheStats } from './lruCache';
 
 export default function initMetrics(app: Express) {
   init(app, {
@@ -36,6 +37,22 @@ export const rpcCacheCount = new client.Counter({
   name: 'rpc_cache_count',
   help: 'Number of hit/miss/bypass of the RPC cache layer',
   labelNames: ['status']
+});
+
+export const rpcCacheEntries = new client.Gauge({
+  name: 'rpc_cache_entries',
+  help: 'Number of entries held by the in-memory RPC cache',
+  collect() {
+    this.set(rpcCacheStats().entries);
+  }
+});
+
+export const rpcCacheBytes = new client.Gauge({
+  name: 'rpc_cache_bytes',
+  help: 'Estimated heap held by the in-memory RPC cache',
+  collect() {
+    this.set(rpcCacheStats().bytes);
+  }
 });
 
 export const requestDeduplicatorSize = new client.Gauge({

@@ -3,7 +3,12 @@ import { AddressInfo } from 'net';
 import { brotliCompressSync } from 'zlib';
 import express from 'express';
 import request from 'supertest';
-import { rpcCacheCount, rpcRequestCount } from '../../src/helpers/metrics';
+import {
+  rpcCacheBytes,
+  rpcCacheCount,
+  rpcCacheEntries,
+  rpcRequestCount
+} from '../../src/helpers/metrics';
 import { nodes, stop } from '../../src/helpers/nodes';
 import withRpcCache from '../../src/middlewares/withRpcCache';
 import rpc from '../../src/rpc';
@@ -51,6 +56,14 @@ describe('RPC cache E2E Tests', () => {
   async function requestCountTotal() {
     const metric = await rpcRequestCount.get();
     return metric.values.reduce((sum, v) => sum + v.value, 0);
+  }
+
+  async function cacheSize() {
+    const [entries, bytes] = await Promise.all([
+      rpcCacheEntries.get(),
+      rpcCacheBytes.get()
+    ]);
+    return { entries: entries.values[0].value, bytes: bytes.values[0].value };
   }
 
   beforeAll(async () => {
@@ -476,6 +489,17 @@ describe('RPC cache E2E Tests', () => {
     } finally {
       spy.mockRestore();
     }
+  });
+
+  it('should report the number of entries and bytes it holds', async () => {
+    const before = await cacheSize();
+
+    await request(app).post('/1').send(call('0xaa11', DEEP_BLOCK));
+    await request(app).post('/1').send(call('0xaa11', DEEP_BLOCK));
+
+    const after = await cacheSize();
+    expect(after.entries - before.entries).toBe(1);
+    expect(after.bytes).toBeGreaterThan(before.bytes);
   });
 
   it('should evict the least recently used entries once the byte budget is exceeded', async () => {
