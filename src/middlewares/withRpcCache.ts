@@ -87,12 +87,10 @@ export default function withRpcCache(
     return reply(cached);
   }
   rpcCacheHitCount.inc({ status: 'MISS' });
-  countRequest();
 
   // Identical in-flight reads share one upstream call: the first one (the leader) goes through
   // the proxy and settles this promise from storeRpcResponse, the others answer from it.
-  // A follower whose leader died without a result re-enters here, not the whole
-  // middleware, so the request is counted once.
+  // A follower whose leader died without a result re-enters here and takes over as leader.
   const lead = (): void => {
     let settle: Pending['settle'] | undefined;
     const shared = serve(
@@ -107,6 +105,8 @@ export default function withRpcCache(
       return;
     }
 
+    // Only the leader reaches the upstream, so only it counts.
+    countRequest();
     // Leader failed or went away before the decorator ran: release the followers to retry.
     res.on('close', () => settle!());
     req._cache = { ...pinned, key, settle };

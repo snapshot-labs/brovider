@@ -185,7 +185,9 @@ describe('RPC cache E2E Tests', () => {
     expect((await headLookups('10')) - before).toBe(1);
   });
 
-  it('should answer two concurrent block-pinned reads with a single upstream request', async () => {
+  it('should answer two concurrent block-pinned reads with a single upstream request, counted once', async () => {
+    const before = await requestCountTotal();
+
     const [first, second] = await Promise.all([
       request(app)
         .post('/1')
@@ -196,6 +198,7 @@ describe('RPC cache E2E Tests', () => {
     ]);
 
     expect(countOf('eth_call')).toBe(1);
+    expect((await requestCountTotal()) - before).toBe(1);
     expect(first.body.result).toBe(second.body.result);
     expect(first.body.id).toBe(11);
     expect(second.body.id).toBe(22);
