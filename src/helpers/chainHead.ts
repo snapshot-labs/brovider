@@ -86,7 +86,7 @@ export async function headOf(
   let number = stale ? null : (known?.number ?? null);
   try {
     const result = await serve(
-      `${node.network}:${family.headMethod}`,
+      `${node.network}:${node.url}:${family.headMethod}`,
       blockNumber,
       [node, family]
     );
