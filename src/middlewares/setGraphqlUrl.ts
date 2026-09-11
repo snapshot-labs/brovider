@@ -13,7 +13,9 @@ export default function setGraphqlUrl(
   const isDelegation = !subgraph;
   const type = isDelegation ? 'delegation' : 'subgraph';
 
-  const url = subgraphs[type][network];
+  const url = Object.hasOwn(subgraphs[type], network)
+    ? subgraphs[type][network]
+    : undefined;
   if (!url) {
     return next(new SubgraphError('Invalid network', 400));
   }
