@@ -6,6 +6,7 @@ import request from 'supertest';
 import {
   rpcCacheBytes,
   rpcCacheEntries,
+  rpcCacheHeadLookupCount,
   rpcCacheHitCount,
   rpcRequestCount
 } from '../../src/helpers/metrics';
@@ -64,6 +65,11 @@ describe('RPC cache E2E Tests', () => {
       rpcCacheBytes.get()
     ]);
     return { entries: entries.values[0].value, bytes: bytes.values[0].value };
+  }
+
+  async function headLookups(network: string) {
+    const metric = await rpcCacheHeadLookupCount.get();
+    return metric.values.find(v => v.labels.network === network)?.value ?? 0;
   }
 
   beforeAll(async () => {
@@ -145,6 +151,38 @@ describe('RPC cache E2E Tests', () => {
 
     expect(countOf('eth_call')).toBe(3);
     expect(countOf('eth_blockNumber')).toBe(1);
+  });
+
+  it('should not look the head up again for a block already final under the last known head', async () => {
+    const spy = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 20e3);
+    try {
+      await request(app).post('/1').send(call('0xa004', DEEP_BLOCK));
+
+      expect(countOf('eth_call')).toBe(1);
+      expect(countOf('eth_blockNumber')).toBe(0);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('should refresh the head for a block within the confirmation depth once the window has passed', async () => {
+    const spy = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 40e3);
+    try {
+      await request(app).post('/1').send(call('0xa005', SHALLOW_BLOCK));
+
+      expect(countOf('eth_blockNumber')).toBe(1);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('should count each head lookup by network', async () => {
+    const before = await headLookups('10');
+
+    await request(app).post('/10').send(call('0xa006', DEEP_BLOCK));
+
+    expect(countOf('eth_blockNumber')).toBe(1);
+    expect((await headLookups('10')) - before).toBe(1);
   });
 
   it('should answer two concurrent block-pinned reads with a single upstream request', async () => {

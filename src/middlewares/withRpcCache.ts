@@ -125,9 +125,9 @@ export async function storeRpcResponse(
   const { error, result } = payload;
   if (error == null && typeof result === 'string') {
     pending.settle(result);
-    const head = await headOf(req._node);
-    if (head !== null && pending.block <= head - CONFIRMATIONS)
-      set(pending.key, result);
+    const needed = pending.block + CONFIRMATIONS;
+    const head = await headOf(req._node, needed);
+    if (head !== null && head >= needed) set(pending.key, result);
   }
 
   return data;

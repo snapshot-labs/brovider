@@ -1,4 +1,5 @@
 import { REQUEST_TIMEOUT } from '../constants';
+import { rpcCacheHeadLookupCount } from './metrics';
 import serve from './requestDeduplicator';
 import { fetchWithKeepAlive } from './utils';
 
@@ -12,7 +13,7 @@ export type Node = {
 export const HEX_BLOCK = /^0x[0-9a-f]+$/i;
 const HEAD_TTL = 10e3;
 
-const heads = new Map<string, { number: number | null; expiresAt: number }>();
+const heads = new Map<string, { number: number | null; checkedAt: number }>();
 
 function reasonOf(err: unknown): string {
   const { code, name } = (err ?? {}) as { code?: unknown; name?: unknown };
@@ -21,6 +22,8 @@ function reasonOf(err: unknown): string {
 }
 
 async function blockNumber(node: Node): Promise<unknown> {
+  rpcCacheHeadLookupCount.inc({ network: node.network });
+
   let text: string;
   try {
     const res = await fetchWithKeepAlive(node.url, {
@@ -47,13 +50,19 @@ async function blockNumber(node: Node): Promise<unknown> {
   }
 }
 
-// Latest block number of the node's network, looked up at most once per HEAD_TTL.
-// null when the lookup failed, and that failure is remembered for the same window.
-export async function headOf(node: Node): Promise<number | null> {
+// Head of the node's network as of the last lookup, or null if none succeeded yet.
+// A remembered head only ever understates the chain, so it is reused as long as it
+// already reaches `needed`; otherwise it is refreshed at most once per HEAD_TTL.
+export async function headOf(
+  node: Node,
+  needed: number
+): Promise<number | null> {
   const known = heads.get(node.network);
-  if (known && known.expiresAt > Date.now()) return known.number;
+  if (known && known.number !== null && known.number >= needed)
+    return known.number;
+  if (known && known.checkedAt + HEAD_TTL > Date.now()) return known.number;
 
-  let number: number | null = null;
+  let number = known?.number ?? null;
   try {
     const result = await serve(`${node.network}:eth_blockNumber`, blockNumber, [
       node
@@ -69,6 +78,6 @@ export async function headOf(node: Node): Promise<number | null> {
     );
   }
 
-  heads.set(node.network, { number, expiresAt: Date.now() + HEAD_TTL });
+  heads.set(node.network, { number, checkedAt: Date.now() });
   return number;
 }

@@ -55,6 +55,12 @@ export const rpcCacheBytes = new client.Gauge({
   }
 });
 
+export const rpcCacheHeadLookupCount = new client.Counter({
+  name: 'rpc_cache_head_lookup_count',
+  help: 'Number of eth_blockNumber lookups the RPC cache made to gate a store',
+  labelNames: ['network']
+});
+
 export const requestDeduplicatorSize = new client.Gauge({
   name: 'request_deduplicator_size',
   help: 'Total number of items in the deduplicator queue'
