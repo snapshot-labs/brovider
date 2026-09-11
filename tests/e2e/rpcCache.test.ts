@@ -204,6 +204,28 @@ describe('RPC cache E2E Tests', () => {
     expect(second.body.id).toBe(22);
   });
 
+  it('should let each follower take over as leader when the upstream answers an error, counting each upstream call once', async () => {
+    responses.set('0xee01', {
+      body: { error: { code: -32000, message: 'execution reverted' } }
+    });
+    const before = await requestCountTotal();
+
+    const replies = await Promise.all(
+      [31, 32, 33].map(id =>
+        request(app)
+          .post('/1')
+          .send(call('0xee01', DEEP_BLOCK, id))
+      )
+    );
+
+    expect(countOf('eth_call')).toBe(3);
+    expect((await requestCountTotal()) - before).toBe(3);
+    expect(replies.map(r => r.body.id)).toEqual([31, 32, 33]);
+    for (const r of replies) {
+      expect(r.body.error.message).toBe('execution reverted');
+    }
+  });
+
   it.each([
     {
       method: 'eth_call',
