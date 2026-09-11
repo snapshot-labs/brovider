@@ -5,8 +5,8 @@ import express from 'express';
 import request from 'supertest';
 import {
   rpcCacheBytes,
-  rpcCacheCount,
   rpcCacheEntries,
+  rpcCacheHitCount,
   rpcRequestCount
 } from '../../src/helpers/metrics';
 import { nodes, stop } from '../../src/helpers/nodes';
@@ -47,7 +47,7 @@ describe('RPC cache E2E Tests', () => {
   const countOf = (method: string) => calls.filter(m => m === method).length;
 
   async function statuses() {
-    const metric = await rpcCacheCount.get();
+    const metric = await rpcCacheHitCount.get();
     return Object.fromEntries(
       metric.values.map(v => [v.labels.status as string, v.value])
     );

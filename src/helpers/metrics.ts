@@ -33,8 +33,8 @@ export const cacheHitCount = new client.Counter({
   labelNames: ['status']
 });
 
-export const rpcCacheCount = new client.Counter({
-  name: 'rpc_cache_count',
+export const rpcCacheHitCount = new client.Counter({
+  name: 'rpc_cache_hit_count',
   help: 'Number of hit/miss/bypass of the RPC cache layer',
   labelNames: ['status']
 });

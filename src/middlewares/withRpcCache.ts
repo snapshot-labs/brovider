@@ -5,7 +5,7 @@ import { headOf, HEX_BLOCK } from '../helpers/chainHead';
 import { get, set } from '../helpers/lruCache';
 import {
   metricLabel,
-  rpcCacheCount,
+  rpcCacheHitCount,
   rpcRequestCount
 } from '../helpers/metrics';
 import serve from '../helpers/requestDeduplicator';
@@ -64,7 +64,7 @@ export default function withRpcCache(
     });
 
   if (block === undefined || isNotification) {
-    rpcCacheCount.inc({ status: 'BYPASS' });
+    rpcCacheHitCount.inc({ status: 'BYPASS' });
     countRequest();
     return next();
   }
@@ -77,10 +77,10 @@ export default function withRpcCache(
 
   const cached = get(key);
   if (cached !== undefined) {
-    rpcCacheCount.inc({ status: 'HIT' });
+    rpcCacheHitCount.inc({ status: 'HIT' });
     return reply(cached);
   }
-  rpcCacheCount.inc({ status: 'MISS' });
+  rpcCacheHitCount.inc({ status: 'MISS' });
   countRequest();
 
   // Identical in-flight reads share one upstream call: the first one (the leader) goes through
