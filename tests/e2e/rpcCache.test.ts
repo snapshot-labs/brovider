@@ -663,6 +663,49 @@ describe('RPC cache E2E Tests', () => {
     expect(logged.join('\n')).not.toContain('SUPERSECRETKEY');
   });
 
+  it('should keep the node url out of the logs when the head lookup fails', async () => {
+    const failingHead = express();
+    failingHead.use(express.json());
+    failingHead.post('/', (req, res) => {
+      const { method, id } = req.body;
+      calls.push(method);
+      if (method === 'eth_blockNumber') return req.socket.destroy();
+      return res.json({ jsonrpc: '2.0', id, result: '0x1' });
+    });
+    const server: Server = await new Promise(resolve => {
+      const s = failingHead.listen(0, '127.0.0.1', () => resolve(s));
+    });
+    const { port } = server.address() as AddressInfo;
+    configuredNodes['13'] = `http://127.0.0.1:${port}/?apikey=SUPERSECRETKEY`;
+
+    const logged: string[] = [];
+    const record = (...args: unknown[]) => {
+      logged.push(
+        args.map(a => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ')
+      );
+    };
+    const spies = [
+      jest.spyOn(console, 'log').mockImplementation(record),
+      jest.spyOn(console, 'error').mockImplementation(record)
+    ];
+
+    try {
+      await request(app).post('/13').send(call('0xcc10', DEEP_BLOCK));
+      await whenConfirmed();
+    } finally {
+      spies.forEach(spy => spy.mockRestore());
+      delete configuredNodes['13'];
+      server.closeAllConnections();
+      await new Promise<void>((resolve, reject) => {
+        server.close(error => (error ? reject(error) : resolve()));
+      });
+    }
+
+    expect(countOf('eth_blockNumber')).toBe(1);
+    expect(logged.join('\n')).toContain('head lookup failed');
+    expect(logged.join('\n')).not.toContain('SUPERSECRETKEY');
+  });
+
   it('should not store a result that is not a string', async () => {
     responses.set('0xcc0a', { body: { result: [['a'], ['b']] } });
 
