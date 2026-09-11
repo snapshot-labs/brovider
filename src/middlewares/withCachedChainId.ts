@@ -6,15 +6,20 @@ const STARKNET_CHAIN_IDS: Record<string, string> = {
   'sn-sep': '0x534e5f5345504f4c4941'
 };
 
+export type NetworkFamily = 'evm' | 'starknet';
+
+export function networkFamily(network: string): NetworkFamily | undefined {
+  if (/^\d+$/.test(network)) return 'evm';
+  if (Object.hasOwn(STARKNET_CHAIN_IDS, network)) return 'starknet';
+  return undefined;
+}
+
 function chainIdOf(network: string, method: unknown): string | undefined {
-  if (method === 'eth_chainId' && /^\d+$/.test(network)) {
+  if (method === 'eth_chainId' && networkFamily(network) === 'evm') {
     return `0x${Number(network).toString(16)}`;
   }
 
-  if (
-    method === 'starknet_chainId' &&
-    Object.hasOwn(STARKNET_CHAIN_IDS, network)
-  ) {
+  if (method === 'starknet_chainId' && networkFamily(network) === 'starknet') {
     return STARKNET_CHAIN_IDS[network];
   }
 
