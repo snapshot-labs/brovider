@@ -91,24 +91,28 @@ export default function withRpcCache(
 
   // Identical in-flight reads share one upstream call: the first one (the leader) goes through
   // the proxy and settles this promise from storeRpcResponse, the others answer from it.
-  let settle: Pending['settle'] | undefined;
-  const shared = serve(
-    key,
-    () => new Promise<string | undefined>(resolve => (settle = resolve)),
-    []
-  );
-  if (!settle) {
-    return shared
-      .then(result =>
-        result !== undefined ? reply(result) : withRpcCache(req, res, next)
-      )
-      .catch(next);
-  }
+  // A follower whose leader died without a result re-enters here, not the whole
+  // middleware, so the request is counted once.
+  const lead = (): void => {
+    let settle: Pending['settle'] | undefined;
+    const shared = serve(
+      key,
+      () => new Promise<string | undefined>(resolve => (settle = resolve)),
+      []
+    );
+    if (!settle) {
+      shared
+        .then(result => (result !== undefined ? reply(result) : lead()))
+        .catch(next);
+      return;
+    }
 
-  // Leader failed or went away before the decorator ran: release the followers to retry.
-  res.on('close', () => settle!());
-  req._cache = { ...pinned, key, settle };
-  next();
+    // Leader failed or went away before the decorator ran: release the followers to retry.
+    res.on('close', () => settle!());
+    req._cache = { ...pinned, key, settle };
+    next();
+  };
+  lead();
 }
 
 export async function storeRpcResponse(
