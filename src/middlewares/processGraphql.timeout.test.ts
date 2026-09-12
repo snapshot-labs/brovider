@@ -88,3 +88,59 @@ describe('graphql upstream timeout handling', () => {
     });
   }, 5000);
 });
+
+describe('graphql upstream error handling', () => {
+  it('does not leak the subgraph URL, or any API key embedded in it, in the client-facing error', async () => {
+    const server = createServer((_req, res) => {
+      res.writeHead(502, { 'Content-Type': 'text/html' });
+      res.end('<html>Bad Gateway</html>');
+    });
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address() as AddressInfo;
+    const secretUrl = `http://127.0.0.1:${port}/api/SUPER_SECRET_KEY/subgraphs/id/abc`;
+
+    try {
+      const app = buildApp(secretUrl);
+
+      const res = await request(app)
+        .post('/test')
+        .send({ query: '{ items { id } }' });
+
+      expect(res.status).toBe(500);
+      expect(res.body.errors[0].message).not.toContain('SUPER_SECRET_KEY');
+      expect(res.body.errors[0].message).toContain(`127.0.0.1:${port}`);
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>((resolve, reject) =>
+        server.close(error => (error ? reject(error) : resolve()))
+      );
+    }
+  }, 5000);
+
+  it('surfaces a readable transport reason when the failure has no error code', async () => {
+    const server = createServer((req, res) => {
+      res.writeHead(302, { Location: req.url as string });
+      res.end();
+    });
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address() as AddressInfo;
+
+    try {
+      const app = buildApp(`http://127.0.0.1:${port}/loop`);
+
+      const res = await request(app)
+        .post('/test')
+        .send({ query: '{ items { id } }' });
+
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({
+        errors: [{ message: 'redirect count exceeded' }]
+      });
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>((resolve, reject) =>
+        server.close(error => (error ? reject(error) : resolve()))
+      );
+    }
+  }, 5000);
+});

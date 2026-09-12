@@ -16,8 +16,7 @@ export default function subgraphErrorHandler(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _next: NextFunction
 ) {
-  const statusCode =
-    asHttpStatusCode(error?.statusCode) ?? asHttpStatusCode(error?.code) ?? 500;
+  const statusCode = asHttpStatusCode(error?.statusCode) ?? 500;
   const errorResponse = error?.errors
     ? { errors: error.errors }
     : { errors: [{ message: error.message || error }] };

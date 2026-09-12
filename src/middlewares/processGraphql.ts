@@ -23,7 +23,13 @@ export async function graphqlQuery(url: string, query: string, variables = {}) {
     responseData = JSON.parse(responseData);
   } catch {
     if (!res.ok) {
-      throw new Error(`Unable to connect to ${url}, code: ${res.status}`);
+      console.error('[graphqlQuery] upstream error', {
+        url,
+        status: res.status
+      });
+      throw new Error(
+        `Unable to connect to ${new URL(url).host}, code: ${res.status}`
+      );
     } else {
       throw new Error(`Text response: ${responseData}`);
     }
