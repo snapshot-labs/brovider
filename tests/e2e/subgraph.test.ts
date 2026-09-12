@@ -26,6 +26,22 @@ describe('Subgraph Endpoints', () => {
           errors: [{ message: 'Invalid network' }]
         });
       });
+
+      it.each(['constructor', '__proto__', 'toString', 'hasOwnProperty'])(
+        'should return 400 "Invalid network" for inherited key %s',
+        async network => {
+          const response = await request(app)
+            .post(`/subgraph/${network}/test-subgraph-id`)
+            .send({
+              query: '{ test }'
+            })
+            .expect(400);
+
+          expect(response.body).toEqual({
+            errors: [{ message: 'Invalid network' }]
+          });
+        }
+      );
     });
 
     describe('when network and subgraph parameters are valid', () => {
