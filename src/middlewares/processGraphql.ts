@@ -4,26 +4,32 @@ import { REQUEST_TIMEOUT } from '../constants';
 import { SubgraphError } from '../errors/SubgraphError';
 import { get, set } from '../helpers/aws';
 import serve from '../helpers/requestDeduplicator';
-import { fetchWithKeepAlive, sha256 } from '../helpers/utils';
+import { sha256 } from '../helpers/utils';
 
 const isCacheConfigured = !!process.env.AWS_REGION;
 
 export async function graphqlQuery(url: string, query: string, variables = {}) {
-  const res = await fetchWithKeepAlive(url, {
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json'
     },
-    timeout: REQUEST_TIMEOUT,
-    body: JSON.stringify({ query, variables })
+    body: JSON.stringify({ query, variables }),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT)
   });
   let responseData: any = await res.text();
   try {
     responseData = JSON.parse(responseData);
   } catch {
     if (!res.ok) {
-      throw new Error(`Unable to connect to ${url}, code: ${res.status}`);
+      console.error('[graphqlQuery] upstream error', {
+        url,
+        status: res.status
+      });
+      throw new Error(
+        `Unable to connect to ${new URL(url).host}, code: ${res.status}`
+      );
     } else {
       throw new Error(`Text response: ${responseData}`);
     }

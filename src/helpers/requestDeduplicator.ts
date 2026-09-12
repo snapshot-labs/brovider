@@ -8,7 +8,14 @@ export default function serve(key, action, args) {
       .then(result => result)
       .catch(error => {
         console.log('[requestDeduplicator] request error', error);
-        throw { errors: [{ message: error.message }] };
+        throw {
+          errors: [
+            {
+              message:
+                error.cause?.code ?? error.cause?.message ?? error.message
+            }
+          ]
+        };
       })
       .finally(() => {
         ongoingRequests.delete(key);
