@@ -4,19 +4,19 @@ import { REQUEST_TIMEOUT } from '../constants';
 import { SubgraphError } from '../errors/SubgraphError';
 import { get, set } from '../helpers/aws';
 import serve from '../helpers/requestDeduplicator';
-import { fetchWithKeepAlive, sha256 } from '../helpers/utils';
+import { sha256 } from '../helpers/utils';
 
 const isCacheConfigured = !!process.env.AWS_REGION;
 
 export async function graphqlQuery(url: string, query: string, variables = {}) {
-  const res = await fetchWithKeepAlive(url, {
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json'
     },
-    timeout: REQUEST_TIMEOUT,
-    body: JSON.stringify({ query, variables })
+    body: JSON.stringify({ query, variables }),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT)
   });
   let responseData: any = await res.text();
   try {

@@ -1,20 +1,14 @@
 import { NextFunction, Request, Response } from 'express';
 import { get, set } from '../helpers/aws';
-import { fetchWithKeepAlive } from '../helpers/utils';
 
 jest.mock('../helpers/aws', () => ({
   get: jest.fn(),
   set: jest.fn()
 }));
 
-jest.mock('../helpers/utils', () => ({
-  ...jest.requireActual('../helpers/utils'),
-  fetchWithKeepAlive: jest.fn()
-}));
-
 const mockGet = jest.mocked(get);
 const mockSet = jest.mocked(set);
-const mockFetchWithKeepAlive = jest.mocked(fetchWithKeepAlive);
+const mockFetch = jest.spyOn(globalThis, 'fetch');
 const cachedResponses = new Map<string, any>();
 const upstreamResponse = { data: { items: [] } };
 const awsRegion = process.env.AWS_REGION;
@@ -53,7 +47,7 @@ async function expectNoPersistentCache(
 ) {
   await execute(query, variables);
   await execute(query, variables);
-  expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(2);
+  expect(mockFetch).toHaveBeenCalledTimes(2);
   expect(mockGet).not.toHaveBeenCalled();
   expect(mockSet).not.toHaveBeenCalled();
 }
@@ -79,7 +73,7 @@ beforeEach(() => {
     cachedResponses.set(key, value);
     return {} as any;
   });
-  mockFetchWithKeepAlive.mockResolvedValue(response());
+  mockFetch.mockResolvedValue(response());
 });
 
 describe('processGraphql caching', () => {
@@ -94,7 +88,7 @@ describe('processGraphql caching', () => {
       await execute(query);
     }
 
-    expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(2);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
     expect(mockSet).toHaveBeenCalledTimes(2);
   });
 
@@ -111,7 +105,7 @@ describe('processGraphql caching', () => {
       await execute(query, variables);
     }
 
-    expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(2);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
     expect(mockSet).toHaveBeenCalledTimes(2);
   });
 
@@ -123,7 +117,7 @@ describe('processGraphql caching', () => {
     await execute(query, variables);
     await execute(query, variables);
 
-    expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(1);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(mockSet).toHaveBeenCalledTimes(1);
   });
 
@@ -163,9 +157,7 @@ describe('processGraphql caching', () => {
       await execute(query, variables);
     }
 
-    expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(
-      variableSets.length * 2
-    );
+    expect(mockFetch).toHaveBeenCalledTimes(variableSets.length * 2);
     expect(mockGet).not.toHaveBeenCalled();
     expect(mockSet).not.toHaveBeenCalled();
   });
@@ -176,7 +168,7 @@ describe('processGraphql caching', () => {
     await expectNoPersistentCache(query);
 
     let resolveFetch: ((value: any) => void) | undefined;
-    mockFetchWithKeepAlive.mockImplementationOnce(
+    mockFetch.mockImplementationOnce(
       () =>
         new Promise(resolve => {
           resolveFetch = resolve;
@@ -186,11 +178,11 @@ describe('processGraphql caching', () => {
     const firstRequest = execute(query);
     const secondRequest = execute(query);
 
-    expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(3);
+    expect(mockFetch).toHaveBeenCalledTimes(3);
     resolveFetch?.(response());
     await Promise.all([firstRequest, secondRequest]);
 
-    expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(3);
+    expect(mockFetch).toHaveBeenCalledTimes(3);
   });
 
   it('uses an operation definition that follows a fragment definition', async () => {
@@ -208,7 +200,7 @@ describe('processGraphql caching', () => {
     await execute(query);
     await execute(query);
 
-    expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(1);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(mockSet).toHaveBeenCalledTimes(1);
   });
 
@@ -257,7 +249,7 @@ describe('processGraphql caching', () => {
 
     await execute(query);
 
-    expect(mockFetchWithKeepAlive).toHaveBeenCalledTimes(1);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it('does not reject the request when the cache write fails', async () => {
@@ -283,7 +275,7 @@ describe('processGraphql caching', () => {
     await processGraphql(req, res, next as NextFunction);
 
     expect(next).not.toHaveBeenCalled();
-    expect(mockFetchWithKeepAlive).not.toHaveBeenCalled();
+    expect(mockFetch).not.toHaveBeenCalled();
     expect(json).toHaveBeenCalledWith(0);
   });
 });
