@@ -1,4 +1,4 @@
-/** Blocks behind head that still count as live. */
+/** Distance from head, in either direction, that still counts as live. */
 const LIVE_BLOCKS = 1000;
 
 const LIVE_TAGS = new Set(['latest', 'pending', 'safe', 'finalized']);
@@ -8,7 +8,7 @@ function isLiveBlock(value: unknown, head: number): boolean {
   if (LIVE_TAGS.has(value)) return true;
 
   const blockNumber = parseInt(value, 16);
-  return Number.isFinite(blockNumber) && head - blockNumber <= LIVE_BLOCKS;
+  return Number.isFinite(blockNumber) && Math.abs(head - blockNumber) <= LIVE_BLOCKS;
 }
 
 /**
