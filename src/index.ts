@@ -4,6 +4,7 @@ import { fallbackLogger } from '@snapshot-labs/snapshot-sentry';
 import express from 'express';
 import initMetrics from './helpers/metrics';
 import { run as loadData } from './helpers/nodes';
+import { run as runPublicNodes } from './helpers/publicNodes';
 import { initSentryFilters } from './helpers/sentry';
 import mountMiddleware from './mountMiddleware';
 import rpc from './rpc';
@@ -15,6 +16,7 @@ const PORT = process.env.PORT || 3000;
 initSentryFilters();
 initMetrics(app);
 loadData();
+runPublicNodes();
 
 app.disable('x-powered-by');
 mountMiddleware(app);

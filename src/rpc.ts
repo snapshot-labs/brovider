@@ -2,6 +2,7 @@ import express from 'express';
 import proxy from 'express-http-proxy';
 import { REQUEST_TIMEOUT } from './constants';
 import processGraphql from './middlewares/processGraphql';
+import servePublic from './middlewares/servePublic';
 import setGraphqlUrl from './middlewares/setGraphqlUrl';
 import setNode from './middlewares/setNode';
 import subgraphErrorHandler from './middlewares/subgraphErrorHandler';
@@ -22,6 +23,7 @@ router.use(
   validateJsonRpc,
   withCachedChainId,
   setNode,
+  servePublic,
   proxy((req: any) => req._node.url, {
     timeout: REQUEST_TIMEOUT,
     memoizeHost: false,
