@@ -9,7 +9,7 @@ import { fetchWithKeepAlive, sha256 } from '../helpers/utils';
 const isCacheConfigured = !!process.env.AWS_REGION;
 
 export async function graphqlQuery(url: string, query: string, variables = {}) {
-  const res = await fetchWithKeepAlive(url, {
+  const { ok, status, text } = await fetchWithKeepAlive(url, {
     method: 'POST',
     headers: {
       Accept: 'application/json',
@@ -18,12 +18,12 @@ export async function graphqlQuery(url: string, query: string, variables = {}) {
     timeout: REQUEST_TIMEOUT,
     body: JSON.stringify({ query, variables })
   });
-  let responseData: any = await res.text();
+  let responseData: any = text;
   try {
     responseData = JSON.parse(responseData);
   } catch {
-    if (!res.ok) {
-      throw new Error(`Unable to connect to ${url}, code: ${res.status}`);
+    if (!ok) {
+      throw new Error(`Unable to connect to ${url}, code: ${status}`);
     } else {
       throw new Error(`Text response: ${responseData}`);
     }

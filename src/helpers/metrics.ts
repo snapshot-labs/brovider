@@ -43,6 +43,18 @@ export const rpcRequestCount = new client.Counter({
   labelNames: ['network', 'client', 'rpc_method']
 });
 
+export const publicNodeRequestCount = new client.Counter({
+  name: 'rpc_public_node_request_count',
+  help: 'Number of live requests served by public nodes, or falling back to the main node',
+  labelNames: ['network', 'outcome']
+});
+
+export const publicNodeReadyCount = new client.Gauge({
+  name: 'rpc_public_node_ready_count',
+  help: 'Number of public nodes passing health checks',
+  labelNames: ['network']
+});
+
 export const nodesRefreshCount = new client.Counter({
   name: 'node_refresh_count',
   help: 'Number of node refreshes'
