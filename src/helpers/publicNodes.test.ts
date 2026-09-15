@@ -1,4 +1,9 @@
-import { checkPublicNodes, getHead, markFailed, selectNodes } from './publicNodes';
+import {
+  checkPublicNodes,
+  getHead,
+  markFailed,
+  selectNodes
+} from './publicNodes';
 import { fetchWithKeepAlive } from './utils';
 
 jest.mock('./nodes', () => ({
@@ -13,22 +18,39 @@ jest.mock('./utils', () => ({
 
 const fetchMock = fetchWithKeepAlive as jest.Mock;
 
-type Behaviour = { chainId?: string; head?: number; age?: number; fail?: boolean };
+type Behaviour = {
+  chainId?: string;
+  head?: number;
+  age?: number;
+  fail?: boolean;
+};
 const behaviours: Record<string, Behaviour> = {};
 
 function respond(result: unknown) {
-  return { ok: true, json: async () => ({ jsonrpc: '2.0', id: 1, result }) };
+  return {
+    ok: true,
+    status: 200,
+    text: JSON.stringify({ jsonrpc: '2.0', id: 1, result })
+  };
 }
 
 fetchMock.mockImplementation(async (url: string, options: any) => {
-  const { chainId = '0x1', head = 100, age = 0, fail = false } = behaviours[url] ?? {};
+  const {
+    chainId = '0x1',
+    head = 100,
+    age = 0,
+    fail = false
+  } = behaviours[url] ?? {};
   if (fail) throw new Error('down');
 
   const { method } = JSON.parse(options.body);
   if (method === 'eth_chainId') return respond(chainId);
 
   const timestamp = Math.floor(Date.now() / 1000) - age;
-  return respond({ number: `0x${head.toString(16)}`, timestamp: `0x${timestamp.toString(16)}` });
+  return respond({
+    number: `0x${head.toString(16)}`,
+    timestamp: `0x${timestamp.toString(16)}`
+  });
 });
 
 async function runChecks(rounds: number) {

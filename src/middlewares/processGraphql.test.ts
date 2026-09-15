@@ -28,7 +28,8 @@ let processGraphql: (
 function response() {
   return {
     ok: true,
-    text: async () => JSON.stringify(upstreamResponse)
+    status: 200,
+    text: JSON.stringify(upstreamResponse)
   } as any;
 }
 

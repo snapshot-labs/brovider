@@ -1,9 +1,13 @@
 import { createHash } from 'crypto';
+import http from 'node:http';
 import https from 'node:https';
-import fetch, { RequestInit, Response } from 'node-fetch';
+import fetch, { RequestInit } from 'node-fetch';
 
 const DEFAULT_FETCH_TIMEOUT = 30000;
+const httpAgent = new http.Agent({ keepAlive: true });
 const httpsAgent = new https.Agent({ keepAlive: true });
+const agent: RequestInit['agent'] = url =>
+  url.protocol === 'http:' ? httpAgent : httpsAgent;
 
 export async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -20,7 +24,7 @@ interface FetchWithTimeoutOptions extends RequestInit {
 export const fetchWithKeepAlive = async (
   uri: string | URL,
   options: FetchWithTimeoutOptions = {}
-): Promise<Response> => {
+): Promise<{ status: number; ok: boolean; text: string }> => {
   const { timeout = DEFAULT_FETCH_TIMEOUT, ...fetchOptions } = options;
 
   const controller = new AbortController();
@@ -28,11 +32,13 @@ export const fetchWithKeepAlive = async (
 
   try {
     const response = await fetch(uri, {
-      agent: httpsAgent,
+      agent,
       signal: controller.signal,
       ...fetchOptions
     });
-    return response;
+    const text = await response.text();
+
+    return { status: response.status, ok: response.ok, text };
   } catch (err: any) {
     if (err.name === 'AbortError') {
       throw new Error(`Request timeout after ${timeout}ms`);

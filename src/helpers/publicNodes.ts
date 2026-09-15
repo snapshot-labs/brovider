@@ -23,34 +23,41 @@ const counters: Record<string, number> = {};
 let shouldStop = false;
 
 async function rpc(url: string, method: string, params: unknown[] = []) {
-  const res = await fetchWithKeepAlive(url, {
+  const { ok, status, text } = await fetchWithKeepAlive(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     timeout: CHECK_TIMEOUT,
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
   });
-  if (!res.ok) throw new Error(`status ${res.status}`);
+  if (!ok) throw new Error(`status ${status}`);
 
-  const json = await res.json();
-  if (json.error) throw new Error(json.error.message);
+  const body = JSON.parse(text);
+  if (body.error) throw new Error(body.error.message);
 
-  return json.result;
+  return body.result;
 }
 
 async function check(network: string, node: PublicNode) {
   try {
     const chainId = await rpc(node.url, 'eth_chainId');
-    if (parseInt(chainId, 16) !== Number(network)) throw new Error(`chain id ${chainId}`);
+    if (parseInt(chainId, 16) !== Number(network))
+      throw new Error(`chain id ${chainId}`);
 
-    const block = await rpc(node.url, 'eth_getBlockByNumber', ['latest', false]);
+    const block = await rpc(node.url, 'eth_getBlockByNumber', [
+      'latest',
+      false
+    ]);
     const age = Date.now() / 1000 - parseInt(block?.timestamp, 16);
-    if (!(age <= MAX_BLOCK_AGE)) throw new Error(`block age ${Math.round(age)}s`);
+    if (!(age <= MAX_BLOCK_AGE))
+      throw new Error(`block age ${Math.round(age)}s`);
 
     node.head = parseInt(block.number, 16);
     node.okStreak += 1;
   } catch (err) {
     if (node.okStreak >= MIN_OK_STREAK) {
-      console.log(`[public] ${network} ${node.url} removed: ${(err as Error).message}`);
+      console.log(
+        `[public] ${network} ${node.url} removed: ${(err as Error).message}`
+      );
     }
     node.okStreak = 0;
   }
@@ -62,7 +69,8 @@ function syncNodes() {
 
     const current = nodesByNetwork[network] ?? [];
     nodesByNetwork[network] = urls.map(
-      url => current.find(node => node.url === url) ?? { url, head: 0, okStreak: 0 }
+      url =>
+        current.find(node => node.url === url) ?? { url, head: 0, okStreak: 0 }
     );
   }
 
@@ -106,7 +114,8 @@ export function selectNodes(network: string): string[] {
   const fresh = ready.filter(node => node.head >= best - FRESH_TOLERANCE);
   const rest = ready.slice(fresh.length);
 
-  const offset = (counters[network] = ((counters[network] ?? 0) + 1) % fresh.length);
+  const offset = (counters[network] =
+    ((counters[network] ?? 0) + 1) % fresh.length);
   const rotated = [...fresh.slice(offset), ...fresh.slice(0, offset)];
 
   return [...rotated, ...rest].map(node => node.url);

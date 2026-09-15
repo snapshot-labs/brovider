@@ -8,14 +8,19 @@ function isLiveBlock(value: unknown, head: number): boolean {
   if (LIVE_TAGS.has(value)) return true;
 
   const blockNumber = parseInt(value, 16);
-  return Number.isFinite(blockNumber) && Math.abs(head - blockNumber) <= LIVE_BLOCKS;
+  return (
+    Number.isFinite(blockNumber) && Math.abs(head - blockNumber) <= LIVE_BLOCKS
+  );
 }
 
 /**
  * Whether a request only touches the chain head and can be served by a public node.
  * Everything that reads state or old data stays on the main node.
  */
-export function isLiveRequest(body: Record<string, any>, head: number): boolean {
+export function isLiveRequest(
+  body: Record<string, any>,
+  head: number
+): boolean {
   const { method, params } = body;
   const first = Array.isArray(params) ? params[0] : undefined;
 
@@ -27,7 +32,10 @@ export function isLiveRequest(body: Record<string, any>, head: number): boolean 
     case 'eth_getLogs':
       if (!first || typeof first !== 'object') return false;
       if (typeof first.blockHash === 'string') return true;
-      return isLiveBlock(first.fromBlock, head) && isLiveBlock(first.toBlock ?? 'latest', head);
+      return (
+        isLiveBlock(first.fromBlock, head) &&
+        isLiveBlock(first.toBlock ?? 'latest', head)
+      );
     default:
       return false;
   }

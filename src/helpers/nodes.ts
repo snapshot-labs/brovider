@@ -11,7 +11,9 @@ let shouldStop = false;
 
 async function getNodes() {
   const providers = await db.query('SELECT * FROM providers');
-  const rows = await db.query('SELECT * FROM nodes ORDER BY network, main DESC');
+  const rows = await db.query(
+    'SELECT * FROM nodes ORDER BY network, main DESC'
+  );
 
   const nodes: Record<string, string> = {};
   const publicNodes: Record<string, string[]> = {};
