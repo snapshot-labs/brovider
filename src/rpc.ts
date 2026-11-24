@@ -7,6 +7,7 @@ import setNode from './middlewares/setNode';
 import subgraphErrorHandler from './middlewares/subgraphErrorHandler';
 import validateJsonRpc from './middlewares/validateJsonRpc';
 import withCachedChainId from './middlewares/withCachedChainId';
+import withRpcCache from './middlewares/withRpcCache';
 
 const router = express.Router();
 
@@ -22,6 +23,7 @@ router.use(
   validateJsonRpc,
   withCachedChainId,
   setNode,
+  withRpcCache,
   proxy((req: any) => req._node.url, {
     timeout: REQUEST_TIMEOUT,
     memoizeHost: false,

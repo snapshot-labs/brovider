@@ -43,6 +43,29 @@ export const rpcRequestCount = new client.Counter({
   labelNames: ['network', 'client', 'rpc_method']
 });
 
+export const rpcCacheCount = new client.Counter({
+  name: 'rpc_cache_count',
+  help: 'RPC requests by cache result: hit, shared, miss or unpinned',
+  labelNames: ['network', 'rpc_method', 'result']
+});
+
+export const rpcCacheStoreCount = new client.Counter({
+  name: 'rpc_cache_store_count',
+  help: 'Upstream answers to cacheable requests: stored, or why not',
+  labelNames: ['network', 'rpc_method', 'result']
+});
+
+export const rpcCacheMismatchCount = new client.Counter({
+  name: 'rpc_cache_mismatch_count',
+  help: 'Cached answers that differ from the node answer (shadow mode)',
+  labelNames: ['network', 'rpc_method']
+});
+
+export const rpcCacheEvictions = new client.Counter({
+  name: 'rpc_cache_evictions',
+  help: 'Least recently used answers removed to stay under the size budget'
+});
+
 export const nodesRefreshCount = new client.Counter({
   name: 'node_refresh_count',
   help: 'Number of node refreshes'
